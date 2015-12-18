@@ -37,17 +37,23 @@ import tempfile
 import platform
 import requests
 from osmoinforesults import ResultsDialog
+from rb_result_renderer import RubberBandResultRenderer
 
 class OSMInfotool(QgsMapTool):
   def __init__(self, iface):
     QgsMapTool.__init__(self, iface.mapCanvas())
-
+    self.result_renderer = RubberBandResultRenderer(iface)
+    
     self.canvas = iface.mapCanvas()
     #self.emitPoint = QgsMapToolEmitPoint(self.canvas)
     self.iface = iface
 
     self.cursor = QCursor(QPixmap(":/icons/cursor.png"), 1, 1)
-
+    #self.visibilityChanged.connect(self.result_renderer.clear)
+  
+  def __del__(self):
+    self.result_renderer.clear()
+        
   def activate(self):
     self.canvas.setCursor(self.cursor)
 
@@ -60,7 +66,7 @@ class OSMInfotool(QgsMapTool):
     x = event.pos().x()
     y = event.pos().y()
     point = self.canvas.getCoordinateTransform().toMapCoordinates(x, y)
-    #If Shift is pressed, convert coords to EPSG:4326
+    
     xform = QgsCoordinateTransform(crsSrc, crsWGS)
     point = xform.transform(QgsPoint(point.x(),point.y()))
     QApplication.restoreOverrideCursor()
@@ -68,6 +74,9 @@ class OSMInfotool(QgsMapTool):
     xx = str(point.x()) 
     yy = str(point.y())
 
+    self.result_renderer.clear()
+    self.result_renderer.show_point(point, False)
+    
     url = 'http://overpass-api.de/api/interpreter'
 
     #around request
@@ -77,7 +86,6 @@ class OSMInfotool(QgsMapTool):
     #QMessageBox.warning(self.iface.mainWindow(),'Query',request)
     rr = requests.post(url, data = request)
     l1 = rr.json()['elements']
-    
        
     #is_in request
     request = '[timeout:30][out:json];is_in(%s,%s)->.a;way(pivot.a);out tags geom;relation(pivot.a);out tags bb;'%(yy,xx)
