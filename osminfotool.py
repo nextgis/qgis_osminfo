@@ -77,6 +77,9 @@ class OSMInfotool(QgsMapTool):
     rr = requests.post(url, data = request)
     res = ''
     for item in rr.json()['elements']:
-        res = res + 'Name: ' + item['tags']['name'] + '\n'
+        if 'addr:street' in item['tags'] or 'addr:housenumber' in item['tags']:
+            res = res + 'Name: ' + item['tags']['name'] + u' (улица:' + item['tags']['addr:street'] + u', дом:' + item['tags']['addr:housenumber'] + ')\n'
+        else:
+            res = res + 'Name: ' + item['tags']['name'] + '\n'
     
-    QMessageBox.warning(self.iface.mainWindow(),Query results,res)
+    QMessageBox.warning(self.iface.mainWindow(),'Query results',res)
