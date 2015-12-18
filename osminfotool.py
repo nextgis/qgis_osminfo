@@ -72,9 +72,11 @@ class OSMInfotool(QgsMapTool):
 
     request = '[timeout:30][out:json];is_in(%s,%s)->.a;way(pivot.a);out tags geom;relation(pivot.a);out tags bb;'%(yy,xx)
 
-    r = requests.post(url, data = request)
-    str = ''
+    QMessageBox.warning(self.iface.mainWindow(),xx,request)
+
+    rr = requests.post(url, data = request)
+    res = ''
     for item in rr.json()['elements']:
-        str = str + 'Name: ' + item['tags']['name'] + '\n'
+        res = res + 'Name: ' + item['tags']['name'] + '\n'
     
-    QMessageBox.warning(self.iface.mainWindow(),xx,str)
+    QMessageBox.warning(self.iface.mainWindow(),Query results,res)

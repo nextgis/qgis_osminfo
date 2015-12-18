@@ -15,8 +15,8 @@ icon=icons/icon.png
 
 tags=coords,copy coords
 
-homepage=https://github.com/nextgis/copy_coords
-tracker=https://github.com/nextgis/copy_coords/issues
-repository=https://github.com/nextgis/copy_coords
+homepage=https://github.com/nextgis/osminfo
+tracker=https://github.com/nextgis/osminfo/issues
+repository=https://github.com/nextgis/osminfo
 
 deprecated=False
