@@ -60,9 +60,8 @@ class OSMInfotool(QgsMapTool):
     y = event.pos().y()
     point = self.canvas.getCoordinateTransform().toMapCoordinates(x, y)
     #If Shift is pressed, convert coords to EPSG:4326
-    if event.modifiers() == Qt.ShiftModifier:
-        xform = QgsCoordinateTransform(crsSrc, crsWGS)
-        point = xform.transform(QgsPoint(point.x(),point.y()))
+    xform = QgsCoordinateTransform(crsSrc, crsWGS)
+    point = xform.transform(QgsPoint(point.x(),point.y()))
     QApplication.restoreOverrideCursor()
 
     xx = str(point.x()) 
@@ -70,12 +69,34 @@ class OSMInfotool(QgsMapTool):
 
     url = 'http://overpass-api.de/api/interpreter'
 
-    request = '[timeout:30][out:json];is_in(%s,%s)->.a;way(pivot.a);out tags geom;relation(pivot.a);out tags bb;'%(yy,xx)
-
-    QMessageBox.warning(self.iface.mainWindow(),xx,request)
-
+    #around request
+    dist = 20
+    request = '[timeout:30][out:json];(node(around:%s,%s,%s);way(around:%s,%s,%s));out tags geom;relation(around:%s,%s,%s);'%(dist,yy,xx,dist,yy,xx,dist,yy,xx)
+    
+    #QMessageBox.warning(self.iface.mainWindow(),'Query',request)
     rr = requests.post(url, data = request)
-    res = ''
+    res = 'Nearby:\n'
+    for item in rr.json()['elements']:
+        if 'tags' in item:
+            if 'addr:street' in item['tags'] or 'addr:housenumber' in item['tags']:
+                if 'name' in item['tags']:
+                    res = res + 'Name: ' + item['tags']['name'] + u' (улица:' + item['tags']['addr:street'] + u', дом:' + item['tags']['addr:housenumber'] + ')\n'
+                else:
+                    res = res + u'Address: ' + u'Street:' + item['tags']['addr:street'] + u', Bld:' + item['tags']['addr:housenumber'] + '\n'
+            else:
+                if 'name' in item['tags']:
+                    res = res + 'Name: ' + item['tags']['name'] + '\n'
+                else:
+                    #show first key-value
+                    tagname = sorted(item['tags'].keys())[0] #item['tags'].keys()[0]
+                    res = res + tagname + ':' + item['tags'][tagname] + '\n'
+    
+    #is_in request
+    request = '[timeout:30][out:json];is_in(%s,%s)->.a;way(pivot.a);out tags geom;relation(pivot.a);out tags bb;'%(yy,xx)
+    
+    #QMessageBox.warning(self.iface.mainWindow(),'Query',request)
+    rr = requests.post(url, data = request)
+    res = res + '\nIs in:\n'
     for item in rr.json()['elements']:
         if 'addr:street' in item['tags'] or 'addr:housenumber' in item['tags']:
             res = res + 'Name: ' + item['tags']['name'] + u' (улица:' + item['tags']['addr:street'] + u', дом:' + item['tags']['addr:housenumber'] + ')\n'
