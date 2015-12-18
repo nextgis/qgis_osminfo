@@ -31,7 +31,7 @@ from qgis.core import *
 
 
 class ResultsDialog(QDialog):
-    def __init__(self, title, elements, parent=None):
+    def __init__(self, title, elements1, elements2, parent=None):
         QDialog.__init__(self, parent)
 
         self.setWindowTitle(title)
@@ -39,27 +39,50 @@ class ResultsDialog(QDialog):
         self.__layout = QVBoxLayout(self)
 
         self.__resultsTree = QTreeWidget(self)
+        self.__resultsTree.setFixedSize(395,395)
         self.__resultsTree.setColumnCount(2)
-        self.__resultsTree.setHeaderLabels(["", ""])
+        self.__resultsTree.setHeaderLabels(['Feature/Key','Value'])
         self.__layout.addWidget(self.__resultsTree)
-
         self.__resultsTree.clear()
-
+        
         index = 1
-        for element in elements:
+
+        near = QTreeWidgetItem(['Nearby features'])
+        self.__resultsTree.addTopLevelItem(near)
+        self.__resultsTree.expandItem(near)
+        self.__resultsTree.header().setResizeMode(QHeaderView.ResizeToContents)
+        self.__resultsTree.header().setStretchLastSection(False)
+        
+        
+        for element in elements1:
             # print element
             try:
                 elementTags = element[u'tags']
-
                 elementTitle = elementTags.get(u'name', str(index))
-                
-                elementItem = QTreeWidgetItem([elementTitle])
-
-                for tag in elementTags.items():
+                elementItem = QTreeWidgetItem(near,[elementTitle])
+                for tag in sorted(elementTags.items()):
                     elementItem.addChild(QTreeWidgetItem(tag))
 
                 self.__resultsTree.addTopLevelItem(elementItem)
-
                 index += 1
             except Exception as e:
                 print e
+
+        isin = QTreeWidgetItem(['Is inside'])
+        self.__resultsTree.addTopLevelItem(isin)
+        
+        for element in elements2:
+            # print element
+            try:
+                elementTags = element[u'tags']
+                elementTitle = elementTags.get(u'name', str(index))
+                elementItem = QTreeWidgetItem(isin,[elementTitle])
+                for tag in sorted(elementTags.items()):
+                    elementItem.addChild(QTreeWidgetItem(tag))
+
+                self.__resultsTree.addTopLevelItem(elementItem)
+                index += 1
+            except Exception as e:
+                print e
+                
+        #self.__resultsTree.resizeColumnToContents(0)

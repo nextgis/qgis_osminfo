@@ -36,6 +36,7 @@ import os
 import tempfile
 import platform
 import requests
+from osmoinforesults import ResultsDialog
 
 class OSMInfotool(QgsMapTool):
   def __init__(self, iface):
@@ -75,32 +76,14 @@ class OSMInfotool(QgsMapTool):
     
     #QMessageBox.warning(self.iface.mainWindow(),'Query',request)
     rr = requests.post(url, data = request)
-    res = 'Nearby:\n'
-    for item in rr.json()['elements']:
-        if 'tags' in item:
-            if 'addr:street' in item['tags'] or 'addr:housenumber' in item['tags']:
-                if 'name' in item['tags']:
-                    res = res + 'Name: ' + item['tags']['name'] + u' (улица:' + item['tags']['addr:street'] + u', дом:' + item['tags']['addr:housenumber'] + ')\n'
-                else:
-                    res = res + u'Address: ' + u'Street:' + item['tags']['addr:street'] + u', Bld:' + item['tags']['addr:housenumber'] + '\n'
-            else:
-                if 'name' in item['tags']:
-                    res = res + 'Name: ' + item['tags']['name'] + '\n'
-                else:
-                    #show first key-value
-                    tagname = sorted(item['tags'].keys())[0] #item['tags'].keys()[0]
-                    res = res + tagname + ':' + item['tags'][tagname] + '\n'
+    l1 = rr.json()['elements']
     
+       
     #is_in request
     request = '[timeout:30][out:json];is_in(%s,%s)->.a;way(pivot.a);out tags geom;relation(pivot.a);out tags bb;'%(yy,xx)
     
-    #QMessageBox.warning(self.iface.mainWindow(),'Query',request)
     rr = requests.post(url, data = request)
-    res = res + '\nIs in:\n'
-    for item in rr.json()['elements']:
-        if 'addr:street' in item['tags'] or 'addr:housenumber' in item['tags']:
-            res = res + 'Name: ' + item['tags']['name'] + u' (улица:' + item['tags']['addr:street'] + u', дом:' + item['tags']['addr:housenumber'] + ')\n'
-        else:
-            res = res + 'Name: ' + item['tags']['name'] + '\n'
+    l2 = rr.json()['elements']
     
-    QMessageBox.warning(self.iface.mainWindow(),'Query results',res)
+    dlg = ResultsDialog('Query results', l1, l2, self.iface.mainWindow())
+    dlg.exec_()
