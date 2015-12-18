@@ -53,6 +53,9 @@ class OSMInfotool(QgsMapTool):
   
   def __del__(self):
     self.result_renderer.clear()
+
+  def clearCanvas(self):
+    self.result_renderer.clear()
         
   def activate(self):
     self.canvas.setCursor(self.cursor)
@@ -94,4 +97,5 @@ class OSMInfotool(QgsMapTool):
     l2 = rr.json()['elements']
     
     dlg = ResultsDialog('Query results', l1, l2, self.iface.mainWindow())
+    dlg.finished.connect(self.clearCanvas)
     dlg.exec_()
