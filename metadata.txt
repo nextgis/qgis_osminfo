@@ -1,0 +1,22 @@
+[general]
+name=OSMInfo
+description=Capture coordinates from QGIS in one click for immediate pasting into a spreadsheet, as simple as it gets. 
+about=Capture coordinates from QGIS in one click for immediate pasting into a spreadsheet, as simple as it gets. Use SHIFT to copy coordinates in EPSG:4326 (WGS 1984) independently from what your current CRS is.
+category=Vector
+version=0.1
+qgisMinimumVersion=2.0
+
+author=NextGIS
+email=info@nextgis.org
+changelog= 0.1:
+        * add Shift+click to store coords in EPSG:4326
+
+icon=icons/icon.png
+
+tags=coords,copy coords
+
+homepage=https://github.com/nextgis/copy_coords
+tracker=https://github.com/nextgis/copy_coords/issues
+repository=https://github.com/nextgis/copy_coords
+
+deprecated=False
