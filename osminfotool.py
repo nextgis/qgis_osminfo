@@ -70,11 +70,11 @@ class OSMInfotool(QgsMapTool):
 
     url = 'http://overpass-api.de/api/interpreter'
 
-    request = '[timeout:5][out:json];is_in(%s,%s)->.a;way(pivot.a);out tags geom(55.7528637550784,37.625319957733154,55.75534521134387,37.635018825531006);relation(pivot.a);out tags bb;'%(yy,xx)
+    request = '[timeout:30][out:json];is_in(%s,%s)->.a;way(pivot.a);out tags geom;relation(pivot.a);out tags bb;'%(yy,xx)
 
     r = requests.post(url, data = request)
+    str = ''
+    for item in rr.json()['elements']:
+        str = str + 'Name: ' + item['tags']['name'] + '\n'
     
-    te = QTextEdit()
-    te.setWindowTitle("test")
-    te.setPlainText(str(r.json()))
-    te.show()
+    QMessageBox.warning(self.iface.mainWindow(),xx,str)
