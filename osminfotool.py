@@ -36,7 +36,7 @@ import os
 import tempfile
 import platform
 import requests
-from osmoinforesults import ResultsDialog
+from osminforesults import ResultsDialog
 from rb_result_renderer import RubberBandResultRenderer
 
 class OSMInfotool(QgsMapTool):
