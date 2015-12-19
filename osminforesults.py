@@ -39,7 +39,7 @@ class ResultsDialog(QDialog):
         self.__layout = QVBoxLayout(self)
 
         self.__resultsTree = QTreeWidget(self)
-        self.__resultsTree.setFixedSize(395,395)
+        self.__resultsTree.setMinimumSize(395,395)
         self.__resultsTree.setColumnCount(2)
         self.__resultsTree.setHeaderLabels(['Feature/Key','Value'])
         self.__layout.addWidget(self.__resultsTree)
@@ -64,12 +64,14 @@ class ResultsDialog(QDialog):
                     elementItem.addChild(QTreeWidgetItem(tag))
 
                 self.__resultsTree.addTopLevelItem(elementItem)
+                self.__resultsTree.expandItem(elementItem)
                 index += 1
             except Exception as e:
                 print e
 
         isin = QTreeWidgetItem(['Is inside'])
         self.__resultsTree.addTopLevelItem(isin)
+        self.__resultsTree.expandItem(isin)
         
         for element in elements2:
             # print element
