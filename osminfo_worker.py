@@ -32,35 +32,40 @@ from qgis.core import *
 from qgis.gui import *
 
 import requests
-from osminforesults import ResultsDialog
 
-class ResultsTree(QtCore.QObject):
 
-    progressChanged = QtCore.pyqtSignal(int)
+class Worker(QObject):
+    getData = pyqtSignal(list, list)
 
-    def __init__(self, iface, point):
+    def __init__(self, xx, yy):
+        QObject.__init__(self)
+        self.__xx = xx
+        self.__yy = yy
 
     def run(self):
-        xx = str(point.x()) 
-        yy = str(point.y())
+        xx = str(self.__xx)
+        yy = str(self.__yy)
 
         url = 'http://overpass-api.de/api/interpreter'
 
-        #around request
+        # around request
         dist = 20
         request = '[timeout:30][out:json];(node(around:%s,%s,%s);way(around:%s,%s,%s));out tags geom;relation(around:%s,%s,%s);'%(dist,yy,xx,dist,yy,xx,dist,yy,xx)
 
-        #QMessageBox.warning(self.iface.mainWindow(),'Query',request)
-        rr = requests.post(url, data = request)
+        # QMessageBox.warning(self.iface.mainWindow(),'Query',request)
+        rr = requests.post(url, data=request)
         l1 = rr.json()['elements']
-           
-        #is_in request
+
+        # # #is_in request
         request = '[timeout:30][out:json];is_in(%s,%s)->.a;way(pivot.a);out tags geom;relation(pivot.a);out tags bb;'%(yy,xx)
 
-        rr = requests.post(url, data = request)
+        rr = requests.post(url, data=request)
         l2 = rr.json()['elements']
 
-        dlg = ResultsDialog('Query results', l1, l2, self.iface.mainWindow())
-        dlg.finished.connect(self.clearCanvas)
-        dlg.exec_()
+        QgsMessageLog.logMessage(
+            "Worker: requests done!",
+            "OSMInfo",
+            QgsMessageLog.INFO
+        )
 
+        self.getData.emit(l1, l2)

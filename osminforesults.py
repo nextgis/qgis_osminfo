@@ -29,9 +29,11 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from qgis.core import *
 
+from osminfo_worker import Worker
+
 
 class ResultsDialog(QDialog):
-    def __init__(self, title, elements1, elements2, parent=None):
+    def __init__(self, title, xx, yy, parent=None):
         QDialog.__init__(self, parent)
 
         self.setWindowTitle(title)
@@ -39,27 +41,41 @@ class ResultsDialog(QDialog):
         self.__layout = QVBoxLayout(self)
 
         self.__resultsTree = QTreeWidget(self)
-        self.__resultsTree.setMinimumSize(395,395)
+        self.__resultsTree.setMinimumSize(395, 395)
         self.__resultsTree.setColumnCount(2)
-        self.__resultsTree.setHeaderLabels(['Feature/Key','Value'])
+        self.__resultsTree.setHeaderLabels(['Feature/Key', 'Value'])
         self.__layout.addWidget(self.__resultsTree)
         self.__resultsTree.clear()
-        
-        index = 1
+
+        self.__resultsTree.addTopLevelItem(QTreeWidgetItem(["Loading...."]))
+
+        worker = Worker(xx, yy)
+        thread = QThread(self)
+        worker.moveToThread(thread)
+        worker.getData.connect(self.showData)
+        thread.started.connect(worker.run)
+        thread.start()
+
+        self.thread = thread
+        self.worker = worker
+
+    def showData(self, l1, l2):
+        self.__resultsTree.clear()
 
         near = QTreeWidgetItem(['Nearby features'])
         self.__resultsTree.addTopLevelItem(near)
         self.__resultsTree.expandItem(near)
         self.__resultsTree.header().setResizeMode(QHeaderView.ResizeToContents)
         self.__resultsTree.header().setStretchLastSection(False)
-        
-        
-        for element in elements1:
+
+        index = 1
+
+        for element in l1:
             # print element
             try:
                 elementTags = element[u'tags']
                 elementTitle = elementTags.get(u'name', str(index))
-                elementItem = QTreeWidgetItem(near,[elementTitle])
+                elementItem = QTreeWidgetItem(near, [elementTitle])
                 for tag in sorted(elementTags.items()):
                     elementItem.addChild(QTreeWidgetItem(tag))
 
@@ -72,13 +88,13 @@ class ResultsDialog(QDialog):
         isin = QTreeWidgetItem(['Is inside'])
         self.__resultsTree.addTopLevelItem(isin)
         self.__resultsTree.expandItem(isin)
-        
-        for element in elements2:
+
+        for element in l2:
             # print element
             try:
                 elementTags = element[u'tags']
                 elementTitle = elementTags.get(u'name', str(index))
-                elementItem = QTreeWidgetItem(isin,[elementTitle])
+                elementItem = QTreeWidgetItem(isin, [elementTitle])
                 for tag in sorted(elementTags.items()):
                     elementItem.addChild(QTreeWidgetItem(tag))
 
@@ -86,5 +102,3 @@ class ResultsDialog(QDialog):
                 index += 1
             except Exception as e:
                 print e
-                
-        #self.__resultsTree.resizeColumnToContents(0)
