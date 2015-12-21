@@ -38,7 +38,7 @@ from osminfo_worker import Worker
 class ResultsDialog(QDockWidget):
     def __init__(self, title, parent=None):
         QDockWidget.__init__(self, title, parent)
-
+        good_tags=['building','highway']
         self.__mainWidget = QWidget()
 
         self.__layout = QVBoxLayout(self.__mainWidget)
@@ -81,13 +81,25 @@ class ResultsDialog(QDockWidget):
             # print element
             try:
                 elementTags = element[u'tags']
-                elementTitle = elementTags.get(u'name', str(index))
+                elementTitle = elementTags.get(u'name')
+                if not elementTitle:
+                    if 'building' in elementTags.keys():
+                        if 'addr:street' in elementTags.keys() and 'addr:housenumber' in elementTags.keys():
+                            elementTitle = elementTags['addr:street'] + ', ' + elementTags['addr:housenumber']
+                        else:
+                            elementTitle = 'building'
+                    elif 'highway' in elementTags.keys():
+                        elementTitle = 'highway:' + elementTags['highway']
+                    elif 'amenity' in elementTags.keys():
+                        elementTitle = elementTags['amenity']
+                    else:
+                        elementTitle = elementTags[0]
                 elementItem = QTreeWidgetItem(near, [elementTitle])
                 for tag in sorted(elementTags.items()):
                     elementItem.addChild(QTreeWidgetItem(tag))
 
                 self.__resultsTree.addTopLevelItem(elementItem)
-                self.__resultsTree.expandItem(elementItem)
+                #self.__resultsTree.expandItem(elementItem)
                 index += 1
             except Exception as e:
                 print e
