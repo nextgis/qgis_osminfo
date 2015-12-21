@@ -6,8 +6,11 @@
 # This plugin takes coordinates of a mouse click and gets information about all 
 # objects from this point from OSM using Overpass API.
 #
-# Copyright (C) 2013 Maxim Dubinin (sim@gis-lab.info), NextGIS (info@nextgis.org)
-#
+# Author:   Maxim Dubinin, sim@gis-lab.info
+# Author:   Alexander Lisovenko, alexander.lisovenko@nextgis.ru
+# *****************************************************************************
+# Copyright (c) 2012-2015. NextGIS, info@nextgis.com
+
 # This source is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free
 # Software Foundation, either version 2 of the License, or (at your option)

@@ -6,7 +6,10 @@
 # This plugin takes coordinates of a mouse click and gets information about all 
 # objects from this point from OSM using Overpass API.
 #
-# Copyright (C) 2013 Maxim Dubinin (sim@gis-lab.info), NextGIS (info@nextgis.org)
+# Author:   Maxim Dubinin, sim@gis-lab.info
+# Author:   Alexander Lisovenko, alexander.lisovenko@nextgis.ru
+# *****************************************************************************
+# Copyright (c) 2012-2015. NextGIS, info@nextgis.com
 #
 # This source is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free
@@ -30,8 +33,8 @@ from PyQt4.QtGui import *
 from qgis.core import *
 
 import osminfotool
+import aboutdialog
 
-# initialize resources (icons) from resouces.py
 import resources
 
 class OsmInfo:
@@ -48,25 +51,30 @@ class OsmInfo:
     if int(self.qgsVersion) < 10900:
         qgisVersion = self.qgsVersion[0] + "." + self.qgsVersion[2] + "." + self.qgsVersion[3]
         QMessageBox.warning(self.iface.mainWindow(),
-                            "OsmInfo", "Error",
-                            "OsmInfo", "QGIS %s detected.\n" % (qgisVersion) +
-                            "OsmInfo", "This version of TestPlugin requires at least QGIS version 2.0.\nPlugin will not be enabled.")
+                            "OSMInfo", "Error",
+                            "OSMInfo", "QGIS %s detected.\n" % (qgisVersion) +
+                            "OSMInfo", "This version of OSMInfo requires at least QGIS version 2.0.\nPlugin will not be enabled.")
         return None
 
     #create action that will be run by the plugin
-    self.action = QAction("Select point", self.iface.mainWindow())
-    self.action.setIcon(QIcon(":/icons/cursor.png"))
-    self.action.setWhatsThis("Select point")
-    self.action.setStatusTip("Select point to get OSM data about")
+    self.actionRun = QAction(QCoreApplication.translate('OSMInfo',"Get OSM info for point"), self.iface.mainWindow())
+    self.actionRun.setIcon(QIcon(":/icons/cursor.png"))
+    self.actionRun.setWhatsThis("Select point")
+    self.actionRun.setStatusTip("Select point to get OpenStreetMap data for")
+    self.actionAbout = QAction(QCoreApplication.translate('OSMInfo', 'About OSMInfo...'), self.iface.mainWindow())
+    self.actionAbout.setIcon(QIcon(':/icons/about.png'))
+    self.actionAbout.setWhatsThis('About OSMInfo')
     
     # add plugin menu to Vector toolbar
-    self.iface.addPluginToMenu("OSMInfo",self.action)
+    self.iface.addPluginToMenu('OSMInfo',self.actionRun)
+    self.iface.addPluginToMenu('OSMInfo',self.actionAbout)
     
     # add icon to new menu item in Vector toolbar
-    self.iface.addToolBarIcon(self.action)
+    self.iface.addToolBarIcon(self.actionRun)
 
     # connect action to the run method
-    self.action.triggered.connect(self.run)
+    self.actionRun.triggered.connect(self.run)
+    self.actionAbout.triggered.connect(self.about)
 
     # prepare map tool
     self.mapTool = osminfotool.OSMInfotool(self.iface)
@@ -75,16 +83,19 @@ class OsmInfo:
   def unload(self):
     """Actions to run when the plugin is unloaded"""
     # remove menu and icon from the menu
-    self.iface.removeToolBarIcon(self.action)
-    self.iface.removePluginMenu("OSMInfo",self.action)
+    self.iface.removeToolBarIcon(self.actionRun)
+    self.iface.removePluginMenu('OSMInfo', self.actionAbout)
+    self.iface.removePluginMenu('OSMInfo',self.actionRun)
 
     if self.iface.mapCanvas().mapTool() == self.mapTool:
-      self.iface.mapCanvas().unsetMapTool(self.mapTool)
+        self.iface.mapCanvas().unsetMapTool(self.mapTool)
 
     del self.mapTool
 
   def run(self):
     """Action to run"""
-    # create a string and show it
-
     self.iface.mapCanvas().setMapTool(self.mapTool)
+
+  def about(self):
+    d = aboutdialog.AboutDialog()
+    d.exec_()
