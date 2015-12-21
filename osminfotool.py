@@ -55,6 +55,7 @@ class OSMInfotool(QgsMapTool):
     #self.visibilityChanged.connect(self.result_renderer.clear)
     
     self.docWidgetResults = ResultsDialog("OSM Info", self.iface.mainWindow())
+    self.docWidgetResults.setVisible(False)
     self.docWidgetResults.setFloating(True)
 
   def __del__(self):
