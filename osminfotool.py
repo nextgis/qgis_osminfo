@@ -57,13 +57,18 @@ class OSMInfotool(QgsMapTool):
     self.docWidgetResults = ResultsDialog("OSM Info", self.iface.mainWindow())
     self.docWidgetResults.setVisible(False)
     self.docWidgetResults.setFloating(True)
+    self.docWidgetResults.visibilityChanged.connect(self.docWidgetResultsVisChange)
 
   def __del__(self):
     self.result_renderer.clear()
 
   def clearCanvas(self):
     self.result_renderer.clear()
-        
+  
+  def docWidgetResultsVisChange(self, vis):
+    if vis is False:
+        self.clearCanvas()
+
   def activate(self):
     self.canvas.setCursor(self.cursor)
 
@@ -72,7 +77,6 @@ class OSMInfotool(QgsMapTool):
         self.docWidgetResults.setVisible(False)
 
   def canvasReleaseEvent(self, event):
-    self.clearCanvas()
 
     crsSrc = self.canvas.mapRenderer().destinationCrs()
     crsWGS = QgsCoordinateReferenceSystem(4326)
@@ -91,6 +95,7 @@ class OSMInfotool(QgsMapTool):
 
     self.result_renderer.clear()
     self.result_renderer.show_point(point, False)
+    self.canvas.update()
 
     self.docWidgetResults.getInfo(xx, yy)
     self.docWidgetResults.setVisible(True)
