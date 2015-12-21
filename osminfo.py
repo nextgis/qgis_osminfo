@@ -48,7 +48,7 @@ class OsmInfo:
   def initGui(self):
     """Initialize graphic user interface"""
     #check if the plugin is ran below 2.0
-    if int(self.qgsVersion) < 10900:
+    if int(self.qgsVersion) < 20000:
         qgisVersion = self.qgsVersion[0] + "." + self.qgsVersion[2] + "." + self.qgsVersion[3]
         QMessageBox.warning(self.iface.mainWindow(),
                             "OSMInfo", "Error",
@@ -57,8 +57,8 @@ class OsmInfo:
         return None
 
     #create action that will be run by the plugin
-    self.actionRun = QAction(QCoreApplication.translate('OSMInfo',"Get OSM info for point"), self.iface.mainWindow())
-    self.actionRun.setIcon(QIcon(":/icons/cursor.png"))
+    self.actionRun = QAction(QCoreApplication.translate('OSMInfo',"Get OSM info for a point"), self.iface.mainWindow())
+    self.actionRun.setIcon(QIcon(":/icons/osminfo.png"))
     self.actionRun.setWhatsThis("Select point")
     self.actionRun.setStatusTip("Select point to get OpenStreetMap data for")
     self.actionAbout = QAction(QCoreApplication.translate('OSMInfo', 'About OSMInfo...'), self.iface.mainWindow())
