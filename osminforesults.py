@@ -35,13 +35,13 @@ from qgis.core import *
 from osminfo_worker import Worker
 
 
-class ResultsDialog(QDialog):
-    def __init__(self, title, xx, yy, parent=None):
-        QDialog.__init__(self, parent)
+class ResultsDialog(QDockWidget):
+    def __init__(self, title, parent=None):
+        QDockWidget.__init__(self, title, parent)
 
-        self.setWindowTitle(title)
+        self.__mainWidget = QWidget()
 
-        self.__layout = QVBoxLayout(self)
+        self.__layout = QVBoxLayout(self.__mainWidget)
 
         self.__resultsTree = QTreeWidget(self)
         self.__resultsTree.setMinimumSize(395, 395)
@@ -50,6 +50,10 @@ class ResultsDialog(QDialog):
         self.__layout.addWidget(self.__resultsTree)
         self.__resultsTree.clear()
 
+        self.setWidget(self.__mainWidget)
+
+    def getInfo(self, xx, yy):
+        self.__resultsTree.clear()
         self.__resultsTree.addTopLevelItem(QTreeWidgetItem(["Loading...."]))
 
         worker = Worker(xx, yy)

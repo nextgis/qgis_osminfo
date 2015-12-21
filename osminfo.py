@@ -79,7 +79,7 @@ class OsmInfo:
     # prepare map tool
     self.mapTool = osminfotool.OSMInfotool(self.iface)
     #self.iface.mapCanvas().mapToolSet.connect(self.mapToolChanged)
-      
+
   def unload(self):
     """Actions to run when the plugin is unloaded"""
     # remove menu and icon from the menu
@@ -94,7 +94,6 @@ class OsmInfo:
 
   def run(self):
     """Action to run"""
-
     self.iface.mapCanvas().setMapTool(self.mapTool)
 
   def about(self):

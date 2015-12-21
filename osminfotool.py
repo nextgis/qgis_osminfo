@@ -53,7 +53,10 @@ class OSMInfotool(QgsMapTool):
 
     self.cursor = QCursor(QPixmap(":/icons/cursor.png"), 1, 1)
     #self.visibilityChanged.connect(self.result_renderer.clear)
-  
+    
+    self.docWidgetResults = ResultsDialog("OSM Info", self.iface.mainWindow())
+    self.docWidgetResults.setFloating(True)
+
   def __del__(self):
     self.result_renderer.clear()
 
@@ -63,7 +66,12 @@ class OSMInfotool(QgsMapTool):
   def activate(self):
     self.canvas.setCursor(self.cursor)
 
+  def deactivate(self):
+    if self.docWidgetResults.isFloating():
+        self.docWidgetResults.setVisible(False)
+
   def canvasReleaseEvent(self, event):
+    self.clearCanvas()
 
     crsSrc = self.canvas.mapRenderer().destinationCrs()
     crsWGS = QgsCoordinateReferenceSystem(4326)
@@ -83,6 +91,5 @@ class OSMInfotool(QgsMapTool):
     self.result_renderer.clear()
     self.result_renderer.show_point(point, False)
 
-    dlg = ResultsDialog('Query results', xx, yy, self.iface.mainWindow())
-    dlg.finished.connect(self.clearCanvas)
-    dlg.exec_()
+    self.docWidgetResults.getInfo(xx, yy)
+    self.docWidgetResults.setVisible(True)
