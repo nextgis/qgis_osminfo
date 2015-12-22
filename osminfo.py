@@ -61,17 +61,15 @@ class OsmInfo:
     self.actionRun.setIcon(QIcon(":/icons/osminfo.png"))
     self.actionRun.setWhatsThis("Select point")
     self.actionRun.setStatusTip("Select point to get OpenStreetMap data for")
+
     self.actionAbout = QAction(QCoreApplication.translate('OSMInfo', 'About OSMInfo...'), self.iface.mainWindow())
     self.actionAbout.setIcon(QIcon(':/icons/about.png'))
     self.actionAbout.setWhatsThis('About OSMInfo')
     
     # add plugin menu to Web
-    self.web_menu = self.iface.webMenu()
-    self.osminfo_menu = QMenu('OSMInfo')
-    self.web_menu.addMenu(self.osminfo_menu)
-
-    self.osminfo_menu.addAction(self.actionRun)
-    self.osminfo_menu.addAction(self.actionAbout)
+    self.osminfo_menu = u'OSMInfo'
+    self.iface.addPluginToWebMenu(self.osminfo_menu,self.actionRun)
+    self.iface.addPluginToWebMenu(self.osminfo_menu,self.actionAbout)
     
     # add icon to new menu item in Vector toolbar
     self.iface.addWebToolBarIcon(self.actionRun)
