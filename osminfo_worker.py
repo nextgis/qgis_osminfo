@@ -44,6 +44,8 @@ class Worker(QObject):
         QObject.__init__(self)
         self.__xx = xx
         self.__yy = yy
+        if abs(xx) <= 180 or abs(yy) <= 90:
+            QMessageBox.warning(self.iface.mainWindow(),'Error','Coordinates are not valid (or cannot be converted to EPSG:4326)')
 
     def run(self):
         xx = str(self.__xx)
