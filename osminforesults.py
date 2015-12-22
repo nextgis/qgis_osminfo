@@ -44,7 +44,7 @@ class ResultsDialog(QDockWidget):
         self.__layout = QVBoxLayout(self.__mainWidget)
 
         self.__resultsTree = QTreeWidget(self)
-        self.__resultsTree.setMinimumSize(200, 200)
+        self.__resultsTree.setMinimumSize(350, 250)
         self.__resultsTree.setColumnCount(2)
         self.__resultsTree.setHeaderLabels(['Feature/Key', 'Value'])
         self.__layout.addWidget(self.__resultsTree)
