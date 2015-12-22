@@ -52,6 +52,13 @@ class Worker(QObject):
         xx = str(self.__xx)
         yy = str(self.__yy)
 
+        if abs(float(xx)) > 180 or abs(float(yy)) > 90:
+            QgsMessageLog.logMessage(
+            "Worker: %s, %s are wrong coords!"%(xx,yy),
+            "OSMInfo",
+            QgsMessageLog.INFO
+            )
+
         url = 'http://overpass-api.de/api/interpreter'
         request = QNetworkRequest(QUrl(url))
         qnam = QgsNetworkAccessManager.instance()

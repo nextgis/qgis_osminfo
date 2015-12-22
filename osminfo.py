@@ -48,7 +48,7 @@ class OsmInfo:
   def initGui(self):
     """Initialize graphic user interface"""
     #check if the plugin is ran below 2.0
-    if int(self.qgsVersion) < 10900:
+    if int(self.qgsVersion) < 20000:
         qgisVersion = self.qgsVersion[0] + "." + self.qgsVersion[2] + "." + self.qgsVersion[3]
         QMessageBox.warning(self.iface.mainWindow(),
                             "OSMInfo", "Error",
@@ -57,20 +57,22 @@ class OsmInfo:
         return None
 
     #create action that will be run by the plugin
-    self.actionRun = QAction(QCoreApplication.translate('OSMInfo',"Get OSM info for point"), self.iface.mainWindow())
-    self.actionRun.setIcon(QIcon(":/icons/cursor.png"))
+    self.actionRun = QAction(QCoreApplication.translate('OSMInfo',"Get OSM info for a point"), self.iface.mainWindow())
+    self.actionRun.setIcon(QIcon(":/icons/osminfo.png"))
     self.actionRun.setWhatsThis("Select point")
     self.actionRun.setStatusTip("Select point to get OpenStreetMap data for")
+
     self.actionAbout = QAction(QCoreApplication.translate('OSMInfo', 'About OSMInfo...'), self.iface.mainWindow())
     self.actionAbout.setIcon(QIcon(':/icons/about.png'))
     self.actionAbout.setWhatsThis('About OSMInfo')
     
-    # add plugin menu to Vector toolbar
-    self.iface.addPluginToMenu('OSMInfo',self.actionRun)
-    self.iface.addPluginToMenu('OSMInfo',self.actionAbout)
+    # add plugin menu to Web
+    self.osminfo_menu = u'OSMInfo'
+    self.iface.addPluginToWebMenu(self.osminfo_menu,self.actionRun)
+    self.iface.addPluginToWebMenu(self.osminfo_menu,self.actionAbout)
     
     # add icon to new menu item in Vector toolbar
-    self.iface.addToolBarIcon(self.actionRun)
+    self.iface.addWebToolBarIcon(self.actionRun)
 
     # connect action to the run method
     self.actionRun.triggered.connect(self.run)
@@ -83,9 +85,9 @@ class OsmInfo:
   def unload(self):
     """Actions to run when the plugin is unloaded"""
     # remove menu and icon from the menu
-    self.iface.removeToolBarIcon(self.actionRun)
-    self.iface.removePluginMenu('OSMInfo', self.actionAbout)
-    self.iface.removePluginMenu('OSMInfo',self.actionRun)
+    self.iface.removeWebToolBarIcon(self.actionRun)
+    self.iface.removePluginWebMenu('OSMInfo', self.actionAbout)
+    self.iface.removePluginWebMenu('OSMInfo',self.actionRun)
 
     if self.iface.mapCanvas().mapTool() == self.mapTool:
         self.iface.mapCanvas().unsetMapTool(self.mapTool)

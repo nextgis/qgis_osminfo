@@ -39,13 +39,12 @@ from osminfo_worker import Worker
 class ResultsDialog(QDockWidget):
     def __init__(self, title, parent=None):
         QDockWidget.__init__(self, title, parent)
-        good_tags = ['building', 'highway']
         self.__mainWidget = QWidget()
 
         self.__layout = QVBoxLayout(self.__mainWidget)
 
         self.__resultsTree = QTreeWidget(self)
-        self.__resultsTree.setMinimumSize(395, 395)
+        self.__resultsTree.setMinimumSize(350, 250)
         self.__resultsTree.setColumnCount(2)
         self.__resultsTree.setHeaderLabels(['Feature/Key', 'Value'])
         self.__resultsTree.header().setResizeMode(QHeaderView.ResizeToContents)
