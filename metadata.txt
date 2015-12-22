@@ -3,14 +3,17 @@ name=OSMInfo
 description=Get full information about a point from OpenStreetMap database. 
 about=For a selected point, extract all information abour nearby and enclosing features from OpenStreetMap database using Overpass API.
 category=Vector
-version=0.3
+version=0.3.1
 qgisMinimumVersion=2.0
 
 author=NextGIS
 email=info@nextgis.com
-changelog=0.3
+changelog=0.3.1
+        * Get rid of requests dependency - for real!
+        * Fix cursors
+    0.3:
         * Deal with crashes due to coordinates out of bounds
-    0.2
+    0.2:
         * Get rid of requests dependency
     0.1:
         * Initial release

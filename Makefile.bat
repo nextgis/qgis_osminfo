@@ -4,4 +4,4 @@ cd ..
 pyrcc4 -o resources.py resources.qrc
 lrelease i18n\osminfo_ru.ts
 cd ..
-zip -r osminfo.zip osminfo -x \*.pyc \*.ts \*.ui \*.qrc \*.pro \*~ \*.git\* \*.svn\* \*Makefile*
+zip -r osminfo.zip osminfo -x \*.pyc \*.json \*.ts \*.ui \*.qrc \*.pro \*~ \*.git\* \*.svn\* \*Makefile*
