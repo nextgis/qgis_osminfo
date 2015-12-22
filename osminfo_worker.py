@@ -44,17 +44,17 @@ class Worker(QObject):
         QObject.__init__(self)
         self.__xx = xx
         self.__yy = yy
+
+    def run(self):
+        xx = str(self.__xx)
+        yy = str(self.__yy)
+
         if abs(float(xx)) > 180 or abs(float(yy)) > 90:
             QgsMessageLog.logMessage(
             "Worker: %s, %s are wrong coords!"%(xx,yy),
             "OSMInfo",
             QgsMessageLog.INFO
-        )
-            pass
-
-    def run(self):
-        xx = str(self.__xx)
-        yy = str(self.__yy)
+            )
 
         url = 'http://overpass-api.de/api/interpreter'
 
