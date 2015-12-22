@@ -44,8 +44,13 @@ class Worker(QObject):
         QObject.__init__(self)
         self.__xx = xx
         self.__yy = yy
-        if abs(xx) <= 180 or abs(yy) <= 90:
-            QMessageBox.warning(self.iface.mainWindow(),'Error','Coordinates are not valid (or cannot be converted to EPSG:4326)')
+        if abs(float(xx)) > 180 or abs(float(yy)) > 90:
+            QgsMessageLog.logMessage(
+            "Worker: %s, %s are wrong coords!"%(xx,yy),
+            "OSMInfo",
+            QgsMessageLog.INFO
+        )
+            pass
 
     def run(self):
         xx = str(self.__xx)
@@ -61,7 +66,7 @@ class Worker(QObject):
         rr = requests.post(url, data=request)
         l1 = rr.json()['elements']
 
-        # # #is_in request
+        # is_in request
         request = '[timeout:30][out:json];is_in(%s,%s)->.a;way(pivot.a);out tags geom;relation(pivot.a);out tags bb;'%(yy,xx)
 
         rr = requests.post(url, data=request)

@@ -38,7 +38,6 @@ from osminfo_worker import Worker
 class ResultsDialog(QDockWidget):
     def __init__(self, title, parent=None):
         QDockWidget.__init__(self, title, parent)
-        good_tags=['building','highway']
         self.__mainWidget = QWidget()
 
         self.__layout = QVBoxLayout(self.__mainWidget)
