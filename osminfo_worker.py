@@ -42,6 +42,7 @@ from qgis.gui import *
 class Worker(QObject):
 
     gotData = pyqtSignal(list, list)
+    gotError = pyqtSignal(unicode)
 
     def __init__(self, xx, yy):
         QObject.__init__(self)
@@ -54,10 +55,13 @@ class Worker(QObject):
 
         if abs(float(xx)) > 180 or abs(float(yy)) > 90:
             QgsMessageLog.logMessage(
-            "Worker: %s, %s are wrong coords!"%(xx,yy),
-            "OSMInfo",
-            QgsMessageLog.INFO
+                "Worker: %s, %s are wrong coords!" % (xx, yy),
+                "OSMInfo",
+                QgsMessageLog.INFO
             )
+
+            self.gotError.emit("Worker: %s, %s are wrong coords!" % (xx, yy))
+            return
 
         url = 'http://overpass-api.de/api/interpreter'
         request = QNetworkRequest(QUrl(url))

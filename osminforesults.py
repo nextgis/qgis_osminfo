@@ -62,11 +62,16 @@ class ResultsDialog(QDockWidget):
         thread = QThread(self)
         worker.moveToThread(thread)
         worker.gotData.connect(self.showData)
+        worker.gotError.connect(self.showError)
         thread.started.connect(worker.run)
         thread.start()
 
         self.thread = thread
         self.worker = worker
+
+    def showError(self, msg):
+        self.__resultsTree.clear()
+        self.__resultsTree.addTopLevelItem(QTreeWidgetItem([msg]))
 
     def showData(self, l1, l2):
         self.__resultsTree.clear()
