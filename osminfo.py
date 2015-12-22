@@ -58,12 +58,12 @@ class OsmInfo:
 
     #create action that will be run by the plugin
     self.actionRun = QAction(QCoreApplication.translate('OSMInfo',"Get OSM info for a point"), self.iface.mainWindow())
-    self.actionRun.setIcon(QIcon(":/icons/osminfo.png"))
+    self.actionRun.setIcon(QIcon(":/plugins/osminfo/icons/osminfo.png"))
     self.actionRun.setWhatsThis("Select point")
     self.actionRun.setStatusTip("Select point to get OpenStreetMap data for")
 
     self.actionAbout = QAction(QCoreApplication.translate('OSMInfo', 'About OSMInfo...'), self.iface.mainWindow())
-    self.actionAbout.setIcon(QIcon(':/icons/about.png'))
+    self.actionAbout.setIcon(QIcon(':/plugins/osminfo/icons/about.png'))
     self.actionAbout.setWhatsThis('About OSMInfo')
     
     # add plugin menu to Web

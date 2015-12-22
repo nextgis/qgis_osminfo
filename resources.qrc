@@ -1,5 +1,5 @@
 <RCC>
-  <qresource>
+  <qresource prefix="/plugins/osminfo/">
     <file>icons/osminfo.png</file>
     <file>icons/about.png</file>
     <file>icons/cursor.png</file>

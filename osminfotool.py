@@ -50,7 +50,7 @@ class OSMInfotool(QgsMapTool):
     #self.emitPoint = QgsMapToolEmitPoint(self.canvas)
     self.iface = iface
 
-    self.cursor = QCursor(QPixmap(":/icons/cursor.png"), 1, 1)
+    self.cursor = QCursor(QPixmap(":/plugins/osminfo/icons/cursor.png"), 1, 1)
     #self.visibilityChanged.connect(self.result_renderer.clear)
     
     self.docWidgetResults = ResultsDialog("OSM Info", self.iface.mainWindow())
