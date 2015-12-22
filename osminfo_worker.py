@@ -28,17 +28,20 @@
 #
 #******************************************************************************
 
+import json
+
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
+from PyQt4.QtNetwork import *
+
 
 from qgis.core import *
 from qgis.gui import *
 
-import requests
-
 
 class Worker(QObject):
-    getData = pyqtSignal(list, list)
+
+    gotData = pyqtSignal(list, list)
 
     def __init__(self, xx, yy):
         QObject.__init__(self)
@@ -50,25 +53,28 @@ class Worker(QObject):
         yy = str(self.__yy)
 
         url = 'http://overpass-api.de/api/interpreter'
+        request = QNetworkRequest(QUrl(url))
+        qnam = QgsNetworkAccessManager.instance()
 
         # around request
         dist = 20
-        request = '[timeout:30][out:json];(node(around:%s,%s,%s);way(around:%s,%s,%s));out tags geom;relation(around:%s,%s,%s);'%(dist,yy,xx,dist,yy,xx,dist,yy,xx)
 
-        # QMessageBox.warning(self.iface.mainWindow(),'Query',request)
-        rr = requests.post(url, data=request)
-        l1 = rr.json()['elements']
+        request_data = '[timeout:30][out:json];(node(around:%s,%s,%s);way(around:%s,%s,%s));out tags geom;relation(around:%s,%s,%s);' % (dist, yy, xx, dist, yy, xx, dist, yy, xx)
+        reply1 = qnam.post(request, QByteArray(request_data))
+        loop = QEventLoop()
+        reply1.finished.connect(loop.quit)
+        loop.exec_()
+        data = reply1.readAll()
+        l1 = json.loads(str(data))['elements']
+        reply1.deleteLater()
 
-        # # #is_in request
-        request = '[timeout:30][out:json];is_in(%s,%s)->.a;way(pivot.a);out tags geom;relation(pivot.a);out tags bb;'%(yy,xx)
+        request_data = '[timeout:30][out:json];is_in(%s,%s)->.a;way(pivot.a);out tags geom;relation(pivot.a);out tags bb;' % (yy, xx)
+        reply2 = qnam.post(request, QByteArray(request_data))
+        loop = QEventLoop()
+        reply2.finished.connect(loop.quit)
+        loop.exec_()
+        data = reply2.readAll()
+        l2 = json.loads(str(data))['elements']
+        reply2.deleteLater()
 
-        rr = requests.post(url, data=request)
-        l2 = rr.json()['elements']
-
-        QgsMessageLog.logMessage(
-            "Worker: requests done!",
-            "OSMInfo",
-            QgsMessageLog.INFO
-        )
-
-        self.getData.emit(l1, l2)
+        self.gotData.emit(l1, l2)
