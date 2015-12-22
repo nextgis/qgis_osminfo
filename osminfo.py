@@ -65,12 +65,16 @@ class OsmInfo:
     self.actionAbout.setIcon(QIcon(':/icons/about.png'))
     self.actionAbout.setWhatsThis('About OSMInfo')
     
-    # add plugin menu to Vector toolbar
-    self.iface.addPluginToMenu('OSMInfo',self.actionRun)
-    self.iface.addPluginToMenu('OSMInfo',self.actionAbout)
+    # add plugin menu to Web
+    self.web_menu = self.iface.webMenu()
+    self.osminfo_menu = QMenu('OSMInfo')
+    self.web_menu.addMenu(self.osminfo_menu)
+
+    self.osminfo_menu.addAction(self.actionRun)
+    self.osminfo_menu.addAction(self.actionAbout)
     
     # add icon to new menu item in Vector toolbar
-    self.iface.addToolBarIcon(self.actionRun)
+    self.iface.addWebToolBarIcon(self.actionRun)
 
     # connect action to the run method
     self.actionRun.triggered.connect(self.run)
@@ -83,9 +87,9 @@ class OsmInfo:
   def unload(self):
     """Actions to run when the plugin is unloaded"""
     # remove menu and icon from the menu
-    self.iface.removeToolBarIcon(self.actionRun)
-    self.iface.removePluginMenu('OSMInfo', self.actionAbout)
-    self.iface.removePluginMenu('OSMInfo',self.actionRun)
+    self.iface.removeWebToolBarIcon(self.actionRun)
+    self.iface.removePluginWebMenu('OSMInfo', self.actionAbout)
+    self.iface.removePluginWebMenu('OSMInfo',self.actionRun)
 
     if self.iface.mapCanvas().mapTool() == self.mapTool:
         self.iface.mapCanvas().unsetMapTool(self.mapTool)
