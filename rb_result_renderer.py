@@ -22,18 +22,24 @@
 from PyQt4.QtGui import QColor
 from qgis.gui import QgsRubberBand
 from qgis.core import QGis, QgsRectangle, QgsCoordinateReferenceSystem, QgsCoordinateTransform
-
+from qgis.utils import iface
 
 class RubberBandResultRenderer():
 
-    def __init__(self, iface):
+    def __init__(self):
         self.iface = iface
+
+        self.srs_wgs84 = QgsCoordinateReferenceSystem(4326)
+        self.transformation = QgsCoordinateTransform(self.srs_wgs84, self.srs_wgs84)
+
         self.rb = QgsRubberBand(self.iface.mapCanvas(), QGis.Point)
         self.rb.setColor(QColor('magenta'))
         self.rb.setIconSize(12)
 
-        self.srs_wgs84 = QgsCoordinateReferenceSystem(4326)
-        self.transformation = QgsCoordinateTransform(self.srs_wgs84, self.srs_wgs84)
+        self.features_rb = QgsRubberBand(self.iface.mapCanvas(), QGis.Point)
+        self.features_rb.setColor(QColor('green'))
+        self.features_rb.setIconSize(12)
+        self.features_rb.setWidth(3)
 
     def show_point(self, point, center=False):
         #check srs
@@ -59,9 +65,31 @@ class RubberBandResultRenderer():
             print 'Error on transform!'  # DEBUG! need message???
             return
 
+    def transform_geom(self, geom):
+        dest_srs_id = self.iface.mapCanvas().mapRenderer().destinationCrs().srsid()
+        self.transformation.setDestCRSID(dest_srs_id)
+        try:
+            geom.transform(self.transformation)
+            return geom
+        except:
+            print 'Error on transform!'  # DEBUG! need message???
+            return
+
     def center_to_point(self, point):
         canvas = self.iface.mapCanvas()
         new_extent = QgsRectangle(canvas.extent())
         new_extent.scale(1, point)
         canvas.setExtent(new_extent)
         canvas.refresh()
+
+    def show_feature(self, geom):
+        if self.need_transform():
+            geom = self.transform_geom(geom)
+        self.features_rb.setToGeometry(geom, None)
+
+    def clear_feature(self):
+        self.features_rb.reset(QGis.Point)
+
+
+
+
