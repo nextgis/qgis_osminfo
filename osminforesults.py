@@ -50,7 +50,7 @@ class ResultsDialog(QDockWidget):
         self.__resultsTree = QTreeWidget(self)
         self.__resultsTree.setMinimumSize(350, 250)
         self.__resultsTree.setColumnCount(2)
-        self.__resultsTree.setHeaderLabels(['Feature/Key', 'Value'])
+        self.__resultsTree.setHeaderLabels([self.tr('Feature/Key'), self.tr('Value')])
         self.__resultsTree.header().setResizeMode(QHeaderView.ResizeToContents)
         self.__resultsTree.header().setStretchLastSection(False)
         self.__resultsTree.itemClicked.connect(self.itemClicked)
@@ -61,7 +61,7 @@ class ResultsDialog(QDockWidget):
 
     def getInfo(self, xx, yy):
         self.__resultsTree.clear()
-        self.__resultsTree.addTopLevelItem(QTreeWidgetItem(["Loading...."]))
+        self.__resultsTree.addTopLevelItem(QTreeWidgetItem([self.tr('Loading....')]))
 
         worker = Worker(xx, yy)
         thread = QThread(self)
@@ -81,7 +81,7 @@ class ResultsDialog(QDockWidget):
     def showData(self, l1, l2):
         self.__resultsTree.clear()
 
-        near = QTreeWidgetItem(['Nearby features'])
+        near = QTreeWidgetItem([self.tr('Nearby features')])
         self.__resultsTree.addTopLevelItem(near)
         self.__resultsTree.expandItem(near)
 
@@ -115,7 +115,7 @@ class ResultsDialog(QDockWidget):
             except Exception as e:
                 print e
 
-        isin = QTreeWidgetItem(['Is inside'])
+        isin = QTreeWidgetItem([self.tr('Is inside')])
         self.__resultsTree.addTopLevelItem(isin)
         self.__resultsTree.expandItem(isin)
 
@@ -148,5 +148,11 @@ class ResultsDialog(QDockWidget):
                 if element['type'] == 'way':
                     geom = QgsGeometry.fromPolyline([QgsPoint(g['lon'], g['lat']) for g in element['geometry'] if g!='null'])
                 if element['type'] == 'relation':
+                    #url = 'http://overpass-api.de/api/interpreter'
+                    #request = QNetworkRequest(QUrl(url))
+                    #qnam = QgsNetworkAccessManager.instance()
+                    #request_data = '[out:json];rel(%s);out;' % (element['id'])
+                    
+                    #geom = 
                     return
                 self.__rb.show_feature(geom)

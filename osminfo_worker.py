@@ -54,12 +54,12 @@ class Worker(QObject):
 
         if abs(float(xx)) > 180 or abs(float(yy)) > 90:
             QgsMessageLog.logMessage(
-                "Worker: %s, %s are wrong coords!" % (xx, yy),
-                "OSMInfo",
+                self.tr('Worker: %s, %s are wrong coords!') % (xx, yy),
+                self.tr('OSMInfo'),
                 QgsMessageLog.INFO
             )
 
-            self.gotError.emit("Worker: %s, %s are wrong coords!" % (xx, yy))
+            self.gotError.emit(self.tr('Worker: %s, %s are wrong coords!') % (xx, yy))
             return
 
         url = 'http://overpass-api.de/api/interpreter'
