@@ -34,10 +34,14 @@ from PyQt4.QtGui import *
 from qgis.core import *
 
 from osminfo_worker import Worker
+from rb_result_renderer import RubberBandResultRenderer
 
+FeatureItemType = 1001
+TagItemType = 1002
 
 class ResultsDialog(QDockWidget):
-    def __init__(self, title, parent=None):
+    def __init__(self, title, result_render, parent=None):
+        self.__rb = result_render
         QDockWidget.__init__(self, title, parent)
         self.__mainWidget = QWidget()
 
@@ -49,6 +53,7 @@ class ResultsDialog(QDockWidget):
         self.__resultsTree.setHeaderLabels(['Feature/Key', 'Value'])
         self.__resultsTree.header().setResizeMode(QHeaderView.ResizeToContents)
         self.__resultsTree.header().setStretchLastSection(False)
+        self.__resultsTree.itemClicked.connect(self.itemClicked)
         self.__layout.addWidget(self.__resultsTree)
         self.__resultsTree.clear()
 
@@ -99,9 +104,10 @@ class ResultsDialog(QDockWidget):
                         elementTitle = elementTags['amenity']
                     else:
                         elementTitle = elementTags[0]
-                elementItem = QTreeWidgetItem(near, [elementTitle])
+                elementItem = QTreeWidgetItem(near, [elementTitle], FeatureItemType)
+                elementItem.setData(0, Qt.UserRole, element)
                 for tag in sorted(elementTags.items()):
-                    elementItem.addChild(QTreeWidgetItem(tag))
+                    elementItem.addChild(QTreeWidgetItem(tag, TagItemType))
 
                 self.__resultsTree.addTopLevelItem(elementItem)
                 #self.__resultsTree.expandItem(elementItem)
@@ -118,11 +124,29 @@ class ResultsDialog(QDockWidget):
             try:
                 elementTags = element[u'tags']
                 elementTitle = elementTags.get(u'name', str(index))
-                elementItem = QTreeWidgetItem(isin, [elementTitle])
+                elementItem = QTreeWidgetItem(isin, [elementTitle], FeatureItemType)
+                elementItem.setData(0, Qt.UserRole, element)
                 for tag in sorted(elementTags.items()):
-                    elementItem.addChild(QTreeWidgetItem(tag))
+                    elementItem.addChild(QTreeWidgetItem(tag, TagItemType))
 
                 self.__resultsTree.addTopLevelItem(elementItem)
                 index += 1
             except Exception as e:
                 print e
+
+    def itemClicked(self, item, column):
+        # clear old highlights
+        self.__rb.clear_feature()
+        # set new
+        if item.type() == TagItemType:
+            item = item.parent()
+        if item and item.type() == FeatureItemType:
+            element = item.data(0, Qt.UserRole)
+            if element:
+                if element['type'] == 'node':
+                    geom = QgsGeometry.fromPoint(QgsPoint(element['lon'], element['lat']))
+                if element['type'] == 'way':
+                    geom = QgsGeometry.fromPolyline([QgsPoint(g['lon'], g['lat']) for g in element['geometry'] if g!='null'])
+                if element['type'] == 'relation':
+                    return
+                self.__rb.show_feature(geom)

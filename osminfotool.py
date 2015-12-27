@@ -44,7 +44,7 @@ from rb_result_renderer import RubberBandResultRenderer
 class OSMInfotool(QgsMapTool):
   def __init__(self, iface):
     QgsMapTool.__init__(self, iface.mapCanvas())
-    self.result_renderer = RubberBandResultRenderer(iface)
+    self.result_renderer = RubberBandResultRenderer()
     
     self.canvas = iface.mapCanvas()
     #self.emitPoint = QgsMapToolEmitPoint(self.canvas)
@@ -53,16 +53,17 @@ class OSMInfotool(QgsMapTool):
     self.cursor = QCursor(QPixmap(":/plugins/osminfo/icons/cursor.png"), 1, 1)
     #self.visibilityChanged.connect(self.result_renderer.clear)
     
-    self.docWidgetResults = ResultsDialog("OSM Info", self.iface.mainWindow())
+    self.docWidgetResults = ResultsDialog("OSM Info", self.result_renderer, self.iface.mainWindow())
     self.docWidgetResults.setVisible(False)
     self.docWidgetResults.setFloating(True)
     self.docWidgetResults.visibilityChanged.connect(self.docWidgetResultsVisChange)
 
   def __del__(self):
-    self.result_renderer.clear()
+    self.clearCanvas()
 
   def clearCanvas(self):
     self.result_renderer.clear()
+    self.result_renderer.clear_feature()
   
   def docWidgetResultsVisChange(self, vis):
     if vis is False:
@@ -93,6 +94,7 @@ class OSMInfotool(QgsMapTool):
     yy = str(point.y())
 
     self.result_renderer.clear()
+    self.result_renderer.clear_feature()
     self.result_renderer.show_point(point, False)
     self.canvas.update()
 
