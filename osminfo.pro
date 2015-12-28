@@ -6,6 +6,7 @@ SOURCES = __init__.py \
           osminfotool.py \
           rb_result_renderer.py
 
-FORMS = ui/aboutdialogbase.ui
+FORMS = ui/aboutdialogbase.ui \
+        ui/settingsdialogbase.ui
 
 TRANSLATIONS = i18n/osminfo_ru.ts

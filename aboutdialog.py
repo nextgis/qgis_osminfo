@@ -9,7 +9,7 @@
 # Author:   Maxim Dubinin, sim@gis-lab.info
 # Author:   Alexander Lisovenko, alexander.lisovenko@nextgis.ru
 # *****************************************************************************
-# Copyright (c) 2012-2015. NextGIS, info@nextgis.com
+# Copyright (c) 2015. NextGIS, info@nextgis.com
 #
 # This source is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free
@@ -47,13 +47,15 @@ class AboutDialog(QDialog, Ui_Dialog):
 
         self.btnHelp = self.buttonBox.button(QDialogButtonBox.Help)
 
-        self.lblLogo.setPixmap(QPixmap(':/icons/osminfo.png'))
+        self.lblLogo.setPixmap(QPixmap(':/plugins/osminfo/icons/osminfo.png'))
 
         cfg = ConfigParser.SafeConfigParser()
         cfg.read(os.path.join(os.path.dirname(__file__), 'metadata.txt'))
         version = cfg.get('general', 'version')
 
         self.lblVersion.setText(self.tr('Version: %s') % version)
+        self.lblName.setText(self.tr('OSMInfo'))
+
         doc = QTextDocument()
         doc.setHtml(self.getAboutText())
         self.textBrowser.setDocument(doc)

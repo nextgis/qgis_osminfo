@@ -33,7 +33,7 @@ from PyQt4.QtGui import *
 from qgis.core import *
 
 import osminfotool
-import aboutdialog
+import aboutdialog,settingsdialog
 
 import resources
 from os import path
@@ -86,11 +86,15 @@ class OsmInfo:
     self.actionAbout = QAction(self.tr('About OSMInfo'), self.iface.mainWindow())
     self.actionAbout.setIcon(QIcon(':/plugins/osminfo/icons/about.png'))
     self.actionAbout.setWhatsThis(self.tr('About OSMInfo'))
+
+    self.actionSettings = QAction(self.tr('Settings'), self.iface.mainWindow())
+    self.actionSettings.setWhatsThis(self.tr('Set various parameters related to OSMInfo'))
     
     # add plugin menu to Web
     self.osminfo_menu = self.tr(u'OSMInfo')
     self.iface.addPluginToWebMenu(self.osminfo_menu,self.actionRun)
     self.iface.addPluginToWebMenu(self.osminfo_menu,self.actionAbout)
+    self.iface.addPluginToWebMenu(self.osminfo_menu,self.actionSettings)
     
     # add icon to new menu item in Vector toolbar
     self.iface.addWebToolBarIcon(self.actionRun)
@@ -98,6 +102,7 @@ class OsmInfo:
     # connect action to the run method
     self.actionRun.triggered.connect(self.run)
     self.actionAbout.triggered.connect(self.about)
+    self.actionSettings.triggered.connect(self.settings)
 
     # prepare map tool
     self.mapTool = osminfotool.OSMInfotool(self.iface)
@@ -107,7 +112,8 @@ class OsmInfo:
     """Actions to run when the plugin is unloaded"""
     # remove menu and icon from the menu
     self.iface.removeWebToolBarIcon(self.actionRun)
-    self.iface.removePluginWebMenu(self.tr('OSMInfo'), self.actionAbout)
+    self.iface.removePluginWebMenu(self.tr('OSMInfo'),self.actionAbout)
+    self.iface.removePluginWebMenu(self.tr('OSMInfo'),self.actionSettings)
     self.iface.removePluginWebMenu(self.tr('OSMInfo'),self.actionRun)
 
     if self.iface.mapCanvas().mapTool() == self.mapTool:
@@ -121,4 +127,8 @@ class OsmInfo:
 
   def about(self):
     d = aboutdialog.AboutDialog()
+    d.exec_()
+
+  def settings(self):
+    d = settingsdialog.SettingsDialog()
     d.exec_()
