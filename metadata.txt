@@ -11,6 +11,7 @@ email=info@nextgis.com
 changelog=0.4:
             * Click on feature in a results tree to see actual feature geometry highlighted (only works for nearby and some enclosing features yet)
             * i18n support for GUI
+            * Ctrl+C to copy tag/key or value to clipboard
     0.3.1:
         * Get rid of requests dependency - for real!
         * Fix cursors
