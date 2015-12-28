@@ -9,8 +9,8 @@ qgisMinimumVersion=2.0
 author=NextGIS
 email=info@nextgis.com
 changelog=0.4:
-            * Click on nearby feature to see actual feature
-            * GUI i18n support
+            * Click on feature in a results tree to see actual feature geometry highlighted (only works for nearby and some enclosing features yet)
+            * i18n support for GUI
     0.3.1:
         * Get rid of requests dependency - for real!
         * Fix cursors
