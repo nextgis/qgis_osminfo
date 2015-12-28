@@ -27,14 +27,14 @@
 # MA 02110-1335 USA.
 #
 #******************************************************************************
+import json
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-
+from PyQt4.QtNetwork import QNetworkRequest
 from qgis.core import *
 
 from osminfo_worker import Worker
-from rb_result_renderer import RubberBandResultRenderer
 
 FeatureItemType = 1001
 TagItemType = 1002
@@ -42,6 +42,8 @@ TagItemType = 1002
 class ResultsDialog(QDockWidget):
     def __init__(self, title, result_render, parent=None):
         self.__rb = result_render
+        self.__selected_id = None
+        self.__rel_reply = None
         QDockWidget.__init__(self, title, parent)
         self.__mainWidget = QWidget()
 
@@ -50,7 +52,7 @@ class ResultsDialog(QDockWidget):
         self.__resultsTree = QTreeWidget(self)
         self.__resultsTree.setMinimumSize(350, 250)
         self.__resultsTree.setColumnCount(2)
-        self.__resultsTree.setHeaderLabels([self.tr('Feature/Key'), self.tr('Value')])
+        self.__resultsTree.setHeaderLabels(['Feature/Key', 'Value'])
         self.__resultsTree.header().setResizeMode(QHeaderView.ResizeToContents)
         self.__resultsTree.header().setStretchLastSection(False)
         self.__resultsTree.itemClicked.connect(self.itemClicked)
@@ -61,7 +63,7 @@ class ResultsDialog(QDockWidget):
 
     def getInfo(self, xx, yy):
         self.__resultsTree.clear()
-        self.__resultsTree.addTopLevelItem(QTreeWidgetItem([self.tr('Loading....')]))
+        self.__resultsTree.addTopLevelItem(QTreeWidgetItem(["Loading...."]))
 
         worker = Worker(xx, yy)
         thread = QThread(self)
@@ -81,7 +83,7 @@ class ResultsDialog(QDockWidget):
     def showData(self, l1, l2):
         self.__resultsTree.clear()
 
-        near = QTreeWidgetItem([self.tr('Nearby features')])
+        near = QTreeWidgetItem(['Nearby features'])
         self.__resultsTree.addTopLevelItem(near)
         self.__resultsTree.expandItem(near)
 
@@ -115,7 +117,7 @@ class ResultsDialog(QDockWidget):
             except Exception as e:
                 print e
 
-        isin = QTreeWidgetItem([self.tr('Is inside')])
+        isin = QTreeWidgetItem(['Is inside'])
         self.__resultsTree.addTopLevelItem(isin)
         self.__resultsTree.expandItem(isin)
 
@@ -135,12 +137,17 @@ class ResultsDialog(QDockWidget):
                 print e
 
     def itemClicked(self, item, column):
+        # if selected tag - use parent
+        if item.type() == TagItemType:
+            item = item.parent()
+        # if already selected - exit
+        if self.__selected_id == item:
+            return
         # clear old highlights
         self.__rb.clear_feature()
         # set new
-        if item.type() == TagItemType:
-            item = item.parent()
         if item and item.type() == FeatureItemType:
+            self.__selected_id = item
             element = item.data(0, Qt.UserRole)
             if element:
                 if element['type'] == 'node':
@@ -148,11 +155,39 @@ class ResultsDialog(QDockWidget):
                 if element['type'] == 'way':
                     geom = QgsGeometry.fromPolyline([QgsPoint(g['lon'], g['lat']) for g in element['geometry'] if g!='null'])
                 if element['type'] == 'relation':
-                    #url = 'http://overpass-api.de/api/interpreter'
-                    #request = QNetworkRequest(QUrl(url))
-                    #qnam = QgsNetworkAccessManager.instance()
-                    #request_data = '[out:json];rel(%s);out;' % (element['id'])
-                    
-                    #geom = 
+                    self.sendRelationRequest(element['id'])
                     return
+                self.__rb.show_feature(geom)
+
+    def sendRelationRequest(self, relation_id):
+        if self.__rel_reply:
+            try:
+                self.__rel_reply.abort()
+                self.__rel_reply.finished.disconnect(self.showRelationGeom)
+            except:
+                pass
+        url = 'http://overpass-api.de/api/interpreter'
+        rel_request = QNetworkRequest(QUrl(url))
+        qnam = QgsNetworkAccessManager.instance()
+        request_data = '[out:json];rel(%s);out geom;' % (relation_id)
+        self.__rel_reply = qnam.post(rel_request, QByteArray(request_data))
+        self.__rel_reply.finished.connect(self.showRelationGeom)
+        self.__rel_reply.error.connect(lambda: 'ok')
+
+    def showRelationGeom(self):
+        rel_data = ()
+        try:
+            data = self.__rel_reply.readAll()
+            self.__rel_reply.finished.disconnect(self.showRelationGeom)
+            rel_data = json.loads(str(data))
+        except:
+            pass
+        if 'elements' in rel_data and len(rel_data['elements']) > 0:
+            element = rel_data['elements'][0]
+            if 'members' in element:
+                lines = []
+                for member in element['members']:
+                    if member['type'] == 'way' and member['role'] == 'outer':
+                        lines.append([QgsPoint(g['lon'], g['lat']) for g in member['geometry'] if g != 'null'])
+                geom =QgsGeometry.fromMultiPolyline(lines)
                 self.__rb.show_feature(geom)
