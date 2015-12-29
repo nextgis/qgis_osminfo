@@ -3,15 +3,19 @@ name=OSMInfo
 description=Get full information about a point from OpenStreetMap database. 
 about=For a selected point, extract all information abour nearby and enclosing features from OpenStreetMap database using Overpass API.
 category=Vector
-version=0.4
+version=0.5
 qgisMinimumVersion=2.0
 
 author=NextGIS
 email=info@nextgis.com
-changelog=0.4:
-            * Click on feature in a results tree to see actual feature geometry highlighted (only works for nearby and some enclosing features yet)
-            * i18n support for GUI
-            * Ctrl+C to copy tag/key or value to clipboard
+changelog=0.5:
+            * Clicking on feature in a result tree now allows to see any geometry (both from nearby and enclosing features)
+            * Plugin works from behind proxy
+            * 
+    0.4:
+        * Click on feature in a results tree to see actual feature geometry highlighted (only works for nearby and some enclosing features yet)
+        * i18n support for GUI
+        * Ctrl+C to copy tag/key or value to clipboard
     0.3.1:
         * Get rid of requests dependency - for real!
         * Fix cursors

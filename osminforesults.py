@@ -50,6 +50,9 @@ class ResultsDialog(QDockWidget):
         self.__layout = QVBoxLayout(self.__mainWidget)
 
         self.__resultsTree = QTreeWidget(self)
+        self.__resultsTree.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.__resultsTree.customContextMenuRequested.connect(self.openMenu)
+
         self.__resultsTree.setMinimumSize(350, 250)
         self.__resultsTree.setColumnCount(2)
         self.__resultsTree.setHeaderLabels(['Feature/Key', 'Value'])
@@ -60,7 +63,12 @@ class ResultsDialog(QDockWidget):
         self.__resultsTree.clear()
 
         self.setWidget(self.__mainWidget)
-
+    
+    def openMenu(self, position):
+        menu = QMenu()
+        menu.addAction(self.tr("Zoom to feature"))
+        menu.exec_(self.__resultsTree.viewport().mapToGlobal(position))
+    
     def getInfo(self, xx, yy):
         self.__resultsTree.clear()
         self.__resultsTree.addTopLevelItem(QTreeWidgetItem(["Loading...."]))
