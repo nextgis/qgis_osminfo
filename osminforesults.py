@@ -66,8 +66,14 @@ class ResultsDialog(QDockWidget):
     
     def openMenu(self, position):
         menu = QMenu()
-        menu.addAction(self.tr("Zoom to feature"))
+        actionZoom = QAction(QIcon('zoom2feature.png'), self.tr('Zoom to feature'), self)
+        menu.addAction(actionZoom)
+        actionZoom.setStatusTip('Zoom to selected item')
+        actionZoom.triggered.connect(self.zoom2feature)
         menu.exec_(self.__resultsTree.viewport().mapToGlobal(position))
+    
+    def zoom2feature(self):
+        pass
     
     def getInfo(self, xx, yy):
         self.__resultsTree.clear()
