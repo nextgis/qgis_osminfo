@@ -65,6 +65,15 @@ class RubberBandResultRenderer():
             print 'Error on transform!'  # DEBUG! need message???
             return
 
+    def transform_bbox(self, bbox):
+        dest_srs_id = self.iface.mapCanvas().mapRenderer().destinationCrs().srsid()
+        self.transformation.setDestCRSID(dest_srs_id)
+        try:
+            return self.transformation.transformBoundingBox(bbox)
+        except:
+            print 'Error on transform!'  # DEBUG! need message???
+            return
+
     def transform_geom(self, geom):
         dest_srs_id = self.iface.mapCanvas().mapRenderer().destinationCrs().srsid()
         self.transformation.setDestCRSID(dest_srs_id)
@@ -81,6 +90,13 @@ class RubberBandResultRenderer():
         new_extent.scale(1, point)
         canvas.setExtent(new_extent)
         canvas.refresh()
+
+    def zoom_to_bbox(self, bbox):
+        if self.need_transform():
+            bbox = self.transform_bbox(bbox)
+        self.iface.mapCanvas().setExtent(bbox)
+        self.iface.mapCanvas().refresh()
+
 
     def show_feature(self, geom):
         if self.need_transform():

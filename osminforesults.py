@@ -73,8 +73,20 @@ class ResultsDialog(QDockWidget):
         menu.exec_(self.__resultsTree.viewport().mapToGlobal(position))
     
     def zoom2feature(self):
-        pass
-    
+        selected_items = self.__resultsTree.selectedItems()
+        if len(selected_items) > 0:
+            item = selected_items[0]
+            # if selected tag - use parent
+            if item.type() == TagItemType:
+                item = item.parent()
+            if item and item.type() == FeatureItemType:
+                element = item.data(0, Qt.UserRole)
+                if element and 'bounds' in element:
+                    b_el = element['bounds']
+                    new_extent = QgsRectangle(b_el['minlon'], b_el['minlat'], b_el['maxlon'], b_el['maxlat'])
+                    self.__rb.zoom_to_bbox(new_extent)
+
+
     def getInfo(self, xx, yy):
         self.__resultsTree.clear()
         self.__resultsTree.addTopLevelItem(QTreeWidgetItem(["Loading...."]))
