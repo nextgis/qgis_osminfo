@@ -55,7 +55,7 @@ class ResultsDialog(QDockWidget):
 
         self.__resultsTree.setMinimumSize(350, 250)
         self.__resultsTree.setColumnCount(2)
-        self.__resultsTree.setHeaderLabels(['Feature/Key', 'Value'])
+        self.__resultsTree.setHeaderLabels([self.tr('Feature/Key'), self.tr('Value')])
         self.__resultsTree.header().setResizeMode(QHeaderView.ResizeToContents)
         self.__resultsTree.header().setStretchLastSection(False)
         self.__resultsTree.itemClicked.connect(self.itemClicked)
@@ -66,9 +66,9 @@ class ResultsDialog(QDockWidget):
     
     def openMenu(self, position):
         menu = QMenu()
-        actionZoom = QAction(QIcon('zoom2feature.png'), self.tr('Zoom to feature'), self)
+        actionZoom = QAction(QIcon(':/plugins/osminfo/icons/zoom2feature.png'), self.tr('Zoom to feature'), self)
         menu.addAction(actionZoom)
-        actionZoom.setStatusTip('Zoom to selected item')
+        actionZoom.setStatusTip(self.tr('Zoom to selected item'))
         actionZoom.triggered.connect(self.zoom2feature)
         menu.exec_(self.__resultsTree.viewport().mapToGlobal(position))
     
@@ -89,7 +89,7 @@ class ResultsDialog(QDockWidget):
 
     def getInfo(self, xx, yy):
         self.__resultsTree.clear()
-        self.__resultsTree.addTopLevelItem(QTreeWidgetItem(["Loading...."]))
+        self.__resultsTree.addTopLevelItem(QTreeWidgetItem([self.tr('Loading....')]))
 
         worker = Worker(xx, yy)
         thread = QThread(self)
@@ -109,7 +109,7 @@ class ResultsDialog(QDockWidget):
     def showData(self, l1, l2):
         self.__resultsTree.clear()
 
-        near = QTreeWidgetItem(['Nearby features'])
+        near = QTreeWidgetItem([self.tr('Nearby features')])
         self.__resultsTree.addTopLevelItem(near)
         self.__resultsTree.expandItem(near)
 
@@ -143,7 +143,7 @@ class ResultsDialog(QDockWidget):
             except Exception as e:
                 print e
 
-        isin = QTreeWidgetItem(['Is inside'])
+        isin = QTreeWidgetItem([self.tr('Is inside')])
         self.__resultsTree.addTopLevelItem(isin)
         self.__resultsTree.expandItem(isin)
 

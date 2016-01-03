@@ -3,5 +3,6 @@
     <file>icons/osminfo.png</file>
     <file>icons/about.png</file>
     <file>icons/cursor.png</file>
+    <file>icons/zoom2feature.png</file>
   </qresource>
 </RCC>
