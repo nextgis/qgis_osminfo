@@ -9,7 +9,8 @@ qgisMinimumVersion=2.0
 author=NextGIS
 email=info@nextgis.com
 changelog=0.5:
-            * Clicking on feature in a result tree now allows to see any geometry (both from nearby and enclosing features)
+            * Clicking on feature in results tree now allows to see any geometry (of both nearby and enclosing features)
+            * Right-click menu in results-tree to zoom in to feature
             * Plugin works from behind proxy
             * 
     0.4:

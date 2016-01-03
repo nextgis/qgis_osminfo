@@ -35,6 +35,7 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 from ui.ui_settingsdialogbase import Ui_Dialog
+from plugin_settings import PluginSettings
 
 import resources
 
@@ -43,6 +44,7 @@ class SettingsDialog(QDialog, Ui_Dialog):
     def __init__(self):
         QDialog.__init__(self)
         self.setupUi(self)
+        self.fill_pages()
 
         self.btnHelp = self.buttonBox.button(QDialogButtonBox.Help)
 
@@ -52,10 +54,18 @@ class SettingsDialog(QDialog, Ui_Dialog):
         cfg.read(os.path.join(os.path.dirname(__file__), 'metadata.txt'))
         version = cfg.get('general', 'version')
         self.lblName.setText(self.tr('OSMInfo Settings'))
-
-        #self.lblVersion.setText(self.tr('Version: %s') % version)
+        self.lblDistance.setText(self.tr('Distance'))
     
         self.buttonBox.helpRequested.connect(self.openHelp)
+        self.accepted.connect(self.save_settings)
+
+    def fill_pages(self):
+        # common
+        self.distSpinner.setValue(PluginSettings.distance_value())
+    
+    def save_settings(self):
+        # common
+        PluginSettings.set_distance_value(self.distSpinner.value())
 
     def reject(self):
         QDialog.reject(self)

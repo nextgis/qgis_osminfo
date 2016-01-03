@@ -37,6 +37,7 @@ from PyQt4.QtNetwork import *
 from qgis.core import *
 from qgis.gui import *
 
+from plugin_settings import PluginSettings
 
 class Worker(QObject):
 
@@ -67,7 +68,7 @@ class Worker(QObject):
         qnam = QgsNetworkAccessManager.instance()
 
         # around request
-        dist = 20
+        dist = PluginSettings.distance_value()
 
         request_data = '[timeout:30][out:json];(node(around:%s,%s,%s);way(around:%s,%s,%s));out tags geom;relation(around:%s,%s,%s);' % (dist, yy, xx, dist, yy, xx, dist, yy, xx)
         reply1 = qnam.post(request, QByteArray(request_data))
