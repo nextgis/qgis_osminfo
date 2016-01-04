@@ -30,19 +30,19 @@
 
 
 import os
-import ConfigParser
 
+from PyQt4 import QtGui, uic
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
-from ui.ui_aboutdialogbase import Ui_Dialog
-
 import resources
 
+FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui/aboutdialogbase.ui'))
 
-class AboutDialog(QDialog, Ui_Dialog):
+
+class AboutDialog(QtGui.QDialog, FORM_CLASS):
     def __init__(self):
-        QDialog.__init__(self)
+        super(SettingsDialog, self).__init__(parent)
         self.setupUi(self)
 
         self.btnHelp = self.buttonBox.button(QDialogButtonBox.Help)

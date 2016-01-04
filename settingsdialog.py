@@ -29,8 +29,8 @@
 
 
 import os
-import ConfigParser
 
+from PyQt4 import QtGui, uic
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
@@ -39,10 +39,12 @@ from plugin_settings import PluginSettings
 
 import resources
 
+FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui/settingsdialogbase.ui'))
 
-class SettingsDialog(QDialog, Ui_Dialog):
+
+class SettingsDialog(QtGui.QDialog, FORM_CLASS):
     def __init__(self):
-        QDialog.__init__(self)
+        super(SettingsDialog, self).__init__(parent)
         self.setupUi(self)
         self.fill_pages()
 
