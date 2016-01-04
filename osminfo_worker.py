@@ -77,14 +77,14 @@ class Worker(QThread):
         loop.exec_()
         if reply1.error() != QNetworkReply.NoError:
             reply1.deleteLater()
-            self.gotError.emit(self.tr('Error on get data from server'))
+            self.gotError.emit(self.tr('Error getting data from the server'))
             return
         try:
             data = reply1.readAll()
             l1 = json.loads(str(data))['elements']
             reply1.deleteLater()
         except:
-            self.gotError.emit(self.tr('Error on parse data'))
+            self.gotError.emit(self.tr('Error parsing data'))
             return
         finally:
             reply1.deleteLater()
@@ -97,13 +97,13 @@ class Worker(QThread):
         loop.exec_()
         if reply2.error() != QNetworkReply.NoError:
             reply2.deleteLater()
-            self.gotError.emit(self.tr('Error on get data from server'))
+            self.gotError.emit(self.tr('Error getting data from the server'))
             return
         try:
             data = reply2.readAll()
             l2 = json.loads(str(data))['elements']
         except:
-            self.gotError.emit(self.tr('Error on parse data'))
+            self.gotError.emit(self.tr('Error parsing data'))
             return
         finally:
             reply2.deleteLater()
