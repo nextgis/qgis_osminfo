@@ -58,7 +58,7 @@ class ResultsDialog(QDockWidget):
         self.__resultsTree.setHeaderLabels([self.tr('Feature/Key'), self.tr('Value')])
         self.__resultsTree.header().setResizeMode(QHeaderView.ResizeToContents)
         self.__resultsTree.header().setStretchLastSection(False)
-        self.__resultsTree.itemClicked.connect(self.itemClicked)
+        self.__resultsTree.itemSelectionChanged.connect(self.selItemChanged)
         self.__layout.addWidget(self.__resultsTree)
         self.__resultsTree.clear()
 
@@ -162,7 +162,11 @@ class ResultsDialog(QDockWidget):
             except Exception as e:
                 print e
 
-    def itemClicked(self, item, column):
+    def selItemChanged(self):
+        selection = self.__resultsTree.selectedItems()
+        if not selection:
+            return
+        item = selection[0]
         # if selected tag - use parent
         if item.type() == TagItemType:
             item = item.parent()
