@@ -44,6 +44,7 @@ class ResultsDialog(QDockWidget):
         self.__rb = result_render
         self.__selected_id = None
         self.__rel_reply = None
+        self.thread = None
         QDockWidget.__init__(self, title, parent)
         self.__mainWidget = QWidget()
 
@@ -93,11 +94,19 @@ class ResultsDialog(QDockWidget):
         self.__resultsTree.clear()
         self.__resultsTree.addTopLevelItem(QTreeWidgetItem([self.tr('Loading....')]))
 
+        if self.thread:
+            self.worker.gotData.disconnect(self.showData)
+            self.worker.gotError.disconnect(self.showError)
+            self.thread.quit()
+            self.thread.deleteLater()
+
         worker = Worker(xx, yy)
         thread = QThread(self)
         worker.moveToThread(thread)
         worker.gotData.connect(self.showData)
         worker.gotError.connect(self.showError)
+        worker.gotData.connect(thread.quit)
+        worker.gotError.connect(thread.quit)
         thread.started.connect(worker.run)
         thread.start()
 

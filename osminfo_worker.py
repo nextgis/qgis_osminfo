@@ -30,14 +30,12 @@
 
 import json
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4.QtNetwork import *
-
-from qgis.core import *
-from qgis.gui import *
+from PyQt4.QtCore import QObject, pyqtSignal, QUrl, QByteArray, QEventLoop
+from PyQt4.QtNetwork import QNetworkRequest, QNetworkReply
+from qgis.core import QgsMessageLog, QgsNetworkAccessManager
 
 from plugin_settings import PluginSettings
+
 
 class Worker(QObject):
 
@@ -65,6 +63,8 @@ class Worker(QObject):
 
         url = 'http://overpass-api.de/api/interpreter'
         request = QNetworkRequest(QUrl(url))
+        request.setHeader(QNetworkRequest.ContentTypeHeader, 'application/x-www-form-urlencoded');
+
         qnam = QgsNetworkAccessManager.instance()
 
         # around request
@@ -75,17 +75,37 @@ class Worker(QObject):
         loop = QEventLoop()
         reply1.finished.connect(loop.quit)
         loop.exec_()
-        data = reply1.readAll()
-        l1 = json.loads(str(data))['elements']
-        reply1.deleteLater()
+        if reply1.error() != QNetworkReply.NoError:
+            reply1.deleteLater()
+            self.gotError.emit('Error on get data from server')
+            return
+        try:
+            data = reply1.readAll()
+            l1 = json.loads(str(data))['elements']
+            reply1.deleteLater()
+        except:
+            self.gotError.emit('Error on parse data')
+            return
+        finally:
+            reply1.deleteLater()
+
 
         request_data = '[timeout:30][out:json];is_in(%s,%s)->.a;way(pivot.a);out tags geom;relation(pivot.a);out tags bb;' % (yy, xx)
         reply2 = qnam.post(request, QByteArray(request_data))
         loop = QEventLoop()
         reply2.finished.connect(loop.quit)
         loop.exec_()
-        data = reply2.readAll()
-        l2 = json.loads(str(data))['elements']
-        reply2.deleteLater()
+        if reply2.error() != QNetworkReply.NoError:
+            reply2.deleteLater()
+            self.gotError.emit('Error on get data from server')
+            return
+        try:
+            data = reply2.readAll()
+            l2 = json.loads(str(data))['elements']
+        except:
+            self.gotError.emit('Error on parse data')
+            return
+        finally:
+            reply2.deleteLater()
 
         self.gotData.emit(l1, l2)
