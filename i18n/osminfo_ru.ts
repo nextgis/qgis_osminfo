@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS><TS version="2.0">
+<!DOCTYPE TS>
+<TS version="2.0" language="ru_RU">
 <context>
     <name>AboutDialog</name>
     <message>
@@ -130,17 +131,17 @@ Plugin will not be enabled.</source>
         <translation>Значение</translation>
     </message>
     <message>
-        <location filename="osminforesults.py" line="71"/>
+        <location filename="osminforesults.py" line="92"/>
         <source>Loading....</source>
         <translation>Загрузка...</translation>
     </message>
     <message>
-        <location filename="osminforesults.py" line="71"/>
+        <location filename="osminforesults.py" line="112"/>
         <source>Nearby features</source>
         <translation>Ближайшие:</translation>
     </message>
     <message>
-        <location filename="osminforesults.py" line="71"/>
+        <location filename="osminforesults.py" line="146"/>
         <source>Is inside</source>
         <translation>Входит в:</translation>
     </message>
@@ -156,14 +157,27 @@ Plugin will not be enabled.</source>
     </message>
 </context>
 <context>
+    <name>SettingsDialog</name>
+    <message>
+        <location filename="settingsdialog.py" line="56"/>
+        <source>OSMInfo Settings</source>
+        <translation>Настройки OSMInfo</translation>
+    </message>
+    <message>
+        <location filename="settingsdialog.py" line="57"/>
+        <source>Distance</source>
+        <translation>Расстояние</translation>
+    </message>
+</context>
+<context>
     <name>Worker</name>
     <message>
-        <location filename="osminfo_worker.py" line="62"/>
+        <location filename="osminfo_worker.py" line="63"/>
         <source>Worker: %s, %s are wrong coords!</source>
         <translation>Worker: неправильные координаты %s, %s!</translation>
     </message>
     <message>
-        <location filename="osminfo_worker.py" line="56"/>
+        <location filename="osminfo_worker.py" line="57"/>
         <source>OSMInfo</source>
         <translation>OSMInfo</translation>
     </message>
