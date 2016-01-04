@@ -32,7 +32,7 @@ import os
 
 from PyQt4 import uic
 from PyQt4.QtGui import QDialogButtonBox, QPixmap, QTextDocument, QDialog, QDesktopServices
-from PySide.QtCore import QSettings, QUrl, QLocale
+from PyQt4.QtCore import QSettings, QUrl, QLocale
 
 import resources
 
