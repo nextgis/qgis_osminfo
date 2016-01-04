@@ -65,12 +65,14 @@ class ResultsDialog(QDockWidget):
         self.setWidget(self.__mainWidget)
     
     def openMenu(self, position):
-        menu = QMenu()
-        actionZoom = QAction(QIcon(':/plugins/osminfo/icons/zoom2feature.png'), self.tr('Zoom to feature'), self)
-        menu.addAction(actionZoom)
-        actionZoom.setStatusTip(self.tr('Zoom to selected item'))
-        actionZoom.triggered.connect(self.zoom2feature)
-        menu.exec_(self.__resultsTree.viewport().mapToGlobal(position))
+        selected_items = self.__resultsTree.selectedItems()
+        if len(selected_items) > 0 and selected_items[0].type() in [TagItemType, FeatureItemType]:
+            menu = QMenu()
+            actionZoom = QAction(QIcon(':/plugins/osminfo/icons/zoom2feature.png'), self.tr('Zoom to feature'), self)
+            menu.addAction(actionZoom)
+            actionZoom.setStatusTip(self.tr('Zoom to selected item'))
+            actionZoom.triggered.connect(self.zoom2feature)
+            menu.exec_(self.__resultsTree.viewport().mapToGlobal(position))
     
     def zoom2feature(self):
         selected_items = self.__resultsTree.selectedItems()
