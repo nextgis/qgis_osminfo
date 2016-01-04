@@ -26,24 +26,21 @@
 # MA 02110-1335 USA.
 #
 #******************************************************************************
-
-
+import ConfigParser
 import os
 
-from PyQt4 import QtGui, uic
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PyQt4 import uic
+from PyQt4.QtCore import QLocale, QUrl, QSettings
+from PyQt4.QtGui import QDialogButtonBox, QPixmap, QDialog, QDesktopServices
 
-from ui.ui_settingsdialogbase import Ui_Dialog
 from plugin_settings import PluginSettings
-
 import resources
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui/settingsdialogbase.ui'))
 
 
-class SettingsDialog(QtGui.QDialog, FORM_CLASS):
-    def __init__(self):
+class SettingsDialog(QDialog, FORM_CLASS):
+    def __init__(self, parent=None):
         super(SettingsDialog, self).__init__(parent)
         self.setupUi(self)
         self.fill_pages()
@@ -83,6 +80,4 @@ class SettingsDialog(QtGui.QDialog, FORM_CLASS):
         if localeShortName in ['ru', 'uk']:
             QDesktopServices.openUrl(QUrl('http://gis-lab.info/qa/osminfo.html'))
         else:
-            QDesktopServices.openUrl(QUrl('http://gis-lab.info/qa/qtiles-en.html'))
-
-    
+            QDesktopServices.openUrl(QUrl('http://gis-lab.info/qa/osminfo-en.html'))

@@ -27,22 +27,21 @@
 # MA 02110-1335 USA.
 #
 #******************************************************************************
-
-
+import ConfigParser
 import os
 
-from PyQt4 import QtGui, uic
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PyQt4 import uic
+from PyQt4.QtGui import QDialogButtonBox, QPixmap, QTextDocument, QDialog, QDesktopServices
+from PySide.QtCore import QSettings, QUrl, QLocale
 
 import resources
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui/aboutdialogbase.ui'))
 
 
-class AboutDialog(QtGui.QDialog, FORM_CLASS):
-    def __init__(self):
-        super(SettingsDialog, self).__init__(parent)
+class AboutDialog(QDialog, FORM_CLASS):
+    def __init__(self, parent=None):
+        super(AboutDialog, self).__init__(parent)
         self.setupUi(self)
 
         self.btnHelp = self.buttonBox.button(QDialogButtonBox.Help)
