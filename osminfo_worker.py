@@ -30,20 +30,20 @@
 
 import json
 
-from PyQt4.QtCore import QObject, pyqtSignal, QUrl, QByteArray, QEventLoop
+from PyQt4.QtCore import pyqtSignal, QUrl, QByteArray, QEventLoop, QThread
 from PyQt4.QtNetwork import QNetworkRequest, QNetworkReply
 from qgis.core import QgsMessageLog, QgsNetworkAccessManager
 
 from plugin_settings import PluginSettings
 
 
-class Worker(QObject):
+class Worker(QThread):
 
     gotData = pyqtSignal(list, list)
     gotError = pyqtSignal(unicode)
 
     def __init__(self, xx, yy):
-        QObject.__init__(self)
+        super(Worker, self).__init__()
         self.__xx = xx
         self.__yy = yy
 
@@ -77,14 +77,14 @@ class Worker(QObject):
         loop.exec_()
         if reply1.error() != QNetworkReply.NoError:
             reply1.deleteLater()
-            self.gotError.emit('Error on get data from server')
+            self.gotError.emit(self.tr('Error on get data from server'))
             return
         try:
             data = reply1.readAll()
             l1 = json.loads(str(data))['elements']
             reply1.deleteLater()
         except:
-            self.gotError.emit('Error on parse data')
+            self.gotError.emit(self.tr('Error on parse data'))
             return
         finally:
             reply1.deleteLater()
@@ -97,13 +97,13 @@ class Worker(QObject):
         loop.exec_()
         if reply2.error() != QNetworkReply.NoError:
             reply2.deleteLater()
-            self.gotError.emit('Error on get data from server')
+            self.gotError.emit(self.tr('Error on get data from server'))
             return
         try:
             data = reply2.readAll()
             l2 = json.loads(str(data))['elements']
         except:
-            self.gotError.emit('Error on parse data')
+            self.gotError.emit(self.tr('Error on parse data'))
             return
         finally:
             reply2.deleteLater()
