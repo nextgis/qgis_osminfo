@@ -1,20 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS>
-<TS version="2.0" language="ru_RU">
+<!DOCTYPE TS><TS version="2.0" language="ru_RU" sourcelanguage="">
 <context>
     <name>AboutDialog</name>
     <message>
-        <location filename="aboutdialog.py" line="56"/>
+        <location filename="aboutdialog.py" line="55"/>
         <source>Version: %s</source>
         <translation>Версия: %s</translation>
     </message>
     <message>
-        <location filename="aboutdialog.py" line="83"/>
+        <location filename="aboutdialog.py" line="82"/>
         <source>&lt;p&gt;This plugin takes coordinates of a mouse click and extracts information for nearby and enclosing objects.&lt;/p&gt;&lt;p&gt;It uses Overpass API to extract data from OpenStreetMap.&lt;p&gt;&lt;strong&gt;Developers&lt;/strong&gt;: Maxim Dubinin and Alexander Lisovenko (&lt;a href=&quot;http://nextgis.com&quot;&gt;NextGIS&lt;/a&gt;).&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Homepage&lt;/strong&gt;: &lt;a href=&quot;https://github.com/nextgis/osminfo&quot;&gt;https://github.com/nextgis/osminfo&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Please report bugs at &lt;a href=&quot;https://github.com/nextgis/osminfo/issues&quot;&gt;bugtracker&lt;/a&gt;&lt;/p&gt;</source>
         <translation>&lt;p&gt;Это расширение позволяет получить перечень объектов в месте щелчка мышью. Объекты делятся на две группы: ближайшие и охватывающие точку. Информация берется из OpenStreetMap с помощью Overpass API.&lt;/p&gt;&lt;strong&gt;Разработчики&lt;/strong&gt;: Максим Дубинин, Александр Лисовенко, Евгений Никулин (&lt;a href=&quot;http://nextgis.com&quot;&gt;NextGIS&lt;/a&gt;).&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Домашняя страница&lt;/strong&gt;: &lt;a href=&quot;https://github.com/nextgis/osminfo&quot;&gt;https://github.com/nextgis/osminfo&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Сообщения об ошибках: &lt;a href=&quot;https://github.com/nextgis/osminfo/issues&quot;&gt;bugtracker&lt;/a&gt;&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="aboutdialog.py" line="57"/>
+        <location filename="aboutdialog.py" line="56"/>
         <source>OSMInfo</source>
         <translation>OSMInfo</translation>
     </message>
@@ -53,7 +52,11 @@
 p, li { white-space: pre-wrap; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:&apos;Ubuntu&apos;; font-size:11pt; font-weight:400; font-style:normal;&quot;&gt;
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:&apos;Sans Serif&apos;; font-size:9pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:&apos;Ubuntu&apos;; font-size:11pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:&apos;Sans Serif&apos;; font-size:9pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
         <location filename="ui/settingsdialogbase.ui" line="101"/>
@@ -121,37 +124,37 @@ Plugin will not be enabled.</source>
 <context>
     <name>ResultsDialog</name>
     <message>
-        <location filename="osminforesults.py" line="58"/>
+        <location filename="osminforesults.py" line="59"/>
         <source>Feature/Key</source>
         <translation>Объекты/Ключ</translation>
     </message>
     <message>
-        <location filename="osminforesults.py" line="58"/>
+        <location filename="osminforesults.py" line="59"/>
         <source>Value</source>
         <translation>Значение</translation>
     </message>
     <message>
-        <location filename="osminforesults.py" line="92"/>
+        <location filename="osminforesults.py" line="95"/>
         <source>Loading....</source>
         <translation>Загрузка...</translation>
     </message>
     <message>
-        <location filename="osminforesults.py" line="112"/>
+        <location filename="osminforesults.py" line="117"/>
         <source>Nearby features</source>
         <translation>Ближайшие:</translation>
     </message>
     <message>
-        <location filename="osminforesults.py" line="146"/>
+        <location filename="osminforesults.py" line="151"/>
         <source>Is inside</source>
         <translation>Входит в:</translation>
     </message>
     <message>
-        <location filename="osminforesults.py" line="69"/>
+        <location filename="osminforesults.py" line="72"/>
         <source>Zoom to feature</source>
         <translation>Приблизить</translation>
     </message>
     <message>
-        <location filename="osminforesults.py" line="71"/>
+        <location filename="osminforesults.py" line="74"/>
         <source>Zoom to selected item</source>
         <translation>Приблизить к объекту</translation>
     </message>
@@ -159,12 +162,12 @@ Plugin will not be enabled.</source>
 <context>
     <name>SettingsDialog</name>
     <message>
-        <location filename="settingsdialog.py" line="56"/>
+        <location filename="settingsdialog.py" line="55"/>
         <source>OSMInfo Settings</source>
         <translation>Настройки OSMInfo</translation>
     </message>
     <message>
-        <location filename="settingsdialog.py" line="57"/>
+        <location filename="settingsdialog.py" line="56"/>
         <source>Distance</source>
         <translation>Расстояние</translation>
     </message>
@@ -172,14 +175,24 @@ Plugin will not be enabled.</source>
 <context>
     <name>Worker</name>
     <message>
-        <location filename="osminfo_worker.py" line="63"/>
+        <location filename="osminfo_worker.py" line="61"/>
         <source>Worker: %s, %s are wrong coords!</source>
         <translation>Worker: неправильные координаты %s, %s!</translation>
     </message>
     <message>
-        <location filename="osminfo_worker.py" line="57"/>
+        <location filename="osminfo_worker.py" line="55"/>
         <source>OSMInfo</source>
         <translation>OSMInfo</translation>
+    </message>
+    <message>
+        <location filename="osminfo_worker.py" line="100"/>
+        <source>Error getting data from the server</source>
+        <translation>Ошибка получения данных с сервера</translation>
+    </message>
+    <message>
+        <location filename="osminfo_worker.py" line="106"/>
+        <source>Error parsing data</source>
+        <translation>Ошибка разбора данных</translation>
     </message>
 </context>
 </TS>
