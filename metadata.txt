@@ -18,7 +18,7 @@ changelog=0.5:
         * i18n support for GUI
         * Ctrl+C to copy tag/key or value to clipboard
     0.3.1:
-        * Get rid of requests dependency - for real!
+        * Get rid of requests dependency - now for real!
         * Fix cursors
     0.3:
         * Deal with crashes due to coordinates out of bounds
@@ -30,7 +30,7 @@ changelog=0.5:
 
 icon=icons/osminfo.png
 
-tags=openstreetmap,overpass
+tags=osm,openstreetmap,overpass
 
 homepage=https://github.com/nextgis/osminfo
 tracker=https://github.com/nextgis/osminfo/issues
