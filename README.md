@@ -4,6 +4,8 @@ Wondering what is renderer not showing you?
 
 Get all information for a particular point with this QGIS plugin. OSMInfo shows information about objects from OpenStreetMap using Overpass API.
 
+QGIS plugins page: http://plugins.qgis.org/plugins/osminfo/
+
 # Screenshots
 
 ##Click anywhere to get detailed attributes about feature
