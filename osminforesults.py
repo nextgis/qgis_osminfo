@@ -152,7 +152,18 @@ class ResultsDialog(QDockWidget):
         self.__resultsTree.addTopLevelItem(isin)
         self.__resultsTree.expandItem(isin)
 
-        for element in l2:
+        l2Sorted = sorted(
+            l2,
+            key=lambda element: QgsGeometry().fromRect(
+                QgsRectangle(
+                    element['bounds']['minlon'],
+                    element['bounds']['minlat'],
+                    element['bounds']['maxlon'],
+                    element['bounds']['maxlat'])
+            ).area()
+        )
+
+        for element in l2Sorted:
             # print element
             try:
                 elementTags = element[u'tags']
