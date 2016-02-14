@@ -8,8 +8,8 @@ QGIS plugins page: http://plugins.qgis.org/plugins/osminfo/
 
 # Manual
 
-* ![English](https://translate.google.com/translate?sl=ru&tl=en&js=y&prev=_t&hl=en&ie=UTF-8&u=http%3A%2F%2Fgis-lab.info%2Fqa%2Fosminfo.html&edit-text=) (Google Translate)
-* ![Russian](http://gis-lab.info/qa/osminfo.html)
+* [English](https://translate.google.com/translate?sl=ru&tl=en&js=y&prev=_t&hl=en&ie=UTF-8&u=http%3A%2F%2Fgis-lab.info%2Fqa%2Fosminfo.html&edit-text=) (Google Translate)
+* [Russian](http://gis-lab.info/qa/osminfo.html)
 
 # Screenshots
 
