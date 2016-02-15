@@ -64,7 +64,13 @@ class ResultsDialog(QDockWidget):
         self.__resultsTree.clear()
 
         self.setWidget(self.__mainWidget)
-    
+
+        overrideLocale = QSettings().value('locale/overrideFlag', False, type=bool)
+        if not overrideLocale:
+            self.qgisLocale = QLocale.system().name()[:2]
+        else:
+            self.qgisLocale = QSettings().value('locale/userLocale', '', type=unicode)[:2]
+
     def openMenu(self, position):
         selected_items = self.__resultsTree.selectedItems()
         if len(selected_items) > 0 and selected_items[0].type() in [TagItemType, FeatureItemType]:
@@ -124,7 +130,16 @@ class ResultsDialog(QDockWidget):
             # print element
             try:
                 elementTags = element[u'tags']
-                elementTitle = elementTags.get(u'name')
+                elementTitle = elementTags.get(
+                    u'name:%s' % self.qgisLocale,
+                    elementTags.get(
+                        u'name',
+                        elementTags.get(
+                            u"id",
+                            ""
+                        )
+                    )
+                )
                 if not elementTitle:
                     if 'building' in elementTags.keys():
                         if 'addr:street' in elementTags.keys() and 'addr:housenumber' in elementTags.keys():
@@ -167,7 +182,16 @@ class ResultsDialog(QDockWidget):
             # print element
             try:
                 elementTags = element[u'tags']
-                elementTitle = elementTags.get(u'name', str(index))
+                elementTitle = elementTags.get(
+                    u'name:%s' % self.qgisLocale,
+                    elementTags.get(
+                        u'name',
+                        elementTags.get(
+                            u"id",
+                            ""
+                        )
+                    )
+                )
                 elementItem = QTreeWidgetItem(isin, [elementTitle], FeatureItemType)
                 elementItem.setData(0, Qt.UserRole, element)
                 for tag in sorted(elementTags.items()):
