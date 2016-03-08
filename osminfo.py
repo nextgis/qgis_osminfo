@@ -96,7 +96,7 @@ class OsmInfo:
     self.iface.addPluginToWebMenu(self.osminfo_menu,self.actionAbout)
     self.iface.addPluginToWebMenu(self.osminfo_menu,self.actionSettings)
     
-    # add icon to new menu item in Vector toolbar
+    # add icon to new menu item in Web toolbar
     self.iface.addWebToolBarIcon(self.actionRun)
 
     # connect action to the run method
