@@ -1,4 +1,4 @@
-# osminfo
+# OSMInfo
 Tired of trying to figure out what you're seeing on the map?
 Wondering what is renderer not showing you?
 
@@ -22,3 +22,9 @@ Even if there no actual features in the project.
 
 ##Zoom in to geometries of a enclosing relation
 ![Example3](/img/example3.png)
+
+Commercial support
+----------
+Need to fix a bug or add a feature to OSMInfo? We provide custom development and support for this software. [Contact us](http://nextgis.ru/en/contact/) to discuss options!
+
+[![http://nextgis.com](http://nextgis.ru/img/nextgis.png)](http://nextgis.com)
