@@ -23,6 +23,10 @@ Even if there no actual features in the project.
 ##Zoom in to geometries of a enclosing relation
 ![Example3](/img/example3.png)
 
+License
+-------------
+This program is licensed under GNU GPL v2 or any later version
+
 Commercial support
 ----------
 Need to fix a bug or add a feature to OSMInfo? We provide custom development and support for this software. [Contact us](http://nextgis.ru/en/contact/) to discuss options!
