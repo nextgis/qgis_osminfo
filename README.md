@@ -17,10 +17,10 @@ QGIS plugins page: http://plugins.qgis.org/plugins/osminfo/
 Even if there no actual features in the project.
 ![Example1](/img/example1.png)
 
-##Check out geometries of found feature
+##Check out geometries of a found feature
 ![Example2](/img/example2.png)
 
-##Zoom in to geometries of a enclosing relation
+##Zoom in to geometries of an enclosing relation
 ![Example3](/img/example3.png)
 
 License
