@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>110</height>
+    <height>141</height>
    </rect>
   </property>
   <property name="font">
@@ -19,6 +19,39 @@
    <string>About OSMInfo</string>
   </property>
   <layout class="QGridLayout" name="gridLayout" columnstretch="0,0">
+   <item row="2" column="1">
+    <widget class="QSpinBox" name="distSpinner">
+     <property name="font">
+      <font>
+       <pointsize>11</pointsize>
+      </font>
+     </property>
+     <property name="minimum">
+      <number>1</number>
+     </property>
+     <property name="maximum">
+      <number>1000</number>
+     </property>
+     <property name="singleStep">
+      <number>1</number>
+     </property>
+     <property name="value">
+      <number>20</number>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLabel" name="lblDistance">
+     <property name="font">
+      <font>
+       <pointsize>11</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>distance</string>
+     </property>
+    </widget>
+   </item>
    <item row="0" column="0">
     <widget class="QLabel" name="lblLogo">
      <property name="font">
@@ -54,7 +87,7 @@
      </property>
     </widget>
    </item>
-   <item row="2" column="0" colspan="2">
+   <item row="5" column="0" colspan="2">
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="font">
       <font>
@@ -69,36 +102,17 @@
      </property>
     </widget>
    </item>
-   <item row="1" column="1">
-    <widget class="QSpinBox" name="distSpinner">
-     <property name="font">
-      <font>
-       <pointsize>11</pointsize>
-      </font>
-     </property>
-     <property name="minimum">
-      <number>1</number>
-     </property>
-     <property name="maximum">
-      <number>1000</number>
-     </property>
-     <property name="singleStep">
-      <number>1</number>
-     </property>
-     <property name="value">
-      <number>20</number>
+   <item row="1" column="0">
+    <widget class="QLabel" name="lblTimeout">
+     <property name="text">
+      <string>timeout</string>
      </property>
     </widget>
    </item>
-   <item row="1" column="0">
-    <widget class="QLabel" name="lblDistance">
-     <property name="font">
-      <font>
-       <pointsize>11</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>distance</string>
+   <item row="1" column="1">
+    <widget class="QSpinBox" name="timeoutSpinner">
+     <property name="value">
+      <number>30</number>
      </property>
     </widget>
    </item>

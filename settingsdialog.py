@@ -54,6 +54,7 @@ class SettingsDialog(QDialog, FORM_CLASS):
         version = cfg.get('general', 'version')
         self.lblName.setText(self.tr('OSMInfo Settings'))
         self.lblDistance.setText(self.tr('Distance'))
+        self.lblTimeout.setText(self.tr('Timeout'))
     
         self.buttonBox.helpRequested.connect(self.openHelp)
         self.accepted.connect(self.save_settings)
@@ -61,10 +62,12 @@ class SettingsDialog(QDialog, FORM_CLASS):
     def fill_pages(self):
         # common
         self.distSpinner.setValue(PluginSettings.distance_value())
+        self.timeoutSpinner.setValue(PluginSettings.timeout_value())
     
     def save_settings(self):
         # common
         PluginSettings.set_distance_value(self.distSpinner.value())
+        PluginSettings.set_timeout_value(self.timeoutSpinner.value())
 
     def reject(self):
         QDialog.reject(self)

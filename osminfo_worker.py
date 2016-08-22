@@ -69,8 +69,9 @@ class Worker(QThread):
 
         # around request
         dist = PluginSettings.distance_value()
+        timeout = PluginSettings.timeout_value()
 
-        request_data = '[timeout:30][out:json];(node(around:%s,%s,%s);way(around:%s,%s,%s));out tags geom;relation(around:%s,%s,%s);' % (dist, yy, xx, dist, yy, xx, dist, yy, xx)
+        request_data = '[timeout:%s][out:json];(node(around:%s,%s,%s);way(around:%s,%s,%s));out tags geom;relation(around:%s,%s,%s);' % (timeout, dist, yy, xx, dist, yy, xx, dist, yy, xx)
         reply1 = qnam.post(request, QByteArray(request_data))
         loop = QEventLoop()
         reply1.finished.connect(loop.quit)
@@ -90,7 +91,7 @@ class Worker(QThread):
             reply1.deleteLater()
 
 
-        request_data = '[timeout:30][out:json];is_in(%s,%s)->.a;way(pivot.a);out tags geom;relation(pivot.a);out tags bb;' % (yy, xx)
+        request_data = '[timeout:%s][out:json];is_in(%s,%s)->.a;way(pivot.a);out tags geom;relation(pivot.a);out tags bb;' % (timeout, yy, xx)
         reply2 = qnam.post(request, QByteArray(request_data))
         loop = QEventLoop()
         reply2.finished.connect(loop.quit)
