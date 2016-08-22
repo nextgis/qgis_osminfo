@@ -11,6 +11,7 @@ email=info@nextgis.com
 changelog=0.6:
             * Account for language of the interface, when showing results
             * Sort outputs by admin_level or by area
+            * New setting for request timeout
     0.5:
             * Clicking on feature in results tree now allows to see any geometry (for both nearby and enclosing features)
             * Right-click menu in results-tree to zoom in to a selected feature
