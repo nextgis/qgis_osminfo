@@ -8,11 +8,14 @@ qgisMinimumVersion=2.0
 
 author=NextGIS
 email=info@nextgis.com
-changelog=0.5:
+changelog=0.6:
+            * Account for language of the interface, when showing results
+            * Sort outputs by admin_level or by area
+    0.5:
             * Clicking on feature in results tree now allows to see any geometry (for both nearby and enclosing features)
             * Right-click menu in results-tree to zoom in to a selected feature
             * Distance for finding nearby features can be set through new Settings dialog
-            * Plugin works from behind proxy
+            * Plugin now works from behind proxy
     0.4:
         * Click on feature in a results tree to see actual feature geometry highlighted (only works for nearby and some enclosing features yet)
         * i18n support for GUI
