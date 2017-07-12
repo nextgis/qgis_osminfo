@@ -33,16 +33,21 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from PyQt4.QtNetwork import QNetworkRequest
 from qgis.core import *
+from qgis.gui import QgsMessageBar
+from qgis.utils import iface
 
 from osminfo_worker import Worker
+from osmelements import *
 
 FeatureItemType = 1001
 TagItemType = 1002
+
 
 class ResultsDialog(QDockWidget):
     def __init__(self, title, result_render, parent=None):
         self.__rb = result_render
         self.__selected_id = None
+        self.__selected_geom = None
         self.__rel_reply = None
         self.worker = None
         QDockWidget.__init__(self, title, parent)
@@ -71,14 +76,21 @@ class ResultsDialog(QDockWidget):
         else:
             self.qgisLocale = QSettings().value('locale/userLocale', '', type=unicode)[:2]
 
-    def openMenu(self, position):
+    def openMenu(self, position):                
         selected_items = self.__resultsTree.selectedItems()
         if len(selected_items) > 0 and selected_items[0].type() in [TagItemType, FeatureItemType]:
             menu = QMenu()
+            
             actionZoom = QAction(QIcon(':/plugins/osminfo/icons/zoom2feature.png'), self.tr('Zoom to feature'), self)
             menu.addAction(actionZoom)
             actionZoom.setStatusTip(self.tr('Zoom to selected item'))
             actionZoom.triggered.connect(self.zoom2feature)
+            
+            actionMove2NewTempLayer = QAction(QIcon(':/images/themes/default/mActionCreateMemory.svg'), self.tr('Save as temporary layer'), self)
+            menu.addAction(actionMove2NewTempLayer)
+            actionMove2NewTempLayer.setStatusTip(self.tr('Zoom to selected item'))
+            actionMove2NewTempLayer.triggered.connect(self.move2NewTempLayer)
+
             menu.exec_(self.__resultsTree.viewport().mapToGlobal(position))
     
     def zoom2feature(self):
@@ -89,12 +101,64 @@ class ResultsDialog(QDockWidget):
             if item.type() == TagItemType:
                 item = item.parent()
             if item and item.type() == FeatureItemType:
-                element = item.data(0, Qt.UserRole)
-                if element and 'bounds' in element:
-                    b_el = element['bounds']
-                    new_extent = QgsRectangle(b_el['minlon'], b_el['minlat'], b_el['maxlon'], b_el['maxlat'])
-                    self.__rb.zoom_to_bbox(new_extent)
+                osm_element = item.data(0, Qt.UserRole)
+                geom = osm_element.asQgisGeometry()[0]
+                self.__rb.zoom_to_bbox(geom.boundingBox())
 
+    def move2NewTempLayer(self):
+        selected_items = self.__resultsTree.selectedItems()
+        if len(selected_items) > 0:
+            item = selected_items[0]
+            # if selected tag - use parent
+            if item.type() == TagItemType:
+                item = item.parent()
+            if item and item.type() == FeatureItemType:
+                osm_element = item.data(0, Qt.UserRole)
+
+                # dst_crs = iface.mapCanvas().mapSettings().destinationCrs().authid()
+                if osm_element is None:
+                    iface.messageBar().pushMessage(
+                        "OSM Info",
+                        "Cann't parse OSM Element.",
+                        QgsMessageBar.WARNING,
+                        2
+                    )
+                    return
+
+                geoms = osm_element.asQgisGeometry()
+                for geom in geoms:
+                    if geom is None:
+                        geom = self.__selected_geom
+                    if geom.type() == QGis.Polygon:
+                        geom_type = "Polygon"
+                    elif geom.type() == QGis.Line:
+                        geom_type = "LineString"
+                    elif geom.type() == QGis.Point:
+                        geom_type = "Point"
+                    else:
+                        return
+
+                    geom_type = "Multi"*geom.isMultipart() + geom_type 
+
+                    vl = QgsVectorLayer(
+                        "%s?crs=EPSG:4326" % (geom_type, ),
+                        item.data(0, Qt.DisplayRole),
+                        "memory"
+                    )
+
+                    pr = vl.dataProvider()
+
+                    # add fields
+                    pr.addAttributes([QgsField(k, QVariant.String) for k in osm_element.tags])
+                    vl.updateFields()
+
+                    # add a feature
+                    fet = QgsFeature()
+                    fet.setGeometry(geom)
+                    fet.setAttributes(osm_element.tags.values())
+                    pr.addFeatures([fet])
+                    
+                    QgsMapLayerRegistry.instance().addMapLayer(vl)
 
     def getInfo(self, xx, yy):
         self.__resultsTree.clear()
@@ -124,44 +188,31 @@ class ResultsDialog(QDockWidget):
         self.__resultsTree.addTopLevelItem(near)
         self.__resultsTree.expandItem(near)
 
-        index = 1
-
         for element in l1:
-            # print element
             try:
-                elementTags = element[u'tags']
-                elementTitle = elementTags.get(
-                    u'name:%s' % self.qgisLocale,
-                    elementTags.get(
-                        u'name',
-                        elementTags.get(
-                            u"id",
-                            ""
-                        )
+                osm_element = parseOsmElement(element)
+                # osm_element.asQgisGeometry()
+                if osm_element is not None:
+                    elementItem = QTreeWidgetItem(
+                        near,
+                        [osm_element.title(self.qgisLocale)],
+                        FeatureItemType
                     )
-                )
-                if not elementTitle:
-                    if 'building' in elementTags.keys():
-                        if 'addr:street' in elementTags.keys() and 'addr:housenumber' in elementTags.keys():
-                            elementTitle = elementTags['addr:street'] + ', ' + elementTags['addr:housenumber']
-                        else:
-                            elementTitle = 'building'
-                    elif 'highway' in elementTags.keys():
-                        elementTitle = 'highway:' + elementTags['highway']
-                    elif 'amenity' in elementTags.keys():
-                        elementTitle = elementTags['amenity']
-                    else:
-                        elementTitle = elementTags[0]
-                elementItem = QTreeWidgetItem(near, [elementTitle], FeatureItemType)
-                elementItem.setData(0, Qt.UserRole, element)
-                for tag in sorted(elementTags.items()):
-                    elementItem.addChild(QTreeWidgetItem(tag, TagItemType))
+                    elementItem.setData(0, Qt.UserRole, osm_element)
 
-                self.__resultsTree.addTopLevelItem(elementItem)
-                #self.__resultsTree.expandItem(elementItem)
-                index += 1
+                    for tag in sorted(osm_element.tags.items()):
+                        elementItem.addChild(QTreeWidgetItem(tag, TagItemType))
+
+                    self.__resultsTree.addTopLevelItem(elementItem)
+
+                    # qApp.processEvents()
             except Exception as e:
-                print e
+                QgsMessageLog.logMessage(
+                    self.tr('Element process error: %s. Element: %s.') % (unicode(e), unicode(element)),
+                    self.tr('OSMInfo'),
+                    QgsMessageLog.CRITICAL
+                )
+                
 
         isin = QTreeWidgetItem([self.tr('Is inside')])
         self.__resultsTree.addTopLevelItem(isin)
@@ -179,28 +230,22 @@ class ResultsDialog(QDockWidget):
         )
 
         for element in l2Sorted:
-            # print element
             try:
-                elementTags = element[u'tags']
-                elementTitle = elementTags.get(
-                    u'name:%s' % self.qgisLocale,
-                    elementTags.get(
-                        u'name',
-                        elementTags.get(
-                            u"id",
-                            ""
-                        )
-                    )
-                )
-                elementItem = QTreeWidgetItem(isin, [elementTitle], FeatureItemType)
-                elementItem.setData(0, Qt.UserRole, element)
-                for tag in sorted(elementTags.items()):
-                    elementItem.addChild(QTreeWidgetItem(tag, TagItemType))
+                osm_element = parseOsmElement(element)
+                if osm_element is not None:
+                    elementItem = QTreeWidgetItem(isin, [osm_element.title(self.qgisLocale)], FeatureItemType)
+                    elementItem.setData(0, Qt.UserRole, osm_element)
+                    for tag in sorted(osm_element.tags.items()):
+                        elementItem.addChild(QTreeWidgetItem(tag, TagItemType))
 
-                self.__resultsTree.addTopLevelItem(elementItem)
-                index += 1
+                    self.__resultsTree.addTopLevelItem(elementItem)
+                    # qApp.processEvents()
             except Exception as e:
-                print e
+                QgsMessageLog.logMessage(
+                    self.tr('Element process error: %s. Element: %s.') % (unicode(e), unicode(element)),
+                    self.tr('OSMInfo'),
+                    QgsMessageLog.CRITICAL
+                )
 
     def selItemChanged(self):
         selection = self.__resultsTree.selectedItems()
@@ -213,51 +258,14 @@ class ResultsDialog(QDockWidget):
         # if already selected - exit
         if self.__selected_id == item:
             return
+
+        self.__selected_geom = None
+
         # clear old highlights
         self.__rb.clear_feature()
         # set new
         if item and item.type() == FeatureItemType:
             self.__selected_id = item
-            element = item.data(0, Qt.UserRole)
-            if element:
-                if element['type'] == 'node':
-                    geom = QgsGeometry.fromPoint(QgsPoint(element['lon'], element['lat']))
-                if element['type'] == 'way':
-                    geom = QgsGeometry.fromPolyline([QgsPoint(g['lon'], g['lat']) for g in element['geometry'] if g!='null'])
-                if element['type'] == 'relation':
-                    self.sendRelationRequest(element['id'])
-                    return
-                self.__rb.show_feature(geom)
+            osm_element = item.data(0, Qt.UserRole)
 
-    def sendRelationRequest(self, relation_id):
-        if self.__rel_reply:
-            try:
-                self.__rel_reply.abort()
-                self.__rel_reply.finished.disconnect(self.showRelationGeom)
-            except:
-                pass
-        url = 'http://overpass-api.de/api/interpreter'
-        rel_request = QNetworkRequest(QUrl(url))
-        qnam = QgsNetworkAccessManager.instance()
-        request_data = '[out:json];rel(%s);out geom;' % (relation_id)
-        self.__rel_reply = qnam.post(rel_request, QByteArray(request_data))
-        self.__rel_reply.finished.connect(self.showRelationGeom)
-        self.__rel_reply.error.connect(lambda: 'ok')
-
-    def showRelationGeom(self):
-        rel_data = ()
-        try:
-            data = self.__rel_reply.readAll()
-            self.__rel_reply.finished.disconnect(self.showRelationGeom)
-            rel_data = json.loads(str(data))
-        except:
-            pass
-        if 'elements' in rel_data and len(rel_data['elements']) > 0:
-            element = rel_data['elements'][0]
-            if 'members' in element:
-                lines = []
-                for member in element['members']:
-                    if member['type'] == 'way' and member['role'] == 'outer':
-                        lines.append([QgsPoint(g['lon'], g['lat']) for g in member['geometry'] if g != 'null'])
-                geom =QgsGeometry.fromMultiPolyline(lines)
-                self.__rb.show_feature(geom)
+            self.__rb.show_feature(osm_element.asQgisGeometry()[0])

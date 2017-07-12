@@ -32,12 +32,14 @@ class RubberBandResultRenderer():
         self.srs_wgs84 = QgsCoordinateReferenceSystem(4326)
         self.transformation = QgsCoordinateTransform(self.srs_wgs84, self.srs_wgs84)
 
+        self.featureColor = QColor('green')
+        
         self.rb = QgsRubberBand(self.iface.mapCanvas(), QGis.Point)
         self.rb.setColor(QColor('magenta'))
         self.rb.setIconSize(12)
 
         self.features_rb = QgsRubberBand(self.iface.mapCanvas(), QGis.Point)
-        self.features_rb.setColor(QColor('green'))
+        self.features_rb.setColor(self.featureColor)
         self.features_rb.setIconSize(12)
         self.features_rb.setWidth(3)
 
@@ -54,10 +56,10 @@ class RubberBandResultRenderer():
         self.rb.reset(QGis.Point)
 
     def need_transform(self):
-        return self.iface.mapCanvas().mapRenderer().destinationCrs().postgisSrid() != 4326
+        return self.iface.mapCanvas().mapSettings().destinationCrs().postgisSrid() != 4326
 
     def transform_point(self, point):
-        dest_srs_id = self.iface.mapCanvas().mapRenderer().destinationCrs().srsid()
+        dest_srs_id = self.iface.mapCanvas().mapSettings().destinationCrs().srsid()
         self.transformation.setDestCRSID(dest_srs_id)
         try:
             return self.transformation.transform(point)
@@ -66,7 +68,7 @@ class RubberBandResultRenderer():
             return
 
     def transform_bbox(self, bbox):
-        dest_srs_id = self.iface.mapCanvas().mapRenderer().destinationCrs().srsid()
+        dest_srs_id = self.iface.mapCanvas().mapSettings().destinationCrs().srsid()
         self.transformation.setDestCRSID(dest_srs_id)
         try:
             return self.transformation.transformBoundingBox(bbox)
@@ -75,7 +77,7 @@ class RubberBandResultRenderer():
             return
 
     def transform_geom(self, geom):
-        dest_srs_id = self.iface.mapCanvas().mapRenderer().destinationCrs().srsid()
+        dest_srs_id = self.iface.mapCanvas().mapSettings().destinationCrs().srsid()
         self.transformation.setDestCRSID(dest_srs_id)
         try:
             geom.transform(self.transformation)
@@ -97,10 +99,15 @@ class RubberBandResultRenderer():
         self.iface.mapCanvas().setExtent(bbox)
         self.iface.mapCanvas().refresh()
 
-
     def show_feature(self, geom):
         if self.need_transform():
             geom = self.transform_geom(geom)
+
+        if geom.type() == QGis.Point:
+            self.features_rb.setFillColor(self.featureColor)
+        else:
+            self.features_rb.setFillColor(QColor(0,255,0, 50))
+
         self.features_rb.setToGeometry(geom, None)
 
     def clear_feature(self):
