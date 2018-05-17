@@ -8,7 +8,9 @@ qgisMinimumVersion=2.0
 
 author=NextGIS
 email=info@nextgis.com
-changelog=0.6.1:
+changelog=0.6.2:
+            * Fix Overpass API access issue
+    0.6.1:
             * Save selected object into new memory layer.
     0.6:
             * Account for language of the interface when showing results
