@@ -71,7 +71,8 @@ class Worker(QThread):
         dist = PluginSettings.distance_value()
         timeout = PluginSettings.timeout_value()
 
-        request_data = '[timeout:%s][out:json];(node(around:%s,%s,%s);way(around:%s,%s,%s));out tags geom;relation(around:%s,%s,%s);' % (timeout, dist, yy, xx, dist, yy, xx, dist, yy, xx)
+        # request_data = '[timeout:%s][out:json];(node(around:%s,%s,%s);way(around:%s,%s,%s));out tags geom;relation(around:%s,%s,%s);' % (timeout, dist, yy, xx, dist, yy, xx, dist, yy, xx)
+        request_data = '[timeout:%s][out:json];(node(around:%s,%s,%s);way(around:%s,%s,%s);relation(around:%s,%s,%s););out tags geom;' % (timeout, dist, yy, xx, dist, yy, xx, dist, yy, xx)
         reply1 = qnam.post(request, QByteArray(request_data))
         loop = QEventLoop()
         reply1.finished.connect(loop.quit)
