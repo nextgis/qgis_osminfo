@@ -5,6 +5,7 @@ about=For a selected point, extract all information abour nearby and enclosing f
 category=Vector
 version=0.6.2
 qgisMinimumVersion=2.0
+qgisMaximumVersion=3.99
 
 author=NextGIS
 email=info@nextgis.com

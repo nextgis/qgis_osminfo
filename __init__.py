@@ -26,5 +26,5 @@
 #******************************************************************************
 
 def classFactory(iface):
-  from osminfo import OsmInfo
+  from .osminfo import OsmInfo
   return OsmInfo(iface)

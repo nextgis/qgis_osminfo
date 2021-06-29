@@ -29,15 +29,17 @@
 #******************************************************************************
 import json
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4.QtNetwork import QNetworkRequest
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtNetwork import QNetworkRequest
 from qgis.core import *
 from qgis.gui import QgsMessageBar
 from qgis.utils import iface
 
-from osminfo_worker import Worker
-from osmelements import *
+from .osminfo_worker import Worker
+from .osmelements import *
+from .compat import QGis, addMapLayer, PointGeometry, LineGeometry, PolygonGeometry
 
 FeatureItemType = 1001
 TagItemType = 1002
@@ -62,7 +64,10 @@ class ResultsDialog(QDockWidget):
         self.__resultsTree.setMinimumSize(350, 250)
         self.__resultsTree.setColumnCount(2)
         self.__resultsTree.setHeaderLabels([self.tr('Feature/Key'), self.tr('Value')])
-        self.__resultsTree.header().setResizeMode(QHeaderView.ResizeToContents)
+        if hasattr(self.__resultsTree.header(), "setResizeMode"):
+            self.__resultsTree.header().setResizeMode(QHeaderView.ResizeToContents)
+        else:
+            self.__resultsTree.header().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.__resultsTree.header().setStretchLastSection(False)
         self.__resultsTree.itemSelectionChanged.connect(self.selItemChanged)
         self.__layout.addWidget(self.__resultsTree)
@@ -74,7 +79,7 @@ class ResultsDialog(QDockWidget):
         if not overrideLocale:
             self.qgisLocale = QLocale.system().name()[:2]
         else:
-            self.qgisLocale = QSettings().value('locale/userLocale', '', type=unicode)[:2]
+            self.qgisLocale = QSettings().value('locale/userLocale', '', type=str)[:2]
 
     def openMenu(self, position):                
         selected_items = self.__resultsTree.selectedItems()
@@ -129,11 +134,11 @@ class ResultsDialog(QDockWidget):
                 for geom in geoms:
                     if geom is None:
                         geom = self.__selected_geom
-                    if geom.type() == QGis.Polygon:
+                    if geom.type() == PolygonGeometry :
                         geom_type = "Polygon"
-                    elif geom.type() == QGis.Line:
+                    elif geom.type() == LineGeometry :
                         geom_type = "LineString"
-                    elif geom.type() == QGis.Point:
+                    elif geom.type() == PointGeometry :
                         geom_type = "Point"
                     else:
                         return
@@ -155,10 +160,10 @@ class ResultsDialog(QDockWidget):
                     # add a feature
                     fet = QgsFeature()
                     fet.setGeometry(geom)
-                    fet.setAttributes(osm_element.tags.values())
+                    fet.setAttributes(list(osm_element.tags.values()))
                     pr.addFeatures([fet])
                     
-                    QgsMapLayerRegistry.instance().addMapLayer(vl)
+                    addMapLayer(vl)
 
     def getInfo(self, xx, yy):
         self.__resultsTree.clear()
@@ -208,7 +213,7 @@ class ResultsDialog(QDockWidget):
                     # qApp.processEvents()
             except Exception as e:
                 QgsMessageLog.logMessage(
-                    self.tr('Element process error: %s. Element: %s.') % (unicode(e), unicode(element)),
+                    self.tr('Element process error: %s. Element: %s.') % (str(e), str(element)),
                     self.tr('OSMInfo'),
                     QgsMessageLog.CRITICAL
                 )
@@ -242,7 +247,7 @@ class ResultsDialog(QDockWidget):
                     # qApp.processEvents()
             except Exception as e:
                 QgsMessageLog.logMessage(
-                    self.tr('Element process error: %s. Element: %s.') % (unicode(e), unicode(element)),
+                    self.tr('Element process error: %s. Element: %s.') % (str(e), str(element)),
                     self.tr('OSMInfo'),
                     QgsMessageLog.CRITICAL
                 )

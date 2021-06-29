@@ -30,17 +30,16 @@
 
 import json
 
-from PyQt4.QtCore import pyqtSignal, QUrl, QByteArray, QEventLoop, QThread
-from PyQt4.QtNetwork import QNetworkRequest, QNetworkReply
+from qgis.PyQt.QtCore import pyqtSignal, QUrl, QByteArray, QEventLoop, QThread
+from qgis.PyQt.QtNetwork import QNetworkRequest, QNetworkReply
 from qgis.core import QgsMessageLog, QgsNetworkAccessManager
 
-from plugin_settings import PluginSettings
-
+from .plugin_settings import PluginSettings
 
 class Worker(QThread):
 
     gotData = pyqtSignal(list, list)
-    gotError = pyqtSignal(unicode)
+    gotError = pyqtSignal(str)
 
     def __init__(self, xx, yy):
         super(Worker, self).__init__()
@@ -72,7 +71,7 @@ class Worker(QThread):
         timeout = PluginSettings.timeout_value()
 
         request_data = '[timeout:%s][out:json];(node(around:%s,%s,%s);way(around:%s,%s,%s);relation(around:%s,%s,%s););out tags geom;' % (timeout, dist, yy, xx, dist, yy, xx, dist, yy, xx)
-        reply1 = qnam.post(request, QByteArray(request_data))
+        reply1 = qnam.post(request, str.encode(request_data))
         loop = QEventLoop()
         reply1.finished.connect(loop.quit)
         loop.exec_()
@@ -82,7 +81,7 @@ class Worker(QThread):
             return
         try:
             data = reply1.readAll()
-            l1 = json.loads(str(data))['elements']
+            l1 = json.loads(bytes(data))['elements']
             reply1.deleteLater()
         except:
             self.gotError.emit(self.tr('Error parsing data'))
@@ -92,7 +91,7 @@ class Worker(QThread):
 
 
         request_data = '[timeout:%s][out:json];is_in(%s,%s)->.a;way(pivot.a);out tags geom;relation(pivot.a);out geom;' % (timeout, yy, xx)
-        reply2 = qnam.post(request, QByteArray(request_data))
+        reply2 = qnam.post(request, str.encode(request_data))
         loop = QEventLoop()
         reply2.finished.connect(loop.quit)
         loop.exec_()
@@ -102,7 +101,7 @@ class Worker(QThread):
             return
         try:
             data = reply2.readAll()
-            l2 = json.loads(str(data))['elements']
+            l2 = json.loads(bytes(data))['elements']
         except:
             self.gotError.emit(self.tr('Error parsing data'))
             return

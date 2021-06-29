@@ -26,15 +26,16 @@
 # MA 02110-1335 USA.
 #
 #******************************************************************************
-import ConfigParser
 import os
 
-from PyQt4 import uic
-from PyQt4.QtCore import QLocale, QUrl, QSettings
-from PyQt4.QtGui import QDialogButtonBox, QPixmap, QDialog, QDesktopServices
+from qgis.PyQt import uic
+from qgis.PyQt.QtCore import QLocale, QUrl, QSettings
+from qgis.PyQt.QtWidgets import QDialogButtonBox, QDialog
+from qgis.PyQt.QtGui import QPixmap, QDesktopServices
 
-from plugin_settings import PluginSettings
-import resources
+from .plugin_settings import PluginSettings
+from . import resources
+from .compat import configparser
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui/settingsdialogbase.ui'))
 
@@ -49,7 +50,7 @@ class SettingsDialog(QDialog, FORM_CLASS):
 
         self.lblLogo.setPixmap(QPixmap(':/plugins/osminfo/icons/osminfo.png'))
 
-        cfg = ConfigParser.SafeConfigParser()
+        cfg = configparser.SafeConfigParser()
         cfg.read(os.path.join(os.path.dirname(__file__), 'metadata.txt'))
         version = cfg.get('general', 'version')
         self.lblName.setText(self.tr('OSMInfo Settings'))

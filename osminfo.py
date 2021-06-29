@@ -28,18 +28,20 @@
 #
 #******************************************************************************
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from qgis.PyQt.QtCore import QCoreApplication, QTranslator, QFileInfo, QSettings, QLocale
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QAction, QMessageBox
 from qgis.core import *
 
-import osminfotool
-import aboutdialog,settingsdialog
+from .compat import get_file_dir, QGis
+from . import osminfotool
+from . import aboutdialog,settingsdialog
 
-import resources
+from . import resources
 from os import path
 import sys
-_fs_encoding = sys.getfilesystemencoding()
-_current_path = unicode(path.abspath(path.dirname(__file__)), _fs_encoding)
+
+_current_path = get_file_dir(__file__)
 
 class OsmInfo:
 
@@ -50,14 +52,14 @@ class OsmInfo:
     """Initialize class"""
     # save reference to QGIS interface
     self.iface = iface
-    self.qgsVersion = unicode(QGis.QGIS_VERSION_INT)
+    self.qgsVersion = str(QGis.QGIS_VERSION_INT)
 
     # i18n support
     override_locale = QSettings().value('locale/overrideFlag', False, type=bool)
     if not override_locale:
         locale_full_name = QLocale.system().name()
     else:
-        locale_full_name = QSettings().value('locale/userLocale', '', type=unicode)
+        locale_full_name = QSettings().value('locale/userLocale', '', type=str)
 
     self.locale_path = '%s/i18n/osminfo_%s.qm' % (_current_path, locale_full_name[0:2])
     if QFileInfo(self.locale_path).exists():
