@@ -111,12 +111,12 @@ class OsmElement(object):
 
         if title is None:
             print(self.__tags)
-            title = self.__tags.get(
+            title = str(self.__tags.get(
                 u"id",
                 self.__id
-            )
+            ))
 
-        return str(title)
+        return title
 
 class OsmNode(OsmElement):
     """docstring for OsmNode"""
