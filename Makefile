@@ -13,6 +13,12 @@ RES_FILES=$(patsubst $(RES_PATH)/%.qrc, $(RES_PATH)/%_rc.py, $(RES_SOURCES))
 PRO_PATH=.
 PRO_FILES=$(wildcard $(PRO_PATH)/*.pro)
 
+TS_PATH=i18n
+TS_FILE=$(TS_PATH)/osminfo_ru.ts
+
+compile_ts:
+	lrelease $(TS_FILE)
+
 ALL_FILES= ${RES_FILES} ${UI_FILES} ${LANG_FILES}
 
 all: $(ALL_FILES)
@@ -47,9 +53,12 @@ clean:
 	find -name "*.pyc" -exec rm -f {} \;
 	rm -f *.zip
 
-package:
-	cd .. && rm -f *.zip && zip -r osminfo.zip osminfo -x \*.pyc \*.ts \*.ui \*.qrc \*.pro \*~ \*.git\* \resources\* \*Makefile*
+zip:
+	cd .. && rm -f *.zip && zip -r osminfo.zip osminfo -x \*.pyc \*.ts \*.qrc \*.pro \*~ \*.git\* \*Makefile*
 	mv ../osminfo.zip .
+
+package: compile_ts zip
+	rm $(TS_PATH)/*.qm
 
 upload:
 	plugin_uploaderNG.py osminfo.zip
