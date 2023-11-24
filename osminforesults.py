@@ -7,9 +7,10 @@
 # objects from this point from OSM using Overpass API.
 #
 # Author:   Maxim Dubinin, sim@gis-lab.info
-# Author:   Alexander Lisovenko, alexander.lisovenko@nextgis.ru
+# Author:   Alexander Lisovenko, alexander.lisovenko@nextgis.com
+# Author:   Artem Svetlov, artem.svetlov@nextgis.com
 # *****************************************************************************
-# Copyright (c) 2012-2015. NextGIS, info@nextgis.com
+# Copyright (c) 2012-2023. NextGIS, info@nextgis.com
 #
 # This source is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free
@@ -95,6 +96,11 @@ class ResultsDialog(QDockWidget):
             menu.addAction(actionMove2NewTempLayer)
             actionMove2NewTempLayer.setStatusTip(self.tr('Zoom to selected item'))
             actionMove2NewTempLayer.triggered.connect(self.move2NewTempLayer)
+            
+            actionCopy2Clipboard = QAction(QIcon(':/images/themes/default/mActionEditCopy.svg'), self.tr('Copy feature to clipboard'), self)
+            menu.addAction(actionCopy2Clipboard)
+            actionCopy2Clipboard.setStatusTip(self.tr('Zoom to selected item'))
+            actionCopy2Clipboard.triggered.connect(self.Copy2Clipboard)
 
             menu.exec_(self.__resultsTree.viewport().mapToGlobal(position))
     
@@ -164,6 +170,65 @@ class ResultsDialog(QDockWidget):
                     pr.addFeatures([fet])
                     
                     addMapLayer(vl)
+
+    def Copy2Clipboard(self):
+        selected_items = self.__resultsTree.selectedItems()
+        if len(selected_items) > 0:
+            item = selected_items[0]
+            # if selected tag - use parent
+            if item.type() == TagItemType:
+                item = item.parent()
+            if item and item.type() == FeatureItemType:
+                osm_element = item.data(0, Qt.UserRole)
+
+                # dst_crs = iface.mapCanvas().mapSettings().destinationCrs().authid()
+                if osm_element is None:
+                    iface.messageBar().pushMessage(
+                        "OSM Info",
+                        "Cann't parse OSM Element.",
+                        QgsMessageBar.WARNING,
+                        2
+                    )
+                    return
+
+                geoms = osm_element.asQgisGeometry()
+                for geom in geoms:
+                    if geom is None:
+                        geom = self.__selected_geom
+                    if geom.type() == PolygonGeometry :
+                        geom_type = "Polygon"
+                    elif geom.type() == LineGeometry :
+                        geom_type = "LineString"
+                    elif geom.type() == PointGeometry :
+                        geom_type = "Point"
+                    else:
+                        return
+
+                    geom_type = "Multi"*geom.isMultipart() + geom_type 
+
+                    vl = QgsVectorLayer(
+                        "%s?crs=EPSG:4326" % (geom_type, ),
+                        item.data(0, Qt.DisplayRole),
+                        "memory"
+                    )
+
+                    pr = vl.dataProvider()
+
+                    # add fields
+                    pr.addAttributes([QgsField(k, QVariant.String) for k in osm_element.tags])
+                    vl.updateFields()
+
+                    # add a feature
+                    fet = QgsFeature()
+                    fet.setGeometry(geom)
+                    fet.setAttributes(list(osm_element.tags.values()))
+                    pr.addFeatures([fet])
+                    
+                    vl.selectAll()
+
+                    # Set the feature as the clipboard content
+                    iface.copySelectionToClipboard(vl)
+
 
     def getInfo(self, xx, yy):
         self.__resultsTree.clear()
