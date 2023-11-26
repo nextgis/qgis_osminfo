@@ -45,6 +45,34 @@ from .compat import QGis, addMapLayer, PointGeometry, LineGeometry, PolygonGeome
 FeatureItemType = 1001
 TagItemType = 1002
 
+class ParamCopyDialog(QDialog):
+    def __init__(self, parent=None):
+        QDialog.__init__(self, parent)
+
+        self.setModal(True)
+        self.setWindowTitle(self.tr("Copy attributes"))
+        #self.setSizePolicy(QSizePolicy.MinimumExpanding)
+
+        self.__layout = QVBoxLayout(self)
+
+        self.__labelInfo = QLabel(self)
+        self.__labelInfo.setText(self.tr("Which attributes should be copied?"))
+        self.__layout.addWidget(self.__labelInfo)
+
+        self.__btnBox = QDialogButtonBox(QDialogButtonBox.Yes
+                                  | QDialogButtonBox.YesToAll
+                                  | QDialogButtonBox.No, self)
+
+        self.__btnBox.button(QDialogButtonBox.Yes).setText(self.tr("Existing in the layer"))
+        self.__btnBox.button(QDialogButtonBox.YesToAll).setText(self.tr("All"))
+        self.__btnBox.button(QDialogButtonBox.No).setText(self.tr("None"))
+        self.__btnBox.clicked.connect(self.buttonClicked)
+
+        self.__layout.addWidget(self.__btnBox)
+
+    def buttonClicked(self, button):
+        result = self.__btnBox.standardButton(button)
+        self.done(result)
 
 class ResultsDialog(QDockWidget):
     def __init__(self, title, result_render, parent=None):
@@ -84,25 +112,51 @@ class ResultsDialog(QDockWidget):
 
     def openMenu(self, position):
         selected_items = self.__resultsTree.selectedItems()
-        if len(selected_items) > 0 and selected_items[0].type() in [TagItemType, FeatureItemType]:
-            menu = QMenu()
+        if (
+            len(selected_items) == 0
+            or selected_items[0].type() not in [TagItemType, FeatureItemType]
+        ):
+            return
 
-            actionZoom = QAction(QIcon(':/plugins/osminfo/icons/zoom2feature.png'), self.tr('Zoom to feature'), self)
-            menu.addAction(actionZoom)
-            actionZoom.setStatusTip(self.tr('Zoom to selected item'))
-            actionZoom.triggered.connect(self.zoom2feature)
+        menu = QMenu()
 
-            actionMove2NewTempLayer = QAction(QIcon(':/images/themes/default/mActionCreateMemory.svg'), self.tr('Save as temporary layer'), self)
-            menu.addAction(actionMove2NewTempLayer)
-            actionMove2NewTempLayer.setStatusTip(self.tr('Zoom to selected item'))
-            actionMove2NewTempLayer.triggered.connect(self.move2NewTempLayer)
+        actionZoom = QAction(
+            QIcon(':/plugins/osminfo/icons/zoom2feature.png'),
+            self.tr('Zoom to feature'),
+            self
+        )
+        menu.addAction(actionZoom)
+        actionZoom.triggered.connect(self.zoom2feature)
 
-            actionCopy2Clipboard = QAction(QIcon(':/images/themes/default/mActionEditCopy.svg'), self.tr('Copy feature to clipboard'), self)
-            menu.addAction(actionCopy2Clipboard)
-            actionCopy2Clipboard.setStatusTip(self.tr('Zoom to selected item'))
-            actionCopy2Clipboard.triggered.connect(self.copy2Clipboard)
+        actionMove2NewTempLayer = QAction(
+            QIcon(':/images/themes/default/mActionCreateMemory.svg'),
+            self.tr('Save feature in new temporary layer'),
+            self
+        )
+        menu.addAction(actionMove2NewTempLayer)
+        actionMove2NewTempLayer.triggered.connect(
+            lambda: self.copy2Layer(True)
+        )
 
-            menu.exec_(self.__resultsTree.viewport().mapToGlobal(position))
+        actionMove2SelectedLayer = QAction(
+            QIcon(':/images/themes/default/mActionCreateMemory.svg'),
+            self.tr('Save feature in selected layer'),
+            self
+        )
+        menu.addAction(actionMove2SelectedLayer)
+        actionMove2SelectedLayer.triggered.connect(
+            lambda: self.copy2Layer(False)
+        )
+
+        actionCopy2Clipboard = QAction(
+            QIcon(':/images/themes/default/mActionEditCopy.svg'),
+            self.tr('Copy feature to clipboard'),
+            self
+        )
+        menu.addAction(actionCopy2Clipboard)
+        actionCopy2Clipboard.triggered.connect(self.copy2Clipboard)
+
+        menu.exec_(self.__resultsTree.viewport().mapToGlobal(position))
 
     def zoom2feature(self):
         selected_items = self.__resultsTree.selectedItems()
@@ -116,8 +170,9 @@ class ResultsDialog(QDockWidget):
                 geom = osm_element.asQgisGeometry()
                 self.__rb.zoom_to_bbox(geom.boundingBox())
 
-    def move2NewTempLayer(self):
+    def copy2Layer(self, createNew: bool):
         selected_items = self.__resultsTree.selectedItems()
+
         if len(selected_items) > 0:
             item = selected_items[0]
             # if selected tag - use parent
@@ -136,6 +191,10 @@ class ResultsDialog(QDockWidget):
                     )
                     return
 
+                if not createNew:
+                    dlg = ParamCopyDialog()
+                    userSelectCopy = dlg.exec()
+
                 geom = osm_element.asQgisGeometry()
                 if geom is None:
                     geom = self.__selected_geom
@@ -150,25 +209,80 @@ class ResultsDialog(QDockWidget):
 
                 geom_type = "Multi"*geom.isMultipart() + geom_type
 
-                vl = QgsVectorLayer(
-                    "%s?crs=EPSG:4326" % (geom_type, ),
-                    item.data(0, Qt.DisplayRole),
-                    "memory"
-                )
+                vLayer = None
+                if createNew:
+                    vLayer = QgsVectorLayer(
+                        "%s?crs=EPSG:4326" % (geom_type, ),
+                        item.data(0, Qt.DisplayRole),
+                        "memory"
+                    )
+                else:
+                    vLayer = self.getSelectedLayer()
 
-                pr = vl.dataProvider()
+                if vLayer is None:
+                    return
 
-                # add fields
-                pr.addAttributes([QgsField(k, QVariant.String) for k in osm_element.tags])
-                vl.updateFields()
+                dataProvider = vLayer.dataProvider()
+
+                if createNew:
+                    dataProvider.addAttributes([QgsField(k, QVariant.String) for k in osm_element.tags])
+                else:
+                    if userSelectCopy == QDialogButtonBox.StandardButton.Yes:
+                        objectFieldsNames = list(osm_element.tags.keys())
+                        layerFieldsName = vLayer.fields().names()
+                        newFieldsNames = [val for val in objectFieldsNames if val in layerFieldsName]
+                        newFields = [QgsField(k, QVariant.String) for k in newFieldsNames]
+
+                        for k, v in list(osm_element.tags.items()):
+                            if k not in newFieldsNames:
+                                del osm_element.tags[k]
+
+                        if not len(newFields) == 0:
+                            dataProvider.addAttributes(newFields)
+
+                    elif userSelectCopy == QDialogButtonBox.StandardButton.YesToAll:
+                        dataProvider.addAttributes([QgsField(k, QVariant.String) for k in osm_element.tags])
+
+                vLayer.updateFields()
 
                 # add a feature
-                fet = QgsFeature()
-                fet.setGeometry(geom)
-                fet.setAttributes(list(osm_element.tags.values()))
-                pr.addFeatures([fet])
+                feat = QgsFeature()
+                feat.setGeometry(geom)
+                if not createNew:
+                    layerFieldsName = vLayer.fields().names()
+                    sortedAttrs = []
+                    for name in layerFieldsName:
+                        if name in osm_element.tags:
+                            sortedAttrs.append(osm_element.tags[name])
+                        else:
+                            sortedAttrs.append(NULL)
 
-                addMapLayer(vl)
+                    feat.setAttributes(sortedAttrs)
+                else:
+                    feat.setAttributes(list(osm_element.tags.values()))
+
+                dataProvider.addFeatures([feat])
+
+                if createNew:
+                    addMapLayer(vLayer)
+                else:
+                    vLayer.reload()
+
+    def getSelectedLayer(self):
+        layers = iface.layerTreeView().selectedLayers()
+        if not len(layers) == 1:
+            QMessageBox.warning(self, self.tr("Information"),
+                                self.tr("Multiselection or no selection is not allowed!"),
+                                QMessageBox.StandardButton.Ok)
+            return None
+
+        if not isinstance(layers[0], QgsVectorLayer):
+            QMessageBox.warning(self, self.tr("Information"),
+                                self.tr("Selected layer isn't vector layer!"),
+                                QMessageBox.StandardButton.Ok)
+            return None
+
+        return layers[0]
 
     def copy2Clipboard(self):
         selected_items = self.__resultsTree.selectedItems()
@@ -231,7 +345,6 @@ class ResultsDialog(QDockWidget):
 
         # Set the feature as the clipboard content
         iface.copySelectionToClipboard(vl)
-
 
     def getInfo(self, xx, yy):
         self.__resultsTree.clear()
