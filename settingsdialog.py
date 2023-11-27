@@ -3,7 +3,7 @@
 #
 # OSMInfo
 # ---------------------------------------------------------
-# This plugin takes coordinates of a mouse click and gets information about all 
+# This plugin takes coordinates of a mouse click and gets information about all
 # objects from this point from OSM using Overpass API.
 #
 # Author:   Maxim Dubinin, sim@gis-lab.info
@@ -35,7 +35,7 @@ from qgis.PyQt.QtGui import QPixmap, QDesktopServices
 
 from .plugin_settings import PluginSettings
 from . import resources
-from .compat import configparser
+import configparser
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui/settingsdialogbase.ui'))
 
@@ -56,7 +56,7 @@ class SettingsDialog(QDialog, FORM_CLASS):
         self.lblName.setText(self.tr('OSMInfo Settings'))
         self.lblDistance.setText(self.tr('Distance'))
         self.lblTimeout.setText(self.tr('Timeout'))
-    
+
         self.buttonBox.helpRequested.connect(self.openHelp)
         self.accepted.connect(self.save_settings)
 
@@ -64,7 +64,7 @@ class SettingsDialog(QDialog, FORM_CLASS):
         # common
         self.distSpinner.setValue(PluginSettings.distance_value())
         self.timeoutSpinner.setValue(PluginSettings.timeout_value())
-    
+
     def save_settings(self):
         # common
         PluginSettings.set_distance_value(self.distSpinner.value())

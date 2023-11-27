@@ -46,9 +46,9 @@
 &lt;p&gt;&lt;b&gt;Please report bugs at&lt;/b&gt; &lt;a href=&quot;{tracker_url}&quot;&gt;bugtracker&lt;/a&gt;&lt;/p&gt;
 &lt;p&gt;Other helpful services by NextGIS:
 &lt;ul&gt;&lt;li&gt;&lt;b&gt;Convenient up-to-date data extracts for any place in the world:
-&lt;a href=&quot;{main_url}&quot;&gt;{main_url}&lt;/a&gt;&lt;/b&gt;&lt;/li&gt;
+&lt;a href=&quot;{main_url}/{utm}&quot;&gt;{main_url}&lt;/a&gt;&lt;/b&gt;&lt;/li&gt;
 &lt;li&gt;&lt;b&gt;Fully featured Web GIS service:
-&lt;a href=&quot;{main_url}/nextgis-com/plans&quot;&gt;
+&lt;a href=&quot;{main_url}/nextgis-com/plans{utm}&quot;&gt;
 {main_url}/nextgis-com/plans&lt;/a&gt;&lt;/b&gt;&lt;/li&gt;&lt;/ul&gt;
 &lt;/p&gt;</string>
      </property>

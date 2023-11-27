@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
+ # -*- coding: utf-8 -*-
 # ******************************************************************************
 #
 # OSMInfo
 # ---------------------------------------------------------
-# This plugin takes coordinates of a mouse click and gets information about all 
+# This plugin takes coordinates of a mouse click and gets information about all
 # objects from this point from OSM using Overpass API.
 #
 # Author:   Maxim Dubinin, sim@gis-lab.info
@@ -37,10 +37,7 @@ from .compat import get_file_dir, QGis
 from . import osminfotool
 from . import about_dialog, settingsdialog
 
-from . import resources
 import os
-from os import path
-import sys
 
 _current_path = get_file_dir(__file__)
 
@@ -54,7 +51,6 @@ class OsmInfo:
         """Initialize class"""
         # save reference to QGIS interface
         self.iface = iface
-        self.plugin_dir = path.dirname(__file__)
         self.qgsVersion = str(QGis.QGIS_VERSION_INT)
 
         # i18n support
@@ -78,8 +74,7 @@ class OsmInfo:
             QMessageBox.warning(self.iface.mainWindow(),
                                 'OSMInfo', self.tr('Error'),
                                 'OSMInfo', self.tr('QGIS %s detected.\n') % (qgisVersion) +
-                                'OSMInfo', self.tr(
-                    'This version of OSMInfo requires at least QGIS version 2.0.\nPlugin will not be enabled.'))
+                                'OSMInfo', self.tr('This version of OSMInfo requires at least QGIS version 2.0.\nPlugin will not be enabled.'))
             return None
 
         # create action that will be run by the plugin
@@ -89,7 +84,7 @@ class OsmInfo:
         self.actionRun.setWhatsThis(self.tr('Select point'))
         self.actionRun.setStatusTip(self.tr('Select point to get OpenStreetMap data for'))
 
-        self.actionAbout = QAction(self.tr('About'), self.iface.mainWindow())
+        self.actionAbout = QAction(self.tr('About…'), self.iface.mainWindow())
 
         self.actionSettings = QAction(self.tr('Settings'), self.iface.mainWindow())
         self.actionSettings.setWhatsThis(self.tr('Set various parameters related to OSMInfo'))
@@ -130,7 +125,7 @@ class OsmInfo:
         self.iface.mapCanvas().setMapTool(self.mapTool)
 
     def about(self):
-        dialog = about_dialog.AboutDialog(os.path.basename(self.plugin_dir))
+        dialog = about_dialog.AboutDialog(os.path.basename(_current_path))
         dialog.exec_()
 
     def settings(self):

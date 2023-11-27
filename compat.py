@@ -3,7 +3,7 @@
 #
 # OSMInfo
 # ---------------------------------------------------------
-# This plugin takes coordinates of a mouse click and gets information about all 
+# This plugin takes coordinates of a mouse click and gets information about all
 # objects from this point from OSM using Overpass API.
 #
 # Author:   Maxim Dubinin, sim@gis-lab.info
@@ -36,25 +36,17 @@ from qgis import core
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
 
-if PY3:
-    import configparser
-else:
-    import ConfigParser as configparser 
 
 def get_file_dir(filename):
-    if PY2:
-        return os.path.dirname(filename).decode(sys.getfilesystemencoding())
-    else:
-        return os.path.dirname(filename)
+    return os.path.dirname(filename)
 
-if hasattr(core, "QGis"):
-    from qgis.core import QGis
-else:
-    from qgis.core import Qgis as QGis
+
+from qgis.core import Qgis as QGis
+
 
 if QGis.QGIS_VERSION_INT >= 30000:
     addMapLayer =  core.QgsProject.instance().addMapLayer
-    
+
     qgsGeometryFromPointXY = core.QgsGeometry.fromPointXY
     qgsGeometryFromPolygonXY = core.QgsGeometry.fromPolygonXY
     qgsGeometryFromPolylineXY = core.QgsGeometry.fromPolylineXY
@@ -68,7 +60,7 @@ if QGis.QGIS_VERSION_INT >= 30000:
     LineGeometry = core.QgsWkbTypes.LineGeometry
 else:
     addMapLayer =  core.QgsMapLayerRegistry.instance().addMapLayer
-    
+
     qgsGeometryFromPointXY = core.QgsGeometry.fromPoint
     qgsGeometryFromPolygonXY = core.QgsGeometry.fromPolygon
     qgsGeometryFromPolylineXY = core.QgsGeometry.fromPolyline
@@ -81,10 +73,11 @@ else:
     LineGeometry = QGis.Line
     PolygonGeometry = QGis.Polygon
 
+
 class QgsCoordinateTransform(core.QgsCoordinateTransform):
     def __init__(self, src_crs, dst_crs):
         super(QgsCoordinateTransform, self).__init__()
-        
+
         self.setSourceCrs(src_crs)
         self.setDestinationCrs(dst_crs)
 

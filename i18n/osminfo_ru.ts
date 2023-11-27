@@ -2,24 +2,6 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="ru_RU">
 <context>
-    <name>AboutDialog</name>
-    <message>
-        <location filename="aboutdialog.py" line="55"/>
-        <source>Version: %s</source>
-        <translation type="obsolete">Версия: %s</translation>
-    </message>
-    <message>
-        <location filename="aboutdialog.py" line="82"/>
-        <source>&lt;p&gt;This plugin takes coordinates of a mouse click and extracts information for nearby and enclosing objects.&lt;/p&gt;&lt;p&gt;It uses Overpass API to extract data from OpenStreetMap.&lt;p&gt;&lt;strong&gt;Developers&lt;/strong&gt;: Maxim Dubinin and Alexander Lisovenko (&lt;a href=&quot;http://nextgis.com&quot;&gt;NextGIS&lt;/a&gt;).&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Homepage&lt;/strong&gt;: &lt;a href=&quot;https://github.com/nextgis/osminfo&quot;&gt;https://github.com/nextgis/osminfo&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Please report bugs at &lt;a href=&quot;https://github.com/nextgis/osminfo/issues&quot;&gt;bugtracker&lt;/a&gt;&lt;/p&gt;</source>
-        <translation type="obsolete">&lt;p&gt;Это расширение позволяет получить перечень объектов в месте щелчка мышью. Объекты делятся на две группы: ближайшие и охватывающие точку. Информация берется из OpenStreetMap с помощью Overpass API.&lt;/p&gt;&lt;strong&gt;Разработчики&lt;/strong&gt;: Максим Дубинин, Александр Лисовенко, Евгений Никулин (&lt;a href=&quot;http://nextgis.com&quot;&gt;NextGIS&lt;/a&gt;).&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Домашняя страница&lt;/strong&gt;: &lt;a href=&quot;https://github.com/nextgis/osminfo&quot;&gt;https://github.com/nextgis/osminfo&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Сообщения об ошибках: &lt;a href=&quot;https://github.com/nextgis/osminfo/issues&quot;&gt;bugtracker&lt;/a&gt;&lt;/p&gt;</translation>
-    </message>
-    <message>
-        <location filename="aboutdialog.py" line="56"/>
-        <source>OSMInfo</source>
-        <translation type="obsolete">OSMInfo</translation>
-    </message>
-</context>
-<context>
     <name>AboutDialogBase</name>
     <message>
         <location filename="../ui/about_dialog_base.ui" line="14"/>
@@ -42,9 +24,9 @@
 &lt;p&gt;&lt;b&gt;Please report bugs at&lt;/b&gt; &lt;a href=&quot;{tracker_url}&quot;&gt;bugtracker&lt;/a&gt;&lt;/p&gt;
 &lt;p&gt;Other helpful services by NextGIS:
 &lt;ul&gt;&lt;li&gt;&lt;b&gt;Convenient up-to-date data extracts for any place in the world:
-&lt;a href=&quot;{main_url}&quot;&gt;{main_url}&lt;/a&gt;&lt;/b&gt;&lt;/li&gt;
+&lt;a href=&quot;{main_url}/{utm}&quot;&gt;{main_url}&lt;/a&gt;&lt;/b&gt;&lt;/li&gt;
 &lt;li&gt;&lt;b&gt;Fully featured Web GIS service:
-&lt;a href=&quot;{main_url}/nextgis-com/plans&quot;&gt;
+&lt;a href=&quot;{main_url}/nextgis-com/plans{utm}&quot;&gt;
 {main_url}/nextgis-com/plans&lt;/a&gt;&lt;/b&gt;&lt;/li&gt;&lt;/ul&gt;
 &lt;/p&gt;</source>
         <translation>&lt;p&gt;{description}&lt;/p&gt;
@@ -56,9 +38,9 @@
 &lt;p&gt;&lt;b&gt;Пожалуйста, сообщайте о багах в&lt;/b&gt; &lt;a href=&quot;{tracker_url}&quot;&gt;багтрекер&lt;/a&gt;&lt;/p&gt;
 &lt;p&gt;Другие полезные сервисы NextGIS:
 &lt;ul&gt;&lt;li&gt;&lt;b&gt;Удобная выборка актуальных данных из любой точки мира:
-&lt;a href=&quot;{main_url}&quot;&gt;{main_url}&lt;/a&gt;&lt;/b&gt;&lt;/li&gt;
+&lt;a href=&quot;{main_url}/{utm}&quot;&gt;{main_url}&lt;/a&gt;&lt;/b&gt;&lt;/li&gt;
 &lt;li&gt;&lt;b&gt;Полнофункциональный веб-ГИС-сервис:
-&lt;a href=&quot;{main_url}/nextgis-com/plans&quot;&gt;
+&lt;a href=&quot;{main_url}/nextgis-com/plans{utm}&quot;&gt;
 {main_url}/nextgis-com/plans&lt;/a&gt;&lt;/b&gt;&lt;/li&gt;&lt;/ul&gt;
 &lt;/p&gt;</translation>
     </message>
@@ -117,36 +99,36 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>OsmInfo</name>
     <message>
-        <location filename="../osminfo.py" line="78"/>
+        <location filename="../osminfo.py" line="74"/>
         <source>Error</source>
         <translation>Ошибка</translation>
     </message>
     <message>
-        <location filename="../osminfo.py" line="78"/>
+        <location filename="../osminfo.py" line="74"/>
         <source>QGIS %s detected.
 </source>
-        <translation>Обнаружен QGIS %s
+        <translation>Обнаружен QGIS %s.
 </translation>
     </message>
     <message>
-        <location filename="../osminfo.py" line="78"/>
+        <location filename="../osminfo.py" line="74"/>
         <source>This version of OSMInfo requires at least QGIS version 2.0.
 Plugin will not be enabled.</source>
         <translation>Эта версия OSMInfo требует QGIS минимум версии 2.0.
 Плагин работать не будет.</translation>
     </message>
     <message>
-        <location filename="../osminfo.py" line="86"/>
+        <location filename="../osminfo.py" line="81"/>
         <source>Get OSM info for a point</source>
         <translation>Получить информацию из OSM</translation>
     </message>
     <message>
-        <location filename="../osminfo.py" line="89"/>
+        <location filename="../osminfo.py" line="84"/>
         <source>Select point</source>
         <translation>Выберите точку</translation>
     </message>
     <message>
-        <location filename="../osminfo.py" line="90"/>
+        <location filename="../osminfo.py" line="85"/>
         <source>Select point to get OpenStreetMap data for</source>
         <translation>Щелкните в точке по которой хотите получить информацию из OpenStreetMap</translation>
     </message>
@@ -156,24 +138,29 @@ Plugin will not be enabled.</source>
         <translation type="obsolete">О OSMInfo</translation>
     </message>
     <message>
-        <location filename="../osminfo.py" line="121"/>
+        <location filename="../osminfo.py" line="116"/>
         <source>OSMInfo</source>
         <translation>OSMInfo</translation>
     </message>
     <message>
-        <location filename="../osminfo.py" line="94"/>
+        <location filename="../osminfo.py" line="89"/>
         <source>Settings</source>
         <translation>Настройки</translation>
     </message>
     <message>
-        <location filename="../osminfo.py" line="95"/>
+        <location filename="../osminfo.py" line="90"/>
         <source>Set various parameters related to OSMInfo</source>
         <translation>Настройка параметров модуля</translation>
     </message>
     <message>
-        <location filename="../osminfo.py" line="92"/>
+        <location filename="../osminfo.py" line="87"/>
         <source>About</source>
-        <translation>О модуле...</translation>
+        <translation type="obsolete">О модуле...</translation>
+    </message>
+    <message>
+        <location filename="../osminfo.py" line="87"/>
+        <source>About…</source>
+        <translation>О модуле…</translation>
     </message>
 </context>
 <context>
@@ -196,12 +183,12 @@ Plugin will not be enabled.</source>
     <message>
         <location filename="../osminforesults.py" line="192"/>
         <source>Nearby features</source>
-        <translation>Ближайшие:</translation>
+        <translation>Ближайшие объекты</translation>
     </message>
     <message>
         <location filename="../osminforesults.py" line="222"/>
         <source>Is inside</source>
-        <translation>Входит в:</translation>
+        <translation>Входит в</translation>
     </message>
     <message>
         <location filename="../osminforesults.py" line="89"/>
