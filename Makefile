@@ -20,7 +20,7 @@ all: $(ALL_FILES)
 ui: $(UI_FILES)
 
 ts: $(PRO_FILES)
-	pylupdate4 -verbose $<
+	pylupdate5 -verbose $<
 
 lang: $(LANG_FILES)
 

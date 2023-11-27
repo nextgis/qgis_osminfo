@@ -1,7 +1,9 @@
 [general]
 name=OSMInfo
-description=Get features from OpenStreetMap database at the location
-about=For a selected location, extract all information abour nearby and enclosing features from OpenStreetMap database. Developed by NextGIS. Any feedback is welcome at https://nextgis.com/contact
+description=Get full information about a point from OpenStreetMap database.
+description[ru]=Получите полную информацию о точке из базы данных OpenStreetMap.
+about=For a selected point, extract all information abour nearby and enclosing features from OpenStreetMap database using Overpass API.
+about[ru]=Для выбранной точки извлеките всю информацию о близлежащих и окружающих объектах из базы данных OpenStreetMap, используя Overpass API.
 category=Vector
 version=0.7.1
 qgisMinimumVersion=2.0
@@ -49,5 +51,7 @@ tags=osm,openstreetmap,overpass
 homepage=https://github.com/nextgis/osminfo
 tracker=https://github.com/nextgis/osminfo/issues
 repository=https://github.com/nextgis/osminfo
+video=https://youtu.be/k-DZVAh_i18
+video[ru]=https://youtu.be/rRhHekQZH_8
 
 deprecated=False
