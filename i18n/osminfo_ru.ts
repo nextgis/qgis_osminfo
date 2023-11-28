@@ -46,6 +46,24 @@
     </message>
 </context>
 <context>
+    <name>AttributeMismatchMessageBox</name>
+    <message>
+        <location filename="../osminforesults.py" line="61"/>
+        <source>Attribute mismatch</source>
+        <translation>Несоответствие атрибутов</translation>
+    </message>
+    <message>
+        <location filename="../osminforesults.py" line="62"/>
+        <source>Add missing attributes?</source>
+        <translation>Добавить отсутствующие атрибуты?</translation>
+    </message>
+    <message>
+        <location filename="../osminforesults.py" line="63"/>
+        <source>The feature you are trying to add has attributes that are not present in the target layer.</source>
+        <translation>Объект, который вы пытаетесь добавить, содержит атрибуты, отсутствующие в целевом слое.</translation>
+    </message>
+</context>
+<context>
     <name>Dialog</name>
     <message>
         <location filename="../ui/settingsdialogbase.ui" line="19"/>
@@ -166,54 +184,69 @@ Plugin will not be enabled.</source>
 <context>
     <name>ResultsDialog</name>
     <message>
-        <location filename="../osminforesults.py" line="66"/>
+        <location filename="../osminforesults.py" line="96"/>
         <source>Feature/Key</source>
         <translation>Объекты/Ключ</translation>
     </message>
     <message>
-        <location filename="../osminforesults.py" line="66"/>
+        <location filename="../osminforesults.py" line="96"/>
         <source>Value</source>
         <translation>Значение</translation>
     </message>
     <message>
         <location filename="../osminforesults.py" line="170"/>
         <source>Loading....</source>
-        <translation>Загрузка...</translation>
+        <translation type="obsolete">Загрузка...</translation>
     </message>
     <message>
-        <location filename="../osminforesults.py" line="192"/>
+        <location filename="../osminforesults.py" line="411"/>
         <source>Nearby features</source>
         <translation>Ближайшие объекты</translation>
     </message>
     <message>
-        <location filename="../osminforesults.py" line="222"/>
+        <location filename="../osminforesults.py" line="444"/>
         <source>Is inside</source>
         <translation>Входит в</translation>
     </message>
     <message>
-        <location filename="../osminforesults.py" line="89"/>
+        <location filename="../osminforesults.py" line="124"/>
         <source>Zoom to feature</source>
         <translation>Приблизить</translation>
     </message>
     <message>
         <location filename="../osminforesults.py" line="96"/>
         <source>Zoom to selected item</source>
-        <translation>Приблизить к объекту</translation>
+        <translation type="obsolete">Приблизить к объекту</translation>
     </message>
     <message>
-        <location filename="../osminforesults.py" line="94"/>
-        <source>Save as temporary layer</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="../osminforesults.py" line="249"/>
-        <source>Element process error: %s. Element: %s.</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="../osminforesults.py" line="249"/>
+        <location filename="../osminforesults.py" line="477"/>
         <source>OSMInfo</source>
         <translation>OSMInfo</translation>
+    </message>
+    <message>
+        <location filename="../osminforesults.py" line="132"/>
+        <source>Save feature in new temporary layer</source>
+        <translation>Сохранить объект в новый временный слой</translation>
+    </message>
+    <message>
+        <location filename="../osminforesults.py" line="142"/>
+        <source>Save feature in selected layer</source>
+        <translation>Сохранить объект в выбранный слой</translation>
+    </message>
+    <message>
+        <location filename="../osminforesults.py" line="155"/>
+        <source>Copy feature to clipboard</source>
+        <translation>Копировать объект в буфер обмена</translation>
+    </message>
+    <message>
+        <location filename="../osminforesults.py" line="387"/>
+        <source>Loading...</source>
+        <translation>Загрузка...</translation>
+    </message>
+    <message>
+        <location filename="../osminforesults.py" line="477"/>
+        <source>Element process error: {e}. Element: {element}.</source>
+        <translation>Ошибка обработки элемента: {e}. Элемент: {element}.</translation>
     </message>
 </context>
 <context>
