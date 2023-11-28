@@ -44,34 +44,19 @@ def get_file_dir(filename):
 from qgis.core import Qgis as QGis
 
 
-if QGis.QGIS_VERSION_INT >= 30000:
-    addMapLayer =  core.QgsProject.instance().addMapLayer
+addMapLayer =  core.QgsProject.instance().addMapLayer
 
-    qgsGeometryFromPointXY = core.QgsGeometry.fromPointXY
-    qgsGeometryFromPolygonXY = core.QgsGeometry.fromPolygonXY
-    qgsGeometryFromPolylineXY = core.QgsGeometry.fromPolylineXY
-    qgsGeometryFromMultiPolygonXY = core.QgsGeometry.fromMultiPolygonXY
-    qgsGeometryFromMultiPolylineXY = core.QgsGeometry.fromMultiPolylineXY
+qgsGeometryFromPointXY = core.QgsGeometry.fromPointXY
+qgsGeometryFromPolygonXY = core.QgsGeometry.fromPolygonXY
+qgsGeometryFromPolylineXY = core.QgsGeometry.fromPolylineXY
+qgsGeometryFromMultiPolygonXY = core.QgsGeometry.fromMultiPolygonXY
+qgsGeometryFromMultiPolylineXY = core.QgsGeometry.fromMultiPolylineXY
 
-    from qgis.core import QgsPointXY
+from qgis.core import QgsPointXY
 
-    PointGeometry = core.QgsWkbTypes.PointGeometry
-    PolygonGeometry = core.QgsWkbTypes.PolygonGeometry
-    LineGeometry = core.QgsWkbTypes.LineGeometry
-else:
-    addMapLayer =  core.QgsMapLayerRegistry.instance().addMapLayer
-
-    qgsGeometryFromPointXY = core.QgsGeometry.fromPoint
-    qgsGeometryFromPolygonXY = core.QgsGeometry.fromPolygon
-    qgsGeometryFromPolylineXY = core.QgsGeometry.fromPolyline
-    qgsGeometryFromMultiPolygonXY = core.QgsGeometry.fromMultiPolygon
-    qgsGeometryFromMultiPolylineXY = core.QgsGeometry.fromMultiPolyline
-
-    from qgis.core import QgsPoint as QgsPointXY
-
-    PointGeometry = QGis.Point
-    LineGeometry = QGis.Line
-    PolygonGeometry = QGis.Polygon
+PointGeometry = core.QgsWkbTypes.PointGeometry
+PolygonGeometry = core.QgsWkbTypes.PolygonGeometry
+LineGeometry = core.QgsWkbTypes.LineGeometry
 
 
 class QgsCoordinateTransform(core.QgsCoordinateTransform):
