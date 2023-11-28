@@ -67,13 +67,13 @@ class OsmElement(object):
     def __str__(self):
         return "%s id=%s" % (self.__class__.__name__, self.__id)
 
-    # def asQgisGeometry(self):
-    #     if self.__qgisGeometry is None:
-    #         self.__qgisGeometry =self._asQgisGeometry()
-
-    #     return self.__qgisGeometry
-
     def asQgisGeometry(self) -> QgsGeometry:
+        if self.__qgisGeometry is None:
+            self.__qgisGeometry = self._convertToQgisGeometry()
+
+        return QgsGeometry(self.__qgisGeometry)
+
+    def _convertToQgisGeometry(self) -> QgsGeometry:
         raise NotImplementedError('Not Implemented Culture')
 
     def type(self):
@@ -113,7 +113,7 @@ class OsmElement(object):
                         pass
 
         if title is None:
-            print(self.__tags)
+            # print(self.__tags)
             title = str(self.__tags.get(
                 u"id",
                 self.__id
@@ -131,7 +131,7 @@ class OsmNode(OsmElement):
         self.__lon = lon
         self.__lat = lat
 
-    def asQgisGeometry(self) -> QgsGeometry:
+    def _convertToQgisGeometry(self) -> QgsGeometry:
         return qgsGeometryFromPointXY(QgsPointXY(self.__lon, self.__lat))
 
 
@@ -162,7 +162,7 @@ class OsmWay(OsmElement):
 
         return self.closed()
 
-    def asQgisGeometry(self) -> QgsGeometry:
+    def _convertToQgisGeometry(self) -> QgsGeometry:
         # TODO can be diffs geom in same time. Check it!
         if self._canBeArea():
             return qgsGeometryFromPolygonXY([
@@ -190,7 +190,7 @@ class OsmRelation(OsmElement):
 
         self.__osm_elements = osm_elements
 
-    def asQgisGeometry(self) -> QgsGeometry:
+    def _convertToQgisGeometry(self) -> QgsGeometry:
         if self._isArea():
             polygones = []
 

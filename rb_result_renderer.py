@@ -37,7 +37,7 @@ class RubberBandResultRenderer():
         self.transformation = QgsCoordinateTransform(self.srs_wgs84, self.srs_wgs84)
 
         self.featureColor = QColor('green')
-        
+
         self.rb = QgsRubberBand(self.iface.mapCanvas(), PointGeometry)
         self.rb.setColor(QColor('magenta'))
         self.rb.setIconSize(12)
@@ -67,7 +67,7 @@ class RubberBandResultRenderer():
         try:
             return self.transformation.transform(point)
         except:
-            print('Error on transform!')  # DEBUG! need message???
+            # print('Error on transform!')  # DEBUG! need message???
             return
 
     def transform_bbox(self, bbox):
@@ -75,7 +75,7 @@ class RubberBandResultRenderer():
         try:
             return self.transformation.transformBoundingBox(bbox)
         except:
-            print('Error on transform!')  # DEBUG! need message???
+            # print('Error on transform!')  # DEBUG! need message???
             return
 
     def transform_geom(self, geom):
@@ -84,7 +84,7 @@ class RubberBandResultRenderer():
             geom.transform(self.transformation)
             return geom
         except:
-            print('Error on transform!')  # DEBUG! need message???
+            # print('Error on transform!')  # DEBUG! need message???
             return
 
     def center_to_point(self, point):
@@ -113,7 +113,3 @@ class RubberBandResultRenderer():
 
     def clear_feature(self):
         self.features_rb.reset(PointGeometry)
-
-
-
-

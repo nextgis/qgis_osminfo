@@ -28,22 +28,49 @@
 # MA 02110-1335 USA.
 #
 #******************************************************************************
-import json
 
-from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtCore import Qt, QVariant, QSettings, QLocale
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import *
-from qgis.PyQt.QtNetwork import QNetworkRequest
-from qgis.core import *
+from qgis.PyQt.QtWidgets import (
+    QDialogButtonBox, QVBoxLayout, QLabel, QDialog, QDockWidget, QMenu,
+    QAction, QTreeWidgetItem, QMessageBox, QTreeWidget, QWidget, QHeaderView,
+)
+
+from qgis.core import (
+    Qgis, QgsMessageLog, QgsVectorLayer, QgsField, QgsGeometry, QgsRectangle,
+    QgsFeature
+)
 from qgis.gui import QgsMessageBar
 from qgis.utils import iface
 
 from .osminfo_worker import Worker
-from .osmelements import *
-from .compat import QGis, addMapLayer, PointGeometry, LineGeometry, PolygonGeometry
+from .osmelements import OsmElement, parseOsmElement
+from .compat import (
+    addMapLayer, PointGeometry, LineGeometry, PolygonGeometry
+)
 
 FeatureItemType = 1001
 TagItemType = 1002
+
+
+class AttributeMismatchMessageBox(QMessageBox):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setIcon(QMessageBox.Icon.Question)
+        self.setWindowTitle(self.tr("Attribute mismatch"))
+        self.setInformativeText(self.tr("Add missing attributes?"))
+        self.setText(self.tr(
+            "The feature you are trying to add has attributes that are not "
+            "present in the target layer."
+        ))
+
+        Button = QMessageBox.StandardButton
+        self.setStandardButtons(
+            QMessageBox.StandardButtons()
+            | Button.Yes | Button.No | Button.Cancel,
+        )
+        self.setDefaultButton(Button.Yes)
 
 
 class ResultsDialog(QDockWidget):
@@ -53,13 +80,15 @@ class ResultsDialog(QDockWidget):
         self.__selected_geom = None
         self.__rel_reply = None
         self.worker = None
-        QDockWidget.__init__(self, title, parent)
+        super().__init__(title, parent)
         self.__mainWidget = QWidget()
 
         self.__layout = QVBoxLayout(self.__mainWidget)
 
         self.__resultsTree = QTreeWidget(self)
-        self.__resultsTree.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.__resultsTree.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu
+        )
         self.__resultsTree.customContextMenuRequested.connect(self.openMenu)
 
         self.__resultsTree.setMinimumSize(350, 250)
@@ -84,25 +113,54 @@ class ResultsDialog(QDockWidget):
 
     def openMenu(self, position):
         selected_items = self.__resultsTree.selectedItems()
-        if len(selected_items) > 0 and selected_items[0].type() in [TagItemType, FeatureItemType]:
-            menu = QMenu()
+        if (
+            len(selected_items) == 0
+            or selected_items[0].type() not in [TagItemType, FeatureItemType]
+        ):
+            return
 
-            actionZoom = QAction(QIcon(':/plugins/osminfo/icons/zoom2feature.png'), self.tr('Zoom to feature'), self)
-            menu.addAction(actionZoom)
-            actionZoom.setStatusTip(self.tr('Zoom to selected item'))
-            actionZoom.triggered.connect(self.zoom2feature)
+        menu = QMenu()
 
-            actionMove2NewTempLayer = QAction(QIcon(':/images/themes/default/mActionCreateMemory.svg'), self.tr('Save as temporary layer'), self)
-            menu.addAction(actionMove2NewTempLayer)
-            actionMove2NewTempLayer.setStatusTip(self.tr('Zoom to selected item'))
-            actionMove2NewTempLayer.triggered.connect(self.move2NewTempLayer)
+        actionZoom = QAction(
+            QIcon(':/plugins/osminfo/icons/zoom2feature.png'),
+            self.tr('Zoom to feature'),
+            self
+        )
+        menu.addAction(actionZoom)
+        actionZoom.triggered.connect(self.zoom2feature)
 
-            actionCopy2Clipboard = QAction(QIcon(':/images/themes/default/mActionEditCopy.svg'), self.tr('Copy feature to clipboard'), self)
-            menu.addAction(actionCopy2Clipboard)
-            actionCopy2Clipboard.setStatusTip(self.tr('Zoom to selected item'))
-            actionCopy2Clipboard.triggered.connect(self.copy2Clipboard)
+        actionMove2NewTempLayer = QAction(
+            QIcon(':/images/themes/default/mActionCreateMemory.svg'),
+            self.tr('Save feature in new temporary layer'),
+            self
+        )
+        menu.addAction(actionMove2NewTempLayer)
+        actionMove2NewTempLayer.triggered.connect(
+            lambda: self.copy2Layer(True)
+        )
 
-            menu.exec_(self.__resultsTree.viewport().mapToGlobal(position))
+        actionMove2SelectedLayer = QAction(
+            QIcon(':/images/themes/default/mActionCreateMemory.svg'),
+            self.tr('Save feature in selected layer'),
+            self
+        )
+        actionMove2SelectedLayer.setEnabled(
+            self.__is_current_layer_can_store_element()
+        )
+        menu.addAction(actionMove2SelectedLayer)
+        actionMove2SelectedLayer.triggered.connect(
+            lambda: self.copy2Layer(False)
+        )
+
+        actionCopy2Clipboard = QAction(
+            QIcon(':/images/themes/default/mActionEditCopy.svg'),
+            self.tr('Copy feature to clipboard'),
+            self
+        )
+        menu.addAction(actionCopy2Clipboard)
+        actionCopy2Clipboard.triggered.connect(self.copy2Clipboard)
+
+        menu.exec_(self.__resultsTree.viewport().mapToGlobal(position))
 
     def zoom2feature(self):
         selected_items = self.__resultsTree.selectedItems()
@@ -112,63 +170,152 @@ class ResultsDialog(QDockWidget):
             if item.type() == TagItemType:
                 item = item.parent()
             if item and item.type() == FeatureItemType:
-                osm_element = item.data(0, Qt.UserRole)
+                osm_element = item.data(0, Qt.ItemDataRole.UserRole)
                 geom = osm_element.asQgisGeometry()
                 self.__rb.zoom_to_bbox(geom.boundingBox())
 
-    def move2NewTempLayer(self):
+    def copy2Layer(self, create_new: bool):
         selected_items = self.__resultsTree.selectedItems()
-        if len(selected_items) > 0:
-            item = selected_items[0]
-            # if selected tag - use parent
-            if item.type() == TagItemType:
-                item = item.parent()
-            if item and item.type() == FeatureItemType:
-                osm_element = item.data(0, Qt.UserRole)
+        if len(selected_items) != 1:
+            return
 
-                # dst_crs = iface.mapCanvas().mapSettings().destinationCrs().authid()
-                if osm_element is None:
-                    iface.messageBar().pushMessage(
-                        "OSM Info",
-                        "Cann't parse OSM Element.",
-                        QgsMessageBar.WARNING,
-                        2
-                    )
+        item = selected_items[0]
+        # if selected tag - use parent
+        if item.type() == TagItemType:
+            item = item.parent()
+        if not item or item.type() != FeatureItemType:
+            return
+
+        osm_element: OsmElement = item.data(0, Qt.ItemDataRole.UserRole)
+
+        if osm_element is None:
+            iface.messageBar().pushMessage(
+                "OSM Info",
+                "Cann't parse OSM Element.",
+                Qgis.MessageLevel.Warning,
+                2
+            )
+            return
+
+        geom = osm_element.asQgisGeometry()
+        if geom is None:
+            geom = self.__selected_geom
+
+        assert geom is not None
+
+        if geom.type() == PolygonGeometry:
+            geom_type = "Polygon"
+        elif geom.type() == LineGeometry:
+            geom_type = "LineString"
+        elif geom.type() == PointGeometry:
+            geom_type = "Point"
+        else:
+            return
+
+        geom_type = "Multi" * geom.isMultipart() + geom_type
+
+        vLayer = None
+        if create_new:
+            vLayer = QgsVectorLayer(
+                "%s?crs=EPSG:4326" % (geom_type, ),
+                item.data(0, Qt.ItemDataRole.DisplayRole),
+                "memory"
+            )
+        else:
+            vLayer = iface.layerTreeView().selectedLayers()[0]
+
+        if vLayer is None:
+            return
+
+        dataProvider = vLayer.dataProvider()
+        assert dataProvider is not None
+
+        if create_new:
+            dataProvider.addAttributes(
+                [QgsField(k, QVariant.String) for k in osm_element.tags]
+            )
+        else:
+            if not self.__is_current_layer_contains_all_fields(osm_element):
+                message_box = AttributeMismatchMessageBox()
+                result_button = message_box.exec()
+                Button = QMessageBox.StandardButton
+                if result_button == Button.Cancel:
                     return
 
-                geom = osm_element.asQgisGeometry()
-                if geom is None:
-                    geom = self.__selected_geom
-                if geom.type() == PolygonGeometry :
-                    geom_type = "Polygon"
-                elif geom.type() == LineGeometry :
-                    geom_type = "LineString"
-                elif geom.type() == PointGeometry :
-                    geom_type = "Point"
-                else:
-                    return
+                if result_button == Button.Yes:
+                    element_tags = osm_element.tags.keys()
+                    layer_fields = vLayer.fields().names()
+                    new_fields = set(element_tags) - set(layer_fields)
 
-                geom_type = "Multi"*geom.isMultipart() + geom_type
+                    dataProvider.addAttributes([
+                        QgsField(key, QVariant.String)
+                        for key in element_tags if key in new_fields
+                    ])
 
-                vl = QgsVectorLayer(
-                    "%s?crs=EPSG:4326" % (geom_type, ),
-                    item.data(0, Qt.DisplayRole),
-                    "memory"
-                )
+        vLayer.updateFields()
 
-                pr = vl.dataProvider()
+        # add a feature
+        feature = QgsFeature(vLayer.fields())
+        feature.setGeometry(geom)
 
-                # add fields
-                pr.addAttributes([QgsField(k, QVariant.String) for k in osm_element.tags])
-                vl.updateFields()
+        layer_fields = vLayer.fields().names()
 
-                # add a feature
-                fet = QgsFeature()
-                fet.setGeometry(geom)
-                fet.setAttributes(list(osm_element.tags.values()))
-                pr.addFeatures([fet])
+        attributes = []
+        for layer_field in layer_fields:
+            attributes.append(osm_element.tags.get(layer_field))
+        feature.setAttributes(attributes)
 
-                addMapLayer(vl)
+        dataProvider.addFeatures([feature])
+
+        if create_new:
+            addMapLayer(vLayer)
+        else:
+            vLayer.reload()
+
+    def __is_current_layer_can_store_element(self) -> bool:
+        layers = iface.layerTreeView().selectedLayers()
+        if len(layers) != 1:
+            return False
+
+        if not isinstance(layers[0], QgsVectorLayer):
+            return False
+
+        items = self.__resultsTree.selectedItems()
+        if not items:
+            return False
+
+        item = items[0]
+
+        if item.type() == TagItemType:
+            item = item.parent()
+        if not item or item.type() != FeatureItemType:
+            return False
+
+        osm_element: OsmElement = item.data(0, Qt.ItemDataRole.UserRole)
+
+        layer: QgsVectorLayer = layers[0]
+        geom = osm_element.asQgisGeometry()
+        if layer.geometryType() != geom.type():
+            return False
+
+        return True
+
+    def __is_current_layer_contains_all_fields(
+        self, element: OsmElement
+    ) -> bool:
+        layers = iface.layerTreeView().selectedLayers()
+        if len(layers) != 1:
+            return False
+
+        if not isinstance(layers[0], QgsVectorLayer):
+            return False
+
+        layer: QgsVectorLayer = layers[0]
+        field_names = layer.fields().names()
+
+        element_tags = element.tags.keys()
+
+        return len(set(element_tags) - set(field_names)) == 0
 
     def copy2Clipboard(self):
         selected_items = self.__resultsTree.selectedItems()
@@ -198,6 +345,7 @@ class ResultsDialog(QDockWidget):
         geom = osm_element.asQgisGeometry()
         if geom is None:
             geom = self.__selected_geom
+        assert geom is not None
         if geom.type() == PolygonGeometry:
             geom_type = "Polygon"
         elif geom.type() == LineGeometry:
@@ -211,14 +359,16 @@ class ResultsDialog(QDockWidget):
 
         vl = QgsVectorLayer(
             "%s?crs=EPSG:4326" % (geom_type, ),
-            item.data(0, Qt.DisplayRole),
+            item.data(0, Qt.ItemDataRole.DisplayRole),
             "memory"
         )
 
         pr = vl.dataProvider()
 
         # add fields
-        pr.addAttributes([QgsField(k, QVariant.String) for k in osm_element.tags])
+        pr.addAttributes(
+            [QgsField(k, QVariant.String) for k in osm_element.tags]
+        )
         vl.updateFields()
 
         # add a feature
@@ -232,10 +382,11 @@ class ResultsDialog(QDockWidget):
         # Set the feature as the clipboard content
         iface.copySelectionToClipboard(vl)
 
-
     def getInfo(self, xx, yy):
         self.__resultsTree.clear()
-        self.__resultsTree.addTopLevelItem(QTreeWidgetItem([self.tr('Loading....')]))
+        self.__resultsTree.addTopLevelItem(
+            QTreeWidgetItem([self.tr('Loading...')])
+        )
 
         if self.worker:
             self.worker.gotData.disconnect(self.showData)
@@ -271,7 +422,9 @@ class ResultsDialog(QDockWidget):
                         [osm_element.title(self.qgisLocale)],
                         FeatureItemType
                     )
-                    elementItem.setData(0, Qt.UserRole, osm_element)
+                    elementItem.setData(
+                        0, Qt.ItemDataRole.UserRole, osm_element
+                    )
 
                     for tag in sorted(osm_element.tags.items()):
                         elementItem.addChild(QTreeWidgetItem(tag, TagItemType))
@@ -281,11 +434,12 @@ class ResultsDialog(QDockWidget):
                     # qApp.processEvents()
             except Exception as e:
                 QgsMessageLog.logMessage(
-                    self.tr('Element process error: %s. Element: %s.') % (str(e), str(element)),
+                    self.tr(
+                        f'Element process error: {e}. Element: {element}.'
+                    ),
                     self.tr('OSMInfo'),
-                    QgsMessageLog.CRITICAL
+                    Qgis.MessageLevel.Critical
                 )
-
 
         isin = QTreeWidgetItem([self.tr('Is inside')])
         self.__resultsTree.addTopLevelItem(isin)
@@ -306,8 +460,14 @@ class ResultsDialog(QDockWidget):
             try:
                 osm_element = parseOsmElement(element)
                 if osm_element is not None:
-                    elementItem = QTreeWidgetItem(isin, [osm_element.title(self.qgisLocale)], FeatureItemType)
-                    elementItem.setData(0, Qt.UserRole, osm_element)
+                    elementItem = QTreeWidgetItem(
+                        isin,
+                        [osm_element.title(self.qgisLocale)],
+                        FeatureItemType
+                    )
+                    elementItem.setData(
+                        0, Qt.ItemDataRole.UserRole, osm_element
+                    )
                     for tag in sorted(osm_element.tags.items()):
                         elementItem.addChild(QTreeWidgetItem(tag, TagItemType))
 
@@ -315,9 +475,11 @@ class ResultsDialog(QDockWidget):
                     # qApp.processEvents()
             except Exception as e:
                 QgsMessageLog.logMessage(
-                    self.tr('Element process error: %s. Element: %s.') % (str(e), str(element)),
+                    self.tr(
+                        f'Element process error: {e}. Element: {element}.'
+                    ),
                     self.tr('OSMInfo'),
-                    QgsMessageLog.CRITICAL
+                    Qgis.MessageLevel.Critical
                 )
 
     def selItemChanged(self):
@@ -339,6 +501,6 @@ class ResultsDialog(QDockWidget):
         # set new
         if item and item.type() == FeatureItemType:
             self.__selected_id = item
-            osm_element = item.data(0, Qt.UserRole)
+            osm_element = item.data(0, Qt.ItemDataRole.UserRole)
 
             self.__rb.show_feature(osm_element.asQgisGeometry())
