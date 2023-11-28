@@ -44,15 +44,7 @@ def get_file_dir(filename):
 from qgis.core import Qgis as QGis
 
 
-addMapLayer =  core.QgsProject.instance().addMapLayer
-
-qgsGeometryFromPointXY = core.QgsGeometry.fromPointXY
-qgsGeometryFromPolygonXY = core.QgsGeometry.fromPolygonXY
-qgsGeometryFromPolylineXY = core.QgsGeometry.fromPolylineXY
-qgsGeometryFromMultiPolygonXY = core.QgsGeometry.fromMultiPolygonXY
-qgsGeometryFromMultiPolylineXY = core.QgsGeometry.fromMultiPolylineXY
-
-from qgis.core import QgsPointXY
+addMapLayer = core.QgsProject.instance().addMapLayer
 
 PointGeometry = core.QgsWkbTypes.PointGeometry
 PolygonGeometry = core.QgsWkbTypes.PolygonGeometry

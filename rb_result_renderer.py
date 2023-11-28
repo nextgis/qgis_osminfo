@@ -28,13 +28,16 @@ from qgis.utils import iface
 
 from .compat import QgsCoordinateTransform, QgsCoordinateReferenceSystem, PointGeometry
 
-class RubberBandResultRenderer():
+
+class RubberBandResultRenderer:
 
     def __init__(self):
         self.iface = iface
 
         self.srs_wgs84 = QgsCoordinateReferenceSystem.fromEpsgId(4326)
-        self.transformation = QgsCoordinateTransform(self.srs_wgs84, self.srs_wgs84)
+        self.transformation = QgsCoordinateTransform(
+            self.srs_wgs84, self.srs_wgs84
+        )
 
         self.featureColor = QColor('green')
 

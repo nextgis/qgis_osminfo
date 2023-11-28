@@ -3,7 +3,7 @@
 #
 # OSMInfo
 # ---------------------------------------------------------
-# This plugin takes coordinates of a mouse click and gets information about all 
+# This plugin takes coordinates of a mouse click and gets information about all
 # objects from this point from OSM using Overpass API.
 #
 # Author:   Maxim Dubinin, sim@gis-lab.info
@@ -32,9 +32,10 @@ from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QCursor, QPixmap
 from qgis.PyQt.QtWidgets import QApplication
 
+from qgis.core import QgsPointXY
 from qgis.gui import *
 
-from .compat import QgsCoordinateTransform, QgsCoordinateReferenceSystem, QgsPointXY
+from .compat import QgsCoordinateTransform, QgsCoordinateReferenceSystem
 from . import resources
 
 import os
@@ -47,14 +48,14 @@ class OSMInfotool(QgsMapTool):
   def __init__(self, iface):
     QgsMapTool.__init__(self, iface.mapCanvas())
     self.result_renderer = RubberBandResultRenderer()
-    
+
     self.canvas = iface.mapCanvas()
     #self.emitPoint = QgsMapToolEmitPoint(self.canvas)
     self.iface = iface
 
     self.cursor = QCursor(QPixmap(":/plugins/osminfo/icons/cursor.png"), 1, 1)
     #self.visibilityChanged.connect(self.result_renderer.clear)
-    
+
     self.docWidgetResults = ResultsDialog("OSM Info", self.result_renderer, self.iface.mainWindow())
     self.docWidgetResults.setVisible(False)
     self.docWidgetResults.setFloating(True)
@@ -66,7 +67,7 @@ class OSMInfotool(QgsMapTool):
   def clearCanvas(self):
     self.result_renderer.clear()
     self.result_renderer.clear_feature()
-  
+
   def docWidgetResultsVisChange(self, vis):
     if vis is False:
         self.clearCanvas()
