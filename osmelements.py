@@ -1,3 +1,5 @@
+from qgis.core import QgsGeometry
+
 from .osmtags import *
 from .compat import qgsGeometryFromPointXY, qgsGeometryFromPolygonXY, qgsGeometryFromPolylineXY, qgsGeometryFromMultiPolygonXY, qgsGeometryFromMultiPolylineXY, QgsPointXY
 
@@ -5,7 +7,7 @@ class PolygonCreator(object):
     """docstring for PolygonCreator"""
     def __init__(self):
         super(PolygonCreator, self).__init__()
-        
+
         self.curves = []
 
     def addCurve(self, lon_lat_pairs):
@@ -31,15 +33,16 @@ class PolygonCreator(object):
                 curve = self.curves.pop(i)
                 curve.extend(lon_lat_pairs_tmp[0:])
                 break
-        
+
         if curve is not None:
             self.addCurve(curve)
         else:
             self.curves.append(lon_lat_pairs)
 
     def isPolygon(self):
-        return len(self.curves) == 1 and self.curves[0][0] == self.curves[0][-1]
-    
+        return \
+            len(self.curves) == 1 and self.curves[0][0] == self.curves[0][-1]
+
     def getPoints(self):
         points = []
         for curve in self.curves:
@@ -70,8 +73,8 @@ class OsmElement(object):
 
     #     return self.__qgisGeometry
 
-    def asQgisGeometry(self):
-        raise AttributeError('Not Implemented Culture')
+    def asQgisGeometry(self) -> QgsGeometry:
+        raise NotImplementedError('Not Implemented Culture')
 
     def type(self):
         return self.__type
@@ -118,6 +121,7 @@ class OsmElement(object):
 
         return title
 
+
 class OsmNode(OsmElement):
     """docstring for OsmNode"""
     def __init__(self, id, lon_lat, tags={}, **kwargs):
@@ -127,8 +131,8 @@ class OsmNode(OsmElement):
         self.__lon = lon
         self.__lat = lat
 
-    def asQgisGeometry(self):
-        return [qgsGeometryFromPointXY( QgsPointXY(self.__lon, self.__lat) )]
+    def asQgisGeometry(self) -> QgsGeometry:
+        return qgsGeometryFromPointXY(QgsPointXY(self.__lon, self.__lat))
 
 
 class OsmWay(OsmElement):
@@ -155,15 +159,19 @@ class OsmWay(OsmElement):
         # ! tags is absent for relation ways
         # if self.tags.get(u'area', u'no') != u'yes':
         #   return False
-        
+
         return self.closed()
 
-    def asQgisGeometry(self):
+    def asQgisGeometry(self) -> QgsGeometry:
         # TODO can be diffs geom in same time. Check it!
         if self._canBeArea():
-            return [qgsGeometryFromPolygonXY( [[QgsPointXY(lon, lat) for lon, lat in self.__lon_lat_pairs], []] )]
+            return qgsGeometryFromPolygonXY([
+                [QgsPointXY(lon, lat) for lon, lat in self.__lon_lat_pairs], []
+            ])
         else:
-            return [qgsGeometryFromPolylineXY( [QgsPointXY(lon, lat) for lon, lat in self.__lon_lat_pairs] )]
+            return qgsGeometryFromPolylineXY([
+                QgsPointXY(lon, lat) for lon, lat in self.__lon_lat_pairs
+            ])
 
     def checkRelationRole(self, relation_role_name):
         return self.relationRole == relation_role_name
@@ -182,7 +190,7 @@ class OsmRelation(OsmElement):
 
         self.__osm_elements = osm_elements
 
-    def asQgisGeometry(self):
+    def asQgisGeometry(self) -> QgsGeometry:
         if self._isArea():
             polygones = []
 
@@ -196,11 +204,11 @@ class OsmRelation(OsmElement):
                         polygon_outer_finished = False
                         polygones.append([pc.getPoints() for pc in polygon])
                         polygon = [PolygonCreator(), ]
-                        
+
                     # print "    ", osm_element.getLonLatPairs()
                     # print "try add curve"
                     polygon[0].addCurve([QgsPointXY(lon, lat) for lon, lat in osm_element.getLonLatPairs()])
-                    
+
                     if polygon[0].isPolygon():
                         polygon_outer_finished = True
 
@@ -213,15 +221,15 @@ class OsmRelation(OsmElement):
                 polygones.append([pc.getPoints() for pc in polygon])
 
             # print "polygones: ", len(polygones)
-            return [qgsGeometryFromMultiPolygonXY(polygones)]
+            return qgsGeometryFromMultiPolygonXY(polygones)
             # return [QgsGeometry.fromPolygon(polygon) for polygon in polygones]
         else:
             lines = []
             for osm_element in self.__osm_elements:
                 if osm_element.isOuter():
                     lines.append( [QgsPointXY(lon, lat) for lon, lat in osm_element.getLonLatPairs()] )
-            
-            return [qgsGeometryFromMultiPolylineXY(lines)]
+
+            return qgsGeometryFromMultiPolylineXY(lines)
 
     def _isArea(self):
         return self.tags.get(u'type', 'none') in [u'multipolygon', u'boundary']
@@ -235,7 +243,7 @@ def parseOsmElement(json):
         return parseOsmWay(json)
     elif element_type == u'node':
         return parseOsmNode(json)
-    
+
     return None
 
 
