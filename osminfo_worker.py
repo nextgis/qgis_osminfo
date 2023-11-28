@@ -3,7 +3,7 @@
 #
 # OSMInfo
 # ---------------------------------------------------------
-# This plugin takes coordinates of a mouse click and gets information about all 
+# This plugin takes coordinates of a mouse click and gets information about all
 # objects from this point from OSM using Overpass API.
 #
 # Author:   Maxim Dubinin, sim@gis-lab.info
@@ -70,7 +70,15 @@ class Worker(QThread):
         dist = PluginSettings.distance_value()
         timeout = PluginSettings.timeout_value()
 
-        request_data = '[timeout:%s][out:json];(node(around:%s,%s,%s);way(around:%s,%s,%s);relation(around:%s,%s,%s););out tags geom;' % (timeout, dist, yy, xx, dist, yy, xx, dist, yy, xx)
+        request_data = f'''
+            [out:json][timeout:{timeout}];
+            (
+                node(around:{dist},{yy},{xx});
+                way(around:{dist},{yy},{xx});
+                relation(around:{dist},{yy},{xx});
+            );
+            out tags geom;
+        '''
         reply1 = qnam.post(request, str.encode(request_data))
         loop = QEventLoop()
         reply1.finished.connect(loop.quit)
@@ -89,8 +97,14 @@ class Worker(QThread):
         finally:
             reply1.deleteLater()
 
-
-        request_data = '[timeout:%s][out:json];is_in(%s,%s)->.a;way(pivot.a);out tags geom;relation(pivot.a);out geom;' % (timeout, yy, xx)
+        request_data = f'''
+            [out:json][timeout:{timeout}];
+            is_in({yy},{xx})->.a;
+            way(pivot.a);
+            out tags geom;
+            relation(pivot.a);
+            out geom;
+        '''
         reply2 = qnam.post(request, str.encode(request_data))
         loop = QEventLoop()
         reply2.finished.connect(loop.quit)
