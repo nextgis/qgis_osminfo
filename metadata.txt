@@ -5,30 +5,35 @@ description[ru]=Получите полную информацию о точке
 about=For a selected point, extract all information abour nearby and enclosing features from OpenStreetMap database using Overpass API.
 about[ru]=Для выбранной точки извлеките всю информацию о близлежащих и окружающих объектах из базы данных OpenStreetMap, используя Overpass API.
 category=Vector
-version=0.7.1
-qgisMinimumVersion=2.0
+version=0.8
+qgisMinimumVersion=3.0
 qgisMaximumVersion=3.99
 
 author=NextGIS
 email=info@nextgis.com
 changelog=
+    0.8.0:
+        * Added option to save selected OSM object in selected layer
+        * Added option to copy selected OSM object
+        * Added "about" dialog
+        * Enhanced support of complex multipolygons
     0.7.1:
-            * Fixed OsmElement title encoding
+        * Fixed OsmElement title encoding
     0.7.0:
-            * QGIS 3 support added
+        * QGIS 3 support added
     0.6.2:
-            * Fix Overpass API access issue
+        * Fix Overpass API access issue
     0.6.1:
-            * Save selected object into new memory layer.
+        * Save selected object into new memory layer.
     0.6:
-            * Account for language of the interface when showing results
-            * Sort outputs by area for nicer hierarchy
-            * New setting for request timeout
+        * Account for language of the interface when showing results
+        * Sort outputs by area for nicer hierarchy
+        * New setting for request timeout
     0.5:
-            * Clicking on feature in results tree now allows to see any geometry (for both nearby and enclosing features)
-            * Right-click menu in results-tree to zoom in to a selected feature
-            * Distance for finding nearby features can be set through new Settings dialog
-            * Plugin now works from behind proxy
+        * Clicking on feature in results tree now allows to see any geometry (for both nearby and enclosing features)
+        * Right-click menu in results-tree to zoom in to a selected feature
+        * Distance for finding nearby features can be set through new Settings dialog
+        * Plugin now works from behind proxy
     0.4:
         * Click on feature in a results tree to see actual feature geometry highlighted (only works for nearby and some enclosing features yet)
         * i18n support for GUI
