@@ -97,11 +97,14 @@ class Worker(QThread):
         finally:
             reply1.deleteLater()
 
+        # TODO is .b really needed there? Probably this is a bug in overpass
         request_data = f'''
             [out:json][timeout:{timeout}];
             is_in({yy},{xx})->.a;
-            way(pivot.a);
-            out tags geom;
+            way(pivot.a)->.b;
+            .b out tags geom;
+            .b <;
+            out geom;
             relation(pivot.a);
             out geom;
         '''
