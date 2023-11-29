@@ -5,13 +5,15 @@ description[ru]=Получите полную информацию о точке
 about=For a selected point, extract all information abour nearby and enclosing features from OpenStreetMap database using Overpass API.
 about[ru]=Для выбранной точки извлеките всю информацию о близлежащих и окружающих объектах из базы данных OpenStreetMap, используя Overpass API.
 category=Vector
-version=0.8
+version=0.8.1
 qgisMinimumVersion=3.0
 qgisMaximumVersion=3.99
 
 author=NextGIS
 email=info@nextgis.com
 changelog=
+    0.8.1:
+        * Added small multipolygons searching
     0.8.0:
         * Added option to save selected OSM object in selected layer
         * Added option to copy selected OSM object
