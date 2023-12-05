@@ -13,7 +13,8 @@ https://www.youtube.com/watch?v=r4QNsvf4K4o
 ## Click anywhere to get OpenStreetMap features at this location
 Even if there no actual vector data in the project.
 
-![osminfo](https://github.com/nextgis/qgis_osminfo/assets/101568545/5db92341-3e42-4588-8ac4-91a3453043f7)
+![osminfo](https://github.com/nextgis/qgis_osminfo/assets/101568545/6efc3c8f-6c90-43d1-b621-b3f6f8ae9575)
+
 
 
 License
