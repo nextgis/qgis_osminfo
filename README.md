@@ -26,6 +26,5 @@ Commercial support
 Need to fix a bug or add a feature to OSMInfo? 
 
 We provide custom development and support for this software. [Contact us](https://nextgis.com/contact/?utm_source=nextgis&utm_medium=github&utm_campaign=osminfo) to discuss options!
-<br>
 
 [![https://nextgis.com](https://nextgis.com/img/nextgis_logo.png)](https://nextgis.com?utm_source=nextgis&utm_medium=github&utm_campaign=osminfo)
