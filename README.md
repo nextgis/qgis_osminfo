@@ -6,24 +6,20 @@ Get all information for a particular point with this QGIS plugin. OSMInfo shows 
 
 QGIS plugins page: https://plugins.qgis.org/plugins/osminfo/
 
-# Video
-https://img.youtube.com/vi/r4QNsvf4K4o/sddefault.jpg
-
-
-[https://www.youtube.com/watch?v=r4QNsvf4K4o](https://img.youtube.com/vi/r4QNsvf4K4o/sddefault.jpg)
 
 ## Click anywhere to get OpenStreetMap features at this location
 Even if there no actual vector data in the project.
 
 ![osminfo](https://github.com/nextgis/qgis_osminfo/assets/101568545/6efc3c8f-6c90-43d1-b621-b3f6f8ae9575)
 
+[https://www.youtube.com/watch?v=r4QNsvf4K4o](https://img.youtube.com/vi/r4QNsvf4K4o/sddefault.jpg)
 
 
-License
+## License
 -------------
 This program is licensed under GNU GPL v2 or any later version
 
-Commercial support
+## Commercial support
 ------------------
 Need to fix a bug or add a feature to OSMInfo? 
 
