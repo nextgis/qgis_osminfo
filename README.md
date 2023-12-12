@@ -15,11 +15,11 @@ Even if there no actual vector data in the project.
 [https://www.youtube.com/watch?v=r4QNsvf4K4o](https://img.youtube.com/vi/r4QNsvf4K4o/sddefault.jpg)
 
 
-## License
+License
 -------------
 This program is licensed under GNU GPL v2 or any later version
 
-## Commercial support
+Commercial support
 ------------------
 Need to fix a bug or add a feature to OSMInfo? 
 
