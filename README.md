@@ -8,7 +8,7 @@ QGIS plugins page: https://plugins.qgis.org/plugins/osminfo/
 
 # Video
 
-https://www.youtube.com/watch?v=r4QNsvf4K4o
+[https://www.youtube.com/watch?v=r4QNsvf4K4o](https://img.youtube.com/vi/r4QNsvf4K4o/sddefault.jpg)
 
 ## Click anywhere to get OpenStreetMap features at this location
 Even if there no actual vector data in the project.
