@@ -7,6 +7,8 @@ Get all information for a particular point with this QGIS plugin. OSMInfo shows 
 QGIS plugins page: https://plugins.qgis.org/plugins/osminfo/
 
 # Video
+https://img.youtube.com/vi/r4QNsvf4K4o/sddefault.jpg
+
 
 [https://www.youtube.com/watch?v=r4QNsvf4K4o](https://img.youtube.com/vi/r4QNsvf4K4o/sddefault.jpg)
 
