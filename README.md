@@ -14,7 +14,7 @@ QGIS plugins page: https://plugins.qgis.org/plugins/osminfo/
 
 YouTube
 -------------
-[![https://www.youtube.com](https://img.youtube.com/vi/r4QNsvf4K4o/maxresdefault.jpg)](https://www.youtube.com/watch?v=r4QNsvf4K4o)
+[![k-DZVAh_i18](https://github.com/nextgis/qgis_osminfo/assets/101568545/990640a5-11e7-42f5-838a-fc6f679d7475)](https://youtu.be/k-DZVAh_i18)
 
 License
 -------------
