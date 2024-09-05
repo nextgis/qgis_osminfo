@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#******************************************************************************
+# ******************************************************************************
 #
 # OSMInfo
 # ---------------------------------------------------------
@@ -26,7 +26,7 @@
 # to the Free Software Foundation, 51 Franklin Street, Suite 500 Boston,
 # MA 02110-1335 USA.
 #
-#******************************************************************************
+# ******************************************************************************
 
 import json
 
@@ -36,8 +36,8 @@ from qgis.core import QgsMessageLog, QgsNetworkAccessManager
 
 from .plugin_settings import PluginSettings
 
-class Worker(QThread):
 
+class Worker(QThread):
     gotData = pyqtSignal(list, list)
     gotError = pyqtSignal(str)
 
@@ -52,25 +52,29 @@ class Worker(QThread):
 
         if abs(float(xx)) > 180 or abs(float(yy)) > 90:
             QgsMessageLog.logMessage(
-                self.tr('Worker: %s, %s are wrong coords!') % (xx, yy),
-                self.tr('OSMInfo'),
-                QgsMessageLog.INFO
+                self.tr("Worker: %s, %s are wrong coords!") % (xx, yy),
+                self.tr("OSMInfo"),
+                QgsMessageLog.INFO,
             )
 
-            self.gotError.emit(self.tr('Worker: %s, %s are wrong coords!') % (xx, yy))
+            self.gotError.emit(
+                self.tr("Worker: %s, %s are wrong coords!") % (xx, yy)
+            )
             return
 
-        url = 'http://overpass-api.de/api/interpreter'
+        url = "http://overpass-api.de/api/interpreter"
         request = QNetworkRequest(QUrl(url))
-        request.setHeader(QNetworkRequest.ContentTypeHeader, 'application/x-www-form-urlencoded');
-
+        request.setHeader(
+            QNetworkRequest.ContentTypeHeader,
+            "application/x-www-form-urlencoded",
+        )
         qnam = QgsNetworkAccessManager.instance()
 
         # around request
         dist = PluginSettings.distance_value()
         timeout = PluginSettings.timeout_value()
 
-        request_data = f'''
+        request_data = f"""
             [out:json][timeout:{timeout}];
             (
                 node(around:{dist},{yy},{xx});
@@ -78,27 +82,27 @@ class Worker(QThread):
                 relation(around:{dist},{yy},{xx});
             );
             out tags geom;
-        '''
+        """
         reply1 = qnam.post(request, str.encode(request_data))
         loop = QEventLoop()
         reply1.finished.connect(loop.quit)
         loop.exec_()
         if reply1.error() != QNetworkReply.NoError:
             reply1.deleteLater()
-            self.gotError.emit(self.tr('Error getting data from the server'))
+            self.gotError.emit(self.tr("Error getting data from the server"))
             return
         try:
             data = reply1.readAll()
-            l1 = json.loads(bytes(data))['elements']
+            l1 = json.loads(bytes(data))["elements"]
             reply1.deleteLater()
         except:
-            self.gotError.emit(self.tr('Error parsing data'))
+            self.gotError.emit(self.tr("Error parsing data"))
             return
         finally:
             reply1.deleteLater()
 
         # TODO is .b really needed there? Probably this is a bug in overpass
-        request_data = f'''
+        request_data = f"""
             [out:json][timeout:{timeout}];
             is_in({yy},{xx})->.a;
             way(pivot.a)->.b;
@@ -107,20 +111,20 @@ class Worker(QThread):
             out geom;
             relation(pivot.a);
             out geom;
-        '''
+        """
         reply2 = qnam.post(request, str.encode(request_data))
         loop = QEventLoop()
         reply2.finished.connect(loop.quit)
         loop.exec_()
         if reply2.error() != QNetworkReply.NoError:
             reply2.deleteLater()
-            self.gotError.emit(self.tr('Error getting data from the server'))
+            self.gotError.emit(self.tr("Error getting data from the server"))
             return
         try:
             data = reply2.readAll()
-            l2 = json.loads(bytes(data))['elements']
+            l2 = json.loads(bytes(data))["elements"]
         except:
-            self.gotError.emit(self.tr('Error parsing data'))
+            self.gotError.emit(self.tr("Error parsing data"))
             return
         finally:
             reply2.deleteLater()

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#******************************************************************************
+# ******************************************************************************
 #
 # OSMInfo
 # ---------------------------------------------------------
@@ -26,7 +26,7 @@
 # to the Free Software Foundation, 51 Franklin Street, Suite 500 Boston,
 # MA 02110-1335 USA.
 #
-#******************************************************************************
+# ******************************************************************************
 
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QCursor, QPixmap
@@ -44,62 +44,68 @@ import platform
 from .osminforesults import ResultsDialog
 from .rb_result_renderer import RubberBandResultRenderer
 
+
 class OSMInfotool(QgsMapTool):
-  def __init__(self, iface):
-    QgsMapTool.__init__(self, iface.mapCanvas())
-    self.result_renderer = RubberBandResultRenderer()
+    def __init__(self, iface):
+        QgsMapTool.__init__(self, iface.mapCanvas())
+        self.result_renderer = RubberBandResultRenderer()
 
-    self.canvas = iface.mapCanvas()
-    #self.emitPoint = QgsMapToolEmitPoint(self.canvas)
-    self.iface = iface
+        self.canvas = iface.mapCanvas()
+        # self.emitPoint = QgsMapToolEmitPoint(self.canvas)
+        self.iface = iface
 
-    self.cursor = QCursor(QPixmap(":/plugins/osminfo/icons/cursor.png"), 1, 1)
-    #self.visibilityChanged.connect(self.result_renderer.clear)
+        self.cursor = QCursor(
+            QPixmap(":/plugins/osminfo/icons/cursor.png"), 1, 1
+        )
+        # self.visibilityChanged.connect(self.result_renderer.clear)
 
-    self.docWidgetResults = ResultsDialog("OSM Info", self.result_renderer, self.iface.mainWindow())
-    self.docWidgetResults.setVisible(False)
-    self.docWidgetResults.setFloating(True)
-    self.docWidgetResults.visibilityChanged.connect(self.docWidgetResultsVisChange)
+        self.docWidgetResults = ResultsDialog(
+            "OSM Info", self.result_renderer, self.iface.mainWindow()
+        )
+        self.docWidgetResults.setVisible(False)
+        self.docWidgetResults.setFloating(True)
+        self.docWidgetResults.visibilityChanged.connect(
+            self.docWidgetResultsVisChange
+        )
 
-  def __del__(self):
-    self.clearCanvas()
-
-  def clearCanvas(self):
-    self.result_renderer.clear()
-    self.result_renderer.clear_feature()
-
-  def docWidgetResultsVisChange(self, vis):
-    if vis is False:
+    def __del__(self):
         self.clearCanvas()
 
-  def activate(self):
-    self.canvas.setCursor(self.cursor)
+    def clearCanvas(self):
+        self.result_renderer.clear()
+        self.result_renderer.clear_feature()
 
-  def deactivate(self):
-    if self.docWidgetResults.isFloating():
-        self.docWidgetResults.setVisible(False)
+    def docWidgetResultsVisChange(self, vis):
+        if vis is False:
+            self.clearCanvas()
 
-  def canvasReleaseEvent(self, event):
+    def activate(self):
+        self.canvas.setCursor(self.cursor)
 
-    crsSrc = self.iface.mapCanvas().mapSettings().destinationCrs()
-    crsWGS = QgsCoordinateReferenceSystem.fromEpsgId(4326)
+    def deactivate(self):
+        if self.docWidgetResults.isFloating():
+            self.docWidgetResults.setVisible(False)
 
-    QApplication.setOverrideCursor(Qt.WaitCursor)
-    x = event.pos().x()
-    y = event.pos().y()
-    point = self.canvas.getCoordinateTransform().toMapCoordinates(x, y)
+    def canvasReleaseEvent(self, event):
+        crsSrc = self.iface.mapCanvas().mapSettings().destinationCrs()
+        crsWGS = QgsCoordinateReferenceSystem.fromEpsgId(4326)
 
-    xform = QgsCoordinateTransform(crsSrc, crsWGS)
-    point = xform.transform(QgsPointXY(point.x(), point.y()))
-    QApplication.restoreOverrideCursor()
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        x = event.pos().x()
+        y = event.pos().y()
+        point = self.canvas.getCoordinateTransform().toMapCoordinates(x, y)
 
-    xx = str(point.x())
-    yy = str(point.y())
+        xform = QgsCoordinateTransform(crsSrc, crsWGS)
+        point = xform.transform(QgsPointXY(point.x(), point.y()))
+        QApplication.restoreOverrideCursor()
 
-    self.result_renderer.clear()
-    self.result_renderer.clear_feature()
-    self.result_renderer.show_point(point, False)
-    self.canvas.update()
+        xx = str(point.x())
+        yy = str(point.y())
 
-    self.docWidgetResults.getInfo(xx, yy)
-    self.docWidgetResults.setVisible(True)
+        self.result_renderer.clear()
+        self.result_renderer.clear_feature()
+        self.result_renderer.show_point(point, False)
+        self.canvas.update()
+
+        self.docWidgetResults.getInfo(xx, yy)
+        self.docWidgetResults.setVisible(True)

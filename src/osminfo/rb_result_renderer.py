@@ -26,11 +26,14 @@ from qgis import core
 from qgis.core import QgsRectangle
 from qgis.utils import iface
 
-from .compat import QgsCoordinateTransform, QgsCoordinateReferenceSystem, PointGeometry
+from .compat import (
+    QgsCoordinateTransform,
+    QgsCoordinateReferenceSystem,
+    PointGeometry,
+)
 
 
 class RubberBandResultRenderer:
-
     def __init__(self):
         self.iface = iface
 
@@ -39,10 +42,10 @@ class RubberBandResultRenderer:
             self.srs_wgs84, self.srs_wgs84
         )
 
-        self.featureColor = QColor('green')
+        self.featureColor = QColor("green")
 
         self.rb = QgsRubberBand(self.iface.mapCanvas(), PointGeometry)
-        self.rb.setColor(QColor('magenta'))
+        self.rb.setColor(QColor("magenta"))
         self.rb.setIconSize(12)
 
         self.features_rb = QgsRubberBand(self.iface.mapCanvas(), PointGeometry)
@@ -51,7 +54,7 @@ class RubberBandResultRenderer:
         self.features_rb.setWidth(3)
 
     def show_point(self, point, center=False):
-        #check srs
+        # check srs
         if self.need_transform():
             point = self.transform_point(point)
 
@@ -63,10 +66,15 @@ class RubberBandResultRenderer:
         self.rb.reset(PointGeometry)
 
     def need_transform(self):
-        return self.iface.mapCanvas().mapSettings().destinationCrs().postgisSrid() != 4326
+        return (
+            self.iface.mapCanvas().mapSettings().destinationCrs().postgisSrid()
+            != 4326
+        )
 
     def transform_point(self, point):
-        self.transformation.setDestinationCrs(self.iface.mapCanvas().mapSettings().destinationCrs())
+        self.transformation.setDestinationCrs(
+            self.iface.mapCanvas().mapSettings().destinationCrs()
+        )
         try:
             return self.transformation.transform(point)
         except:
@@ -74,7 +82,9 @@ class RubberBandResultRenderer:
             return
 
     def transform_bbox(self, bbox):
-        self.transformation.setDestinationCrs(self.iface.mapCanvas().mapSettings().destinationCrs())
+        self.transformation.setDestinationCrs(
+            self.iface.mapCanvas().mapSettings().destinationCrs()
+        )
         try:
             return self.transformation.transformBoundingBox(bbox)
         except:
@@ -82,7 +92,9 @@ class RubberBandResultRenderer:
             return
 
     def transform_geom(self, geom):
-        self.transformation.setDestinationCrs(self.iface.mapCanvas().mapSettings().destinationCrs())
+        self.transformation.setDestinationCrs(
+            self.iface.mapCanvas().mapSettings().destinationCrs()
+        )
         try:
             geom.transform(self.transformation)
             return geom
@@ -110,7 +122,7 @@ class RubberBandResultRenderer:
         if geom.type() == PointGeometry:
             self.features_rb.setFillColor(self.featureColor)
         else:
-            self.features_rb.setFillColor(QColor(0,255,0, 50))
+            self.features_rb.setFillColor(QColor(0, 255, 0, 50))
 
         self.features_rb.setToGeometry(geom, None)
 

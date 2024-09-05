@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#******************************************************************************
+# ******************************************************************************
 #
 # OSMInfo
 # ---------------------------------------------------------
@@ -27,27 +27,40 @@
 # to the Free Software Foundation, 51 Franklin Street, Suite 500 Boston,
 # MA 02110-1335 USA.
 #
-#******************************************************************************
+# ******************************************************************************
 
 from qgis.PyQt.QtCore import Qt, QVariant, QSettings, QLocale
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import (
-    QDialogButtonBox, QVBoxLayout, QLabel, QDialog, QDockWidget, QMenu,
-    QAction, QTreeWidgetItem, QMessageBox, QTreeWidget, QWidget, QHeaderView,
+    QDialogButtonBox,
+    QVBoxLayout,
+    QLabel,
+    QDialog,
+    QDockWidget,
+    QMenu,
+    QAction,
+    QTreeWidgetItem,
+    QMessageBox,
+    QTreeWidget,
+    QWidget,
+    QHeaderView,
 )
 
 from qgis.core import (
-    Qgis, QgsMessageLog, QgsVectorLayer, QgsField, QgsGeometry, QgsRectangle,
-    QgsFeature
+    Qgis,
+    QgsMessageLog,
+    QgsVectorLayer,
+    QgsField,
+    QgsGeometry,
+    QgsRectangle,
+    QgsFeature,
 )
 from qgis.gui import QgsMessageBar
 from qgis.utils import iface
 
 from .osminfo_worker import Worker
 from .osmelements import OsmElement, parseOsmElement
-from .compat import (
-    addMapLayer, PointGeometry, LineGeometry, PolygonGeometry
-)
+from .compat import addMapLayer, PointGeometry, LineGeometry, PolygonGeometry
 
 FeatureItemType = 1001
 TagItemType = 1002
@@ -60,15 +73,19 @@ class AttributeMismatchMessageBox(QMessageBox):
         self.setIcon(QMessageBox.Icon.Question)
         self.setWindowTitle(self.tr("Attribute mismatch"))
         self.setInformativeText(self.tr("Add missing attributes?"))
-        self.setText(self.tr(
-            "The feature you are trying to add has attributes that are not "
-            "present in the target layer."
-        ))
+        self.setText(
+            self.tr(
+                "The feature you are trying to add has attributes that are not "
+                "present in the target layer."
+            )
+        )
 
         Button = QMessageBox.StandardButton
         self.setStandardButtons(
             QMessageBox.StandardButtons()
-            | Button.Yes | Button.No | Button.Cancel,
+            | Button.Yes
+            | Button.No
+            | Button.Cancel,
         )
         self.setDefaultButton(Button.Yes)
 
@@ -93,11 +110,17 @@ class ResultsDialog(QDockWidget):
 
         self.__resultsTree.setMinimumSize(350, 250)
         self.__resultsTree.setColumnCount(2)
-        self.__resultsTree.setHeaderLabels([self.tr('Feature/Key'), self.tr('Value')])
+        self.__resultsTree.setHeaderLabels(
+            [self.tr("Feature/Key"), self.tr("Value")]
+        )
         if hasattr(self.__resultsTree.header(), "setResizeMode"):
-            self.__resultsTree.header().setResizeMode(QHeaderView.ResizeToContents)
+            self.__resultsTree.header().setResizeMode(
+                QHeaderView.ResizeToContents
+            )
         else:
-            self.__resultsTree.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+            self.__resultsTree.header().setSectionResizeMode(
+                QHeaderView.ResizeToContents
+            )
         self.__resultsTree.header().setStretchLastSection(False)
         self.__resultsTree.itemSelectionChanged.connect(self.selItemChanged)
         self.__layout.addWidget(self.__resultsTree)
@@ -105,34 +128,38 @@ class ResultsDialog(QDockWidget):
 
         self.setWidget(self.__mainWidget)
 
-        overrideLocale = QSettings().value('locale/overrideFlag', False, type=bool)
+        overrideLocale = QSettings().value(
+            "locale/overrideFlag", False, type=bool
+        )
         if not overrideLocale:
             self.qgisLocale = QLocale.system().name()[:2]
         else:
-            self.qgisLocale = QSettings().value('locale/userLocale', '', type=str)[:2]
+            self.qgisLocale = QSettings().value(
+                "locale/userLocale", "", type=str
+            )[:2]
 
     def openMenu(self, position):
         selected_items = self.__resultsTree.selectedItems()
-        if (
-            len(selected_items) == 0
-            or selected_items[0].type() not in [TagItemType, FeatureItemType]
-        ):
+        if len(selected_items) == 0 or selected_items[0].type() not in [
+            TagItemType,
+            FeatureItemType,
+        ]:
             return
 
         menu = QMenu()
 
         actionZoom = QAction(
-            QIcon(':/plugins/osminfo/icons/zoom2feature.png'),
-            self.tr('Zoom to feature'),
-            self
+            QIcon(":/plugins/osminfo/icons/zoom2feature.png"),
+            self.tr("Zoom to feature"),
+            self,
         )
         menu.addAction(actionZoom)
         actionZoom.triggered.connect(self.zoom2feature)
 
         actionMove2NewTempLayer = QAction(
-            QIcon(':/images/themes/default/mActionCreateMemory.svg'),
-            self.tr('Save feature in new temporary layer'),
-            self
+            QIcon(":/images/themes/default/mActionCreateMemory.svg"),
+            self.tr("Save feature in new temporary layer"),
+            self,
         )
         menu.addAction(actionMove2NewTempLayer)
         actionMove2NewTempLayer.triggered.connect(
@@ -140,9 +167,9 @@ class ResultsDialog(QDockWidget):
         )
 
         actionMove2SelectedLayer = QAction(
-            QIcon(':/images/themes/default/mActionCreateMemory.svg'),
-            self.tr('Save feature in selected layer'),
-            self
+            QIcon(":/images/themes/default/mActionCreateMemory.svg"),
+            self.tr("Save feature in selected layer"),
+            self,
         )
         actionMove2SelectedLayer.setEnabled(
             self.__is_current_layer_can_store_element()
@@ -153,9 +180,9 @@ class ResultsDialog(QDockWidget):
         )
 
         actionCopy2Clipboard = QAction(
-            QIcon(':/images/themes/default/mActionEditCopy.svg'),
-            self.tr('Copy feature to clipboard'),
-            self
+            QIcon(":/images/themes/default/mActionEditCopy.svg"),
+            self.tr("Copy feature to clipboard"),
+            self,
         )
         menu.addAction(actionCopy2Clipboard)
         actionCopy2Clipboard.triggered.connect(self.copy2Clipboard)
@@ -193,7 +220,7 @@ class ResultsDialog(QDockWidget):
                 "OSM Info",
                 "Cann't parse OSM Element.",
                 Qgis.MessageLevel.Warning,
-                2
+                2,
             )
             return
 
@@ -217,9 +244,9 @@ class ResultsDialog(QDockWidget):
         vLayer = None
         if create_new:
             vLayer = QgsVectorLayer(
-                "%s?crs=EPSG:4326" % (geom_type, ),
+                "%s?crs=EPSG:4326" % (geom_type,),
                 item.data(0, Qt.ItemDataRole.DisplayRole),
-                "memory"
+                "memory",
             )
         else:
             vLayer = iface.layerTreeView().selectedLayers()[0]
@@ -247,10 +274,13 @@ class ResultsDialog(QDockWidget):
                     layer_fields = vLayer.fields().names()
                     new_fields = set(element_tags) - set(layer_fields)
 
-                    dataProvider.addAttributes([
-                        QgsField(key, QVariant.String)
-                        for key in element_tags if key in new_fields
-                    ])
+                    dataProvider.addAttributes(
+                        [
+                            QgsField(key, QVariant.String)
+                            for key in element_tags
+                            if key in new_fields
+                        ]
+                    )
 
         vLayer.updateFields()
 
@@ -338,7 +368,7 @@ class ResultsDialog(QDockWidget):
                 "OSM Info",
                 "Cann't parse OSM Element.",
                 QgsMessageBar.WARNING,
-                2
+                2,
             )
             return
 
@@ -358,9 +388,9 @@ class ResultsDialog(QDockWidget):
         geom_type = "Multi" * geom.isMultipart() + geom_type
 
         vl = QgsVectorLayer(
-            "%s?crs=EPSG:4326" % (geom_type, ),
+            "%s?crs=EPSG:4326" % (geom_type,),
             item.data(0, Qt.ItemDataRole.DisplayRole),
-            "memory"
+            "memory",
         )
 
         pr = vl.dataProvider()
@@ -385,7 +415,7 @@ class ResultsDialog(QDockWidget):
     def getInfo(self, xx, yy):
         self.__resultsTree.clear()
         self.__resultsTree.addTopLevelItem(
-            QTreeWidgetItem([self.tr('Loading...')])
+            QTreeWidgetItem([self.tr("Loading...")])
         )
 
         if self.worker:
@@ -408,7 +438,7 @@ class ResultsDialog(QDockWidget):
     def showData(self, l1, l2):
         self.__resultsTree.clear()
 
-        near = QTreeWidgetItem([self.tr('Nearby features')])
+        near = QTreeWidgetItem([self.tr("Nearby features")])
         self.__resultsTree.addTopLevelItem(near)
         self.__resultsTree.expandItem(near)
 
@@ -420,7 +450,7 @@ class ResultsDialog(QDockWidget):
                     elementItem = QTreeWidgetItem(
                         near,
                         [osm_element.title(self.qgisLocale)],
-                        FeatureItemType
+                        FeatureItemType,
                     )
                     elementItem.setData(
                         0, Qt.ItemDataRole.UserRole, osm_element
@@ -435,25 +465,28 @@ class ResultsDialog(QDockWidget):
             except Exception as e:
                 QgsMessageLog.logMessage(
                     self.tr(
-                        f'Element process error: {e}. Element: {element}.'
+                        f"Element process error: {e}. Element: {element}."
                     ),
-                    self.tr('OSMInfo'),
-                    Qgis.MessageLevel.Critical
+                    self.tr("OSMInfo"),
+                    Qgis.MessageLevel.Critical,
                 )
 
-        isin = QTreeWidgetItem([self.tr('Is inside')])
+        isin = QTreeWidgetItem([self.tr("Is inside")])
         self.__resultsTree.addTopLevelItem(isin)
         self.__resultsTree.expandItem(isin)
 
         l2Sorted = sorted(
             l2,
-            key=lambda element: QgsGeometry().fromRect(
+            key=lambda element: QgsGeometry()
+            .fromRect(
                 QgsRectangle(
-                    element['bounds']['minlon'],
-                    element['bounds']['minlat'],
-                    element['bounds']['maxlon'],
-                    element['bounds']['maxlat'])
-            ).area()
+                    element["bounds"]["minlon"],
+                    element["bounds"]["minlat"],
+                    element["bounds"]["maxlon"],
+                    element["bounds"]["maxlat"],
+                )
+            )
+            .area(),
         )
 
         for element in l2Sorted:
@@ -463,7 +496,7 @@ class ResultsDialog(QDockWidget):
                     elementItem = QTreeWidgetItem(
                         isin,
                         [osm_element.title(self.qgisLocale)],
-                        FeatureItemType
+                        FeatureItemType,
                     )
                     elementItem.setData(
                         0, Qt.ItemDataRole.UserRole, osm_element
@@ -476,10 +509,10 @@ class ResultsDialog(QDockWidget):
             except Exception as e:
                 QgsMessageLog.logMessage(
                     self.tr(
-                        f'Element process error: {e}. Element: {element}.'
+                        f"Element process error: {e}. Element: {element}."
                     ),
-                    self.tr('OSMInfo'),
-                    Qgis.MessageLevel.Critical
+                    self.tr("OSMInfo"),
+                    Qgis.MessageLevel.Critical,
                 )
 
     def selItemChanged(self):

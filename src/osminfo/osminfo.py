@@ -1,4 +1,4 @@
- # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 # ******************************************************************************
 #
 # OSMInfo
@@ -28,7 +28,13 @@
 #
 # ******************************************************************************
 
-from qgis.PyQt.QtCore import QCoreApplication, QTranslator, QFileInfo, QSettings, QLocale
+from qgis.PyQt.QtCore import (
+    QCoreApplication,
+    QTranslator,
+    QFileInfo,
+    QSettings,
+    QLocale,
+)
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QMessageBox
 from qgis.core import *
@@ -43,7 +49,6 @@ _current_path = get_file_dir(__file__)
 
 
 class OsmInfo:
-
     def tr(self, message):
         return QCoreApplication.translate(__class__.__name__, message)
 
@@ -54,13 +59,20 @@ class OsmInfo:
         self.qgsVersion = str(QGis.QGIS_VERSION_INT)
 
         # i18n support
-        override_locale = QSettings().value('locale/overrideFlag', False, type=bool)
+        override_locale = QSettings().value(
+            "locale/overrideFlag", False, type=bool
+        )
         if not override_locale:
             locale_full_name = QLocale.system().name()
         else:
-            locale_full_name = QSettings().value('locale/userLocale', '', type=str)
+            locale_full_name = QSettings().value(
+                "locale/userLocale", "", type=str
+            )
 
-        self.locale_path = '%s/i18n/osminfo_%s.qm' % (_current_path, locale_full_name[0:2])
+        self.locale_path = "%s/i18n/osminfo_%s.qm" % (
+            _current_path,
+            locale_full_name[0:2],
+        )
         if QFileInfo(self.locale_path).exists():
             self.translator = QTranslator()
             self.translator.load(self.locale_path)
@@ -70,27 +82,47 @@ class OsmInfo:
         """Initialize graphic user interface"""
         # check if the plugin is ran below 2.0
         if int(self.qgsVersion) < 20000:
-            qgisVersion = self.qgsVersion[0] + "." + self.qgsVersion[2] + "." + self.qgsVersion[3]
-            QMessageBox.warning(self.iface.mainWindow(),
-                                'OSMInfo', self.tr('Error'),
-                                'OSMInfo', self.tr('QGIS %s detected.\n') % (qgisVersion) +
-                                'OSMInfo', self.tr('This version of OSMInfo requires at least QGIS version 2.0.\nPlugin will not be enabled.'))
+            qgisVersion = (
+                self.qgsVersion[0]
+                + "."
+                + self.qgsVersion[2]
+                + "."
+                + self.qgsVersion[3]
+            )
+            QMessageBox.warning(
+                self.iface.mainWindow(),
+                "OSMInfo",
+                self.tr("Error"),
+                "OSMInfo",
+                self.tr("QGIS %s detected.\n") % (qgisVersion) + "OSMInfo",
+                self.tr(
+                    "This version of OSMInfo requires at least QGIS version 2.0.\nPlugin will not be enabled."
+                ),
+            )
             return None
 
         # create action that will be run by the plugin
-        self.actionRun = QAction(self.tr('Get OSM info for a point'), self.iface.mainWindow())
+        self.actionRun = QAction(
+            self.tr("Get OSM info for a point"), self.iface.mainWindow()
+        )
 
-        self.actionRun.setIcon(QIcon(':/plugins/osminfo/icons/osminfo.png'))
-        self.actionRun.setWhatsThis(self.tr('Select point'))
-        self.actionRun.setStatusTip(self.tr('Select point to get OpenStreetMap data for'))
+        self.actionRun.setIcon(QIcon(":/plugins/osminfo/icons/osminfo.png"))
+        self.actionRun.setWhatsThis(self.tr("Select point"))
+        self.actionRun.setStatusTip(
+            self.tr("Select point to get OpenStreetMap data for")
+        )
 
-        self.actionAbout = QAction(self.tr('About…'), self.iface.mainWindow())
+        self.actionAbout = QAction(self.tr("About…"), self.iface.mainWindow())
 
-        self.actionSettings = QAction(self.tr('Settings'), self.iface.mainWindow())
-        self.actionSettings.setWhatsThis(self.tr('Set various parameters related to OSMInfo'))
+        self.actionSettings = QAction(
+            self.tr("Settings"), self.iface.mainWindow()
+        )
+        self.actionSettings.setWhatsThis(
+            self.tr("Set various parameters related to OSMInfo")
+        )
 
         # add plugin menu to Web
-        self.osminfo_menu = self.tr(u'OSMInfo')
+        self.osminfo_menu = self.tr("OSMInfo")
         self.iface.addPluginToWebMenu(self.osminfo_menu, self.actionRun)
         self.iface.addPluginToWebMenu(self.osminfo_menu, self.actionAbout)
         self.iface.addPluginToWebMenu(self.osminfo_menu, self.actionSettings)
@@ -111,9 +143,9 @@ class OsmInfo:
         """Actions to run when the plugin is unloaded"""
         # remove menu and icon from the menu
         self.iface.removeWebToolBarIcon(self.actionRun)
-        self.iface.removePluginWebMenu(self.tr('OSMInfo'), self.actionAbout)
-        self.iface.removePluginWebMenu(self.tr('OSMInfo'), self.actionSettings)
-        self.iface.removePluginWebMenu(self.tr('OSMInfo'), self.actionRun)
+        self.iface.removePluginWebMenu(self.tr("OSMInfo"), self.actionAbout)
+        self.iface.removePluginWebMenu(self.tr("OSMInfo"), self.actionSettings)
+        self.iface.removePluginWebMenu(self.tr("OSMInfo"), self.actionRun)
 
         if self.iface.mapCanvas().mapTool() == self.mapTool:
             self.iface.mapCanvas().unsetMapTool(self.mapTool)

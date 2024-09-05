@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#******************************************************************************
+# ******************************************************************************
 #
 # OSMInfo
 # ---------------------------------------------------------
@@ -26,7 +26,7 @@
 # to the Free Software Foundation, 51 Franklin Street, Suite 500 Boston,
 # MA 02110-1335 USA.
 #
-#******************************************************************************
+# ******************************************************************************
 
 import os
 import sys
@@ -64,10 +64,13 @@ class QgsCoordinateTransform(core.QgsCoordinateTransform):
         else:
             self.setDestCRS(dst_crs)
 
+
 class QgsCoordinateReferenceSystem(core.QgsCoordinateReferenceSystem):
     def __init__(self, id, type):
         if QGis.QGIS_VERSION_INT >= 30000:
-            super(QgsCoordinateReferenceSystem, self).__init__(core.QgsCoordinateReferenceSystem.fromEpsgId(id))
+            super(QgsCoordinateReferenceSystem, self).__init__(
+                core.QgsCoordinateReferenceSystem.fromEpsgId(id)
+            )
         else:
             super(QgsCoordinateReferenceSystem, self).__init__(id, type)
 

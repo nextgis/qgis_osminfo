@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#******************************************************************************
+# ******************************************************************************
 #
 # OSMInfo
 # ---------------------------------------------------------
@@ -25,7 +25,7 @@
 # to the Free Software Foundation, 51 Franklin Street, Suite 500 Boston,
 # MA 02110-1335 USA.
 #
-#******************************************************************************
+# ******************************************************************************
 import os
 
 from qgis.PyQt import uic
@@ -37,7 +37,9 @@ from .plugin_settings import PluginSettings
 from . import resources
 import configparser
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'ui/settingsdialogbase.ui'))
+FORM_CLASS, _ = uic.loadUiType(
+    os.path.join(os.path.dirname(__file__), "ui/settingsdialogbase.ui")
+)
 
 
 class SettingsDialog(QDialog, FORM_CLASS):
@@ -48,14 +50,14 @@ class SettingsDialog(QDialog, FORM_CLASS):
 
         self.btnHelp = self.buttonBox.button(QDialogButtonBox.Help)
 
-        self.lblLogo.setPixmap(QPixmap(':/plugins/osminfo/icons/osminfo.png'))
+        self.lblLogo.setPixmap(QPixmap(":/plugins/osminfo/icons/osminfo.png"))
 
         cfg = configparser.SafeConfigParser()
-        cfg.read(os.path.join(os.path.dirname(__file__), 'metadata.txt'))
-        version = cfg.get('general', 'version')
-        self.lblName.setText(self.tr('OSMInfo Settings'))
-        self.lblDistance.setText(self.tr('Distance'))
-        self.lblTimeout.setText(self.tr('Timeout'))
+        cfg.read(os.path.join(os.path.dirname(__file__), "metadata.txt"))
+        version = cfg.get("general", "version")
+        self.lblName.setText(self.tr("OSMInfo Settings"))
+        self.lblDistance.setText(self.tr("Distance"))
+        self.lblTimeout.setText(self.tr("Timeout"))
 
         self.buttonBox.helpRequested.connect(self.openHelp)
         self.accepted.connect(self.save_settings)
@@ -74,14 +76,20 @@ class SettingsDialog(QDialog, FORM_CLASS):
         QDialog.reject(self)
 
     def openHelp(self):
-        overrideLocale = QSettings().value('locale/overrideFlag', False, type=bool)
+        overrideLocale = QSettings().value(
+            "locale/overrideFlag", False, type=bool
+        )
         if not overrideLocale:
             localeFullName = QLocale.system().name()
         else:
-            localeFullName = QSettings().value('locale/userLocale', '')
+            localeFullName = QSettings().value("locale/userLocale", "")
 
         localeShortName = localeFullName[0:2]
-        if localeShortName in ['ru', 'uk']:
-            QDesktopServices.openUrl(QUrl('http://gis-lab.info/qa/osminfo.html'))
+        if localeShortName in ["ru", "uk"]:
+            QDesktopServices.openUrl(
+                QUrl("http://gis-lab.info/qa/osminfo.html")
+            )
         else:
-            QDesktopServices.openUrl(QUrl('http://gis-lab.info/qa/osminfo-en.html'))
+            QDesktopServices.openUrl(
+                QUrl("http://gis-lab.info/qa/osminfo-en.html")
+            )

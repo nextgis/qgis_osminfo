@@ -7,6 +7,7 @@ from .osmtags import title_rules
 
 class PolygonCreator:
     """docstring for PolygonCreator"""
+
     __is_outer: bool
 
     def __init__(self, is_outer: bool = True):
@@ -43,8 +44,9 @@ class PolygonCreator:
             self.curves.append(lon_lat_pairs)
 
     def isPolygon(self):
-        return \
+        return (
             len(self.curves) == 1 and self.curves[0][0] == self.curves[0][-1]
+        )
 
     def isOuter(self):
         return self.__is_outer
@@ -58,13 +60,14 @@ class PolygonCreator:
 
 class OsmElement:
     """docstring for OsmElement"""
+
     def __init__(self, type, id, tags={}, **kwargs):
         self.__type = type
         self.__id = id
         self.__tags = tags
 
-        self.__relation_role = kwargs.get(u'relation_role')
-        self.__bounds = kwargs.get(u'bounds')
+        self.__relation_role = kwargs.get("relation_role")
+        self.__bounds = kwargs.get("bounds")
 
         self.__qgisGeometry = None
 
@@ -78,7 +81,7 @@ class OsmElement:
         return QgsGeometry(self.__qgisGeometry)
 
     def _convertToQgisGeometry(self) -> QgsGeometry:
-        raise NotImplementedError('Not Implemented Culture')
+        raise NotImplementedError("Not Implemented Culture")
 
     def type(self):
         return self.__type
@@ -101,11 +104,7 @@ class OsmElement:
 
     def title(self, locale):
         title = self.__tags.get(
-            u'name:%s' % locale,
-            self.__tags.get(
-                u'name',
-                None
-            )
+            "name:%s" % locale, self.__tags.get("name", None)
         )
 
         if title is None:
@@ -125,9 +124,10 @@ class OsmElement:
 
 class OsmNode(OsmElement):
     """docstring for OsmNode"""
+
     def __init__(self, id, lon_lat, tags={}, **kwargs):
         (lon, lat) = lon_lat
-        super(OsmNode, self).__init__(u'node', id, tags, **kwargs)
+        super(OsmNode, self).__init__("node", id, tags, **kwargs)
 
         self.__lon = lon
         self.__lat = lat
@@ -138,8 +138,9 @@ class OsmNode(OsmElement):
 
 class OsmWay(OsmElement):
     """docstring for OsmWay"""
+
     def __init__(self, id, lon_lat_pairs, tags={}, **kwargs):
-        super(OsmWay, self).__init__(u'way', id, tags, **kwargs)
+        super(OsmWay, self).__init__("way", id, tags, **kwargs)
 
         self.__lon_lat_pairs = lon_lat_pairs
 
@@ -166,28 +167,35 @@ class OsmWay(OsmElement):
     def _convertToQgisGeometry(self) -> QgsGeometry:
         # TODO can be diffs geom in same time. Check it!
         if self._canBeArea():
-            return QgsGeometry.fromPolygonXY([
-                [QgsPointXY(lon, lat) for lon, lat in self.__lon_lat_pairs], []
-            ])
+            return QgsGeometry.fromPolygonXY(
+                [
+                    [
+                        QgsPointXY(lon, lat)
+                        for lon, lat in self.__lon_lat_pairs
+                    ],
+                    [],
+                ]
+            )
         else:
-            return QgsGeometry.fromPolylineXY([
-                QgsPointXY(lon, lat) for lon, lat in self.__lon_lat_pairs
-            ])
+            return QgsGeometry.fromPolylineXY(
+                [QgsPointXY(lon, lat) for lon, lat in self.__lon_lat_pairs]
+            )
 
     def checkRelationRole(self, relation_role_name):
         return self.relationRole == relation_role_name
 
     def isOuter(self):
-        return self.checkRelationRole('outer')
+        return self.checkRelationRole("outer")
 
     def isInner(self):
-        return self.checkRelationRole('inner')
+        return self.checkRelationRole("inner")
 
 
 class OsmRelation(OsmElement):
     """docstring for OsmRelation"""
+
     def __init__(self, id, osm_elements, tags={}, **kwargs):
-        super(OsmRelation, self).__init__(u'relation', id, tags, **kwargs)
+        super(OsmRelation, self).__init__("relation", id, tags, **kwargs)
 
         self.__osm_elements = osm_elements
 
@@ -208,10 +216,12 @@ class OsmRelation(OsmElement):
                         PolygonCreator(is_outer=osm_element.isOuter())
                     )
 
-                polygon_creators[-1].addCurve([
-                    QgsPointXY(lon, lat)
-                    for lon, lat in osm_element.getLonLatPairs()
-                ])
+                polygon_creators[-1].addCurve(
+                    [
+                        QgsPointXY(lon, lat)
+                        for lon, lat in osm_element.getLonLatPairs()
+                    ]
+                )
                 if polygon_creators[-1].isPolygon():
                     is_polygon_finished = True
 
@@ -220,24 +230,26 @@ class OsmRelation(OsmElement):
             lines = []
             for osm_element in self.__osm_elements:
                 if osm_element.isOuter():
-                    lines.append([
-                        QgsPointXY(lon, lat)
-                        for lon, lat in osm_element.getLonLatPairs()
-                    ])
+                    lines.append(
+                        [
+                            QgsPointXY(lon, lat)
+                            for lon, lat in osm_element.getLonLatPairs()
+                        ]
+                    )
 
             return QgsGeometry.fromMultiPolylineXY(lines)
 
     def _isArea(self):
-        return self.tags.get('type', 'none') in ['multipolygon', 'boundary']
+        return self.tags.get("type", "none") in ["multipolygon", "boundary"]
 
 
 def parseOsmElement(json):
-    element_type = json.get('type', '')
-    if element_type == 'relation':
+    element_type = json.get("type", "")
+    if element_type == "relation":
         return parseOsmRelation(json)
-    elif element_type == 'way':
+    elif element_type == "way":
         return parseOsmWay(json)
-    elif element_type == 'node':
+    elif element_type == "node":
         return parseOsmNode(json)
 
     return None
@@ -246,49 +258,48 @@ def parseOsmElement(json):
 def parseOsmRelation(json):
     osm_elements = []
 
-    for member in json.get('members', []):
+    for member in json.get("members", []):
         osm_element = parseOsmElement(member)
         if osm_element is not None:
             osm_elements.append(osm_element)
 
     return OsmRelation(
-        json.get('id', '<unknown>'),
+        json.get("id", "<unknown>"),
         osm_elements,
-        json.get('tags', {}),
+        json.get("tags", {}),
     )
 
 
 def parseOsmWay(json):
     lon_lat_pairs = [
-        (coords.get('lon'), coords.get('lat'))
-        for coords in json.get('geometry', [])
+        (coords.get("lon"), coords.get("lat"))
+        for coords in json.get("geometry", [])
     ]
 
     return OsmWay(
-        json.get('id', json.get('ref', '<unknown>')),
+        json.get("id", json.get("ref", "<unknown>")),
         lon_lat_pairs,
-        json.get('tags', {}),
-        relation_role=json.get('role'),
-        bounds=json.get('bounds')
+        json.get("tags", {}),
+        relation_role=json.get("role"),
+        bounds=json.get("bounds"),
     )
 
 
 def parseOsmNode(json):
-    lon = json.get('lon')
-    lat = json.get('lat')
+    lon = json.get("lon")
+    lat = json.get("lat")
     return OsmNode(
-        json.get('id', '<unknown>'),
+        json.get("id", "<unknown>"),
         (lon, lat),
-        json.get('tags', {}),
-        relation_role=json.get('role'),
-        bounds=json.get('bounds')
+        json.get("tags", {}),
+        relation_role=json.get("role"),
+        bounds=json.get("bounds"),
     )
 
 
 def polygon_creators_to_multipolygon(
-    polygon_creators: List[PolygonCreator]
+    polygon_creators: List[PolygonCreator],
 ) -> QgsGeometry:
-
     polygons: List[QgsGeometry] = []
     inner_rings: List[QgsGeometry] = []
 

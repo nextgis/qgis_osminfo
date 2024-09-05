@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-#******************************************************************************
+# ******************************************************************************
 #
 # OSMInfo
 # ---------------------------------------------------------
-# This plugin takes coordinates of a mouse click and gets information about all 
+# This plugin takes coordinates of a mouse click and gets information about all
 # objects from this point from OSM using Overpass API.
 #
 # Copyright (C) 2015 Maxim Dubinin (sim@gis-lab.info), NextGIS (info@nextgis.org)
@@ -23,8 +23,10 @@
 # to the Free Software Foundation, 51 Franklin Street, Suite 500 Boston,
 # MA 02110-1335 USA.
 #
-#******************************************************************************
+# ******************************************************************************
+
 
 def classFactory(iface):
-  from .osminfo import OsmInfo
-  return OsmInfo(iface)
+    from .osminfo import OsmInfo
+
+    return OsmInfo(iface)

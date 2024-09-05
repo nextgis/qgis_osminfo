@@ -20,13 +20,13 @@
  *                                                                         *
  ***************************************************************************/
 """
+
 from qgis.PyQt.QtCore import QSettings
 
 
-class PluginSettings():
-
-    _company_name = 'NextGIS'
-    _product = 'OSMInfo'
+class PluginSettings:
+    _company_name = "NextGIS"
+    _product = "OSMInfo"
 
     @classmethod
     def product_name(cls):
@@ -38,16 +38,16 @@ class PluginSettings():
 
     @classmethod
     def distance_value(cls):
-        return cls.get_settings().value('distance', 20, int)
+        return cls.get_settings().value("distance", 20, int)
 
     @classmethod
     def timeout_value(cls):
-        return cls.get_settings().value('timeout', 30, int)
+        return cls.get_settings().value("timeout", 30, int)
 
     @classmethod
     def set_distance_value(cls, int_val):
-        cls.get_settings().setValue('distance', int_val)
+        cls.get_settings().setValue("distance", int_val)
 
     @classmethod
     def set_timeout_value(cls, int_val):
-        cls.get_settings().setValue('timeout', int_val)
+        cls.get_settings().setValue("timeout", int_val)
