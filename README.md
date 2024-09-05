@@ -21,7 +21,7 @@ This program is licensed under GNU GPL v.2 or any later version.
 
 ## Commercial support
 
-Need to fix a bug or add a feature to OSMInfo? 
+Need to fix a bug or add a feature to OSMInfo?
 
 We provide custom development and support for this software. [Contact us](https://nextgis.com/contact/?utm_source=nextgis-github&utm_medium=plugins&utm_campaign=osminfo) to discuss options!
 
