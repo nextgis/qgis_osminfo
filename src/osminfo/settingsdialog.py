@@ -52,7 +52,7 @@ class SettingsDialog(QDialog, FORM_CLASS):
 
         self.lblLogo.setPixmap(QPixmap(":/plugins/osminfo/icons/osminfo.png"))
 
-        cfg = configparser.SafeConfigParser()
+        cfg = configparser.ConfigParser()
         cfg.read(os.path.join(os.path.dirname(__file__), "metadata.txt"))
         version = cfg.get("general", "version")
         self.lblName.setText(self.tr("OSMInfo Settings"))
