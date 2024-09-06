@@ -168,13 +168,7 @@ class OsmWay(OsmElement):
         # TODO can be diffs geom in same time. Check it!
         if self._canBeArea():
             return QgsGeometry.fromPolygonXY(
-                [
-                    [
-                        QgsPointXY(lon, lat)
-                        for lon, lat in self.__lon_lat_pairs
-                    ],
-                    [],
-                ]
+                [[QgsPointXY(lon, lat) for lon, lat in self.__lon_lat_pairs]]
             )
         else:
             return QgsGeometry.fromPolylineXY(
