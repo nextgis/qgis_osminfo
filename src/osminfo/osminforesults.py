@@ -41,7 +41,7 @@ from qgis.core import (
     QgsVectorLayer,
 )
 from qgis.gui import QgsMessageBar
-from qgis.PyQt.QtCore import QLocale, QSettings, Qt, QVariant
+from qgis.PyQt.QtCore import QLocale, QMetaType, QSettings, Qt, QVariant
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import (
     QAction,
@@ -257,9 +257,14 @@ class ResultsDialog(QDockWidget):
         dataProvider = vLayer.dataProvider()
         assert dataProvider is not None
 
+        string_type = (
+            QVariant.Type.String
+            if Qgis.versionInt() < 33800
+            else QMetaType.Type.QString
+        )
         if create_new:
             dataProvider.addAttributes(
-                [QgsField(k, QVariant.String) for k in osm_element.tags]
+                [QgsField(k, string_type) for k in osm_element.tags]
             )
         else:
             if not self.__is_current_layer_contains_all_fields(osm_element):
@@ -274,9 +279,14 @@ class ResultsDialog(QDockWidget):
                     layer_fields = vLayer.fields().names()
                     new_fields = set(element_tags) - set(layer_fields)
 
+                    string_type = (
+                        QVariant.Type.String
+                        if Qgis.versionInt() < 33800
+                        else QMetaType.Type.QString
+                    )
                     dataProvider.addAttributes(
                         [
-                            QgsField(key, QVariant.String)
+                            QgsField(key, string_type)
                             for key in element_tags
                             if key in new_fields
                         ]
