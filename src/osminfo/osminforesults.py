@@ -28,8 +28,11 @@
 #
 # ******************************************************************************
 
+from typing import Optional
+
 from qgis.core import (
     Qgis,
+    QgsEditError,
     QgsFeature,
     QgsField,
     QgsGeometry,
@@ -208,7 +211,9 @@ class ResultsDialog(QDockWidget):
         if not item or item.type() != FeatureItemType:
             return
 
-        osm_element: OsmElement = item.data(0, Qt.ItemDataRole.UserRole)
+        osm_element: Optional[OsmElement] = item.data(
+            0, Qt.ItemDataRole.UserRole
+        )
 
         if osm_element is None:
             iface.messageBar().pushMessage(
@@ -290,7 +295,18 @@ class ResultsDialog(QDockWidget):
         ]
         feature.setAttributes(attributes)
 
-        dataProvider.addFeatures([feature])
+        in_edit_mode = vLayer.isEditable()
+        if not in_edit_mode:
+            assert vLayer.startEditing()
+
+        vLayer.beginEditCommand(f"Added OSM feature (id={osm_element.id})")
+        vLayer.addFeature(feature)
+        vLayer.endEditCommand()
+
+        if not in_edit_mode:
+            is_committed = vLayer.commitChanges(stopEditing=True)
+            if not is_committed:
+                raise QgsEditError(vLayer.commitErrors())
 
         if create_new:
             addMapLayer(vLayer)
