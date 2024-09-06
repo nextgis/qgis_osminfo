@@ -32,11 +32,14 @@ from typing import Optional
 
 from qgis.core import (
     Qgis,
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
     QgsEditError,
     QgsFeature,
     QgsField,
     QgsGeometry,
     QgsMessageLog,
+    QgsProject,
     QgsRectangle,
     QgsVectorLayer,
 )
@@ -296,6 +299,13 @@ class ResultsDialog(QDockWidget):
 
         # add a feature
         feature = QgsFeature(vLayer.fields())
+        if vLayer.crs().authid() != "EPSG:4326":
+            transformator = QgsCoordinateTransform(
+                QgsCoordinateReferenceSystem.fromEpsgId(4326),
+                vLayer.crs(),
+                QgsProject.instance(),
+            )
+            geom.transform(transformator)
         feature.setGeometry(geom)
 
         layer_fields = vLayer.fields().names()
