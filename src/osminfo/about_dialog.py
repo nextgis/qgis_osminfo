@@ -15,13 +15,14 @@ FORM_CLASS, _ = uic.loadUiType(
 )
 
 
-class AboutDialog(QDialog, FORM_CLASS):
-    class Tab(IntEnum):
-        Information = 0
-        License = 1
-        Components = 2
-        Contributors = 3
+class AboutTab(IntEnum):
+    Information = 0
+    License = 1
+    Components = 2
+    Contributors = 3
 
+
+class AboutDialog(QDialog, FORM_CLASS):
     def __init__(self, package_name: str, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setupUi(self)
@@ -99,17 +100,17 @@ class AboutDialog(QDialog, FORM_CLASS):
     def __fill_license(self) -> None:
         license_path = Path(__file__).parent / "LICENSE"
         if not license_path.exists():
-            self.tab_widget.setTabVisible(self.Tab.License, False)
+            self.tab_widget.setTabVisible(AboutTab.License, False)
             return
 
-        self.tab_widget.setTabVisible(self.Tab.License, True)
+        self.tab_widget.setTabVisible(AboutTab.License, True)
         self.license_text_browser.setPlainText(license_path.read_text())
 
     def __fill_components(self) -> None:
-        self.tab_widget.setTabVisible(self.Tab.Components, False)
+        self.tab_widget.setTabVisible(AboutTab.Components, False)
 
     def __fill_contributors(self) -> None:
-        self.tab_widget.setTabVisible(self.Tab.Contributors, False)
+        self.tab_widget.setTabVisible(AboutTab.Contributors, False)
 
     def __locale(self) -> str:
         override_locale = QgsSettings().value(
