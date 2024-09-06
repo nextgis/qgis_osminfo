@@ -32,10 +32,7 @@
 from qgis.PyQt.QtCore import Qt, QVariant, QSettings, QLocale
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import (
-    QDialogButtonBox,
     QVBoxLayout,
-    QLabel,
-    QDialog,
     QDockWidget,
     QMenu,
     QAction,
@@ -187,7 +184,7 @@ class ResultsDialog(QDockWidget):
         menu.addAction(actionCopy2Clipboard)
         actionCopy2Clipboard.triggered.connect(self.copy2Clipboard)
 
-        menu.exec_(self.__resultsTree.viewport().mapToGlobal(position))
+        menu.exec(self.__resultsTree.viewport().mapToGlobal(position))
 
     def zoom2feature(self):
         selected_items = self.__resultsTree.selectedItems()

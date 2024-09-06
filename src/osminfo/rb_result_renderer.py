@@ -22,13 +22,15 @@
 from qgis.PyQt.QtGui import QColor
 from qgis.gui import QgsRubberBand
 
-from qgis import core
-from qgis.core import QgsRectangle
+from qgis.core import (
+    QgsRectangle,
+    QgsCoordinateTransform,
+    QgsProject,
+    QgsCoordinateReferenceSystem,
+)
 from qgis.utils import iface
 
 from .compat import (
-    QgsCoordinateTransform,
-    QgsCoordinateReferenceSystem,
     PointGeometry,
 )
 
@@ -39,7 +41,7 @@ class RubberBandResultRenderer:
 
         self.srs_wgs84 = QgsCoordinateReferenceSystem.fromEpsgId(4326)
         self.transformation = QgsCoordinateTransform(
-            self.srs_wgs84, self.srs_wgs84
+            self.srs_wgs84, self.srs_wgs84, QgsProject.instance()
         )
 
         self.featureColor = QColor("green")

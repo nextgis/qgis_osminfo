@@ -30,7 +30,7 @@
 
 import json
 
-from qgis.PyQt.QtCore import pyqtSignal, QUrl, QByteArray, QEventLoop, QThread
+from qgis.PyQt.QtCore import pyqtSignal, QUrl, QEventLoop, QThread
 from qgis.PyQt.QtNetwork import QNetworkRequest, QNetworkReply
 from qgis.core import QgsMessageLog, QgsNetworkAccessManager
 
@@ -86,7 +86,7 @@ class Worker(QThread):
         reply1 = qnam.post(request, str.encode(request_data))
         loop = QEventLoop()
         reply1.finished.connect(loop.quit)
-        loop.exec_()
+        loop.exec()
         if reply1.error() != QNetworkReply.NoError:
             reply1.deleteLater()
             self.gotError.emit(self.tr("Error getting data from the server"))
@@ -115,7 +115,7 @@ class Worker(QThread):
         reply2 = qnam.post(request, str.encode(request_data))
         loop = QEventLoop()
         reply2.finished.connect(loop.quit)
-        loop.exec_()
+        loop.exec()
         if reply2.error() != QNetworkReply.NoError:
             reply2.deleteLater()
             self.gotError.emit(self.tr("Error getting data from the server"))

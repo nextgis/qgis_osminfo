@@ -32,15 +32,16 @@ from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QCursor, QPixmap
 from qgis.PyQt.QtWidgets import QApplication
 
-from qgis.core import QgsPointXY
+from qgis.core import (
+    QgsPointXY,
+    QgsProject,
+    QgsCoordinateTransform,
+    QgsCoordinateReferenceSystem,
+)
 from qgis.gui import *
 
-from .compat import QgsCoordinateTransform, QgsCoordinateReferenceSystem
-from . import resources
+from . import resources  # noqa: F401
 
-import os
-import tempfile
-import platform
 from .osminforesults import ResultsDialog
 from .rb_result_renderer import RubberBandResultRenderer
 
@@ -95,7 +96,7 @@ class OSMInfotool(QgsMapTool):
         y = event.pos().y()
         point = self.canvas.getCoordinateTransform().toMapCoordinates(x, y)
 
-        xform = QgsCoordinateTransform(crsSrc, crsWGS)
+        xform = QgsCoordinateTransform(crsSrc, crsWGS, QgsProject.instance())
         point = xform.transform(QgsPointXY(point.x(), point.y()))
         QApplication.restoreOverrideCursor()
 

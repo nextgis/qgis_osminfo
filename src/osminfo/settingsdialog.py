@@ -34,7 +34,7 @@ from qgis.PyQt.QtWidgets import QDialogButtonBox, QDialog
 from qgis.PyQt.QtGui import QPixmap, QDesktopServices
 
 from .plugin_settings import PluginSettings
-from . import resources
+from . import resources  # noqa: F401
 import configparser
 
 FORM_CLASS, _ = uic.loadUiType(

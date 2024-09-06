@@ -1,14 +1,14 @@
-UI_PATH=ui
+UI_PATH=src/osminfo/ui
 UI_SOURCES=$(wildcard $(UI_PATH)/*.ui)
 UI_FILES=$(patsubst $(UI_PATH)/%.ui, $(UI_PATH)/ui_%.py, $(UI_SOURCES))
 
-LANG_PATH=i18n
+LANG_PATH=src/osminfo/i18n
 LANG_SOURCES=$(wildcard $(LANG_PATH)/*.ts)
 LANG_FILES=$(patsubst $(LANG_PATH)/%.ts, $(LANG_PATH)/%.qm, $(LANG_SOURCES))
 
-RES_PATH=.
+RES_PATH=src/osminfo
 RES_SOURCES=$(wildcard $(RES_PATH)/*.qrc)
-RES_FILES=$(patsubst $(RES_PATH)/%.qrc, $(RES_PATH)/%_rc.py, $(RES_SOURCES))
+RES_FILES=$(patsubst $(RES_PATH)/%.qrc, $(RES_PATH)/%.py, $(RES_SOURCES))
 
 PRO_PATH=.
 PRO_FILES=$(wildcard $(PRO_PATH)/*.pro)
@@ -27,20 +27,13 @@ lang: $(LANG_FILES)
 res: $(RES_FILES)
 
 $(UI_FILES): $(UI_PATH)/ui_%.py: $(UI_PATH)/%.ui
-	pyuic4 -o $@ $<
+	pyuic5 -o $@ $<
 
 $(LANG_FILES): $(LANG_PATH)/%.qm: $(LANG_PATH)/%.ts
 	lrelease $<
 
 $(RES_FILES): $(RES_PATH)/%.py: $(RES_PATH)/%.qrc
-	pyrcc4 -o $@ $<
-
-pep8:
-	@echo
-	@echo "-----------"
-	@echo "PEP8 issues"
-	@echo "-----------"
-	@pep8 --repeat --ignore=E203,E121,E122,E123,E124,E125,E126,E127,E128 --exclude resources.py . || true
+	pyrcc5 -o $@ $<
 
 clean:
 	rm -f $(ALL_FILES)
@@ -50,6 +43,3 @@ clean:
 package:
 	cd .. && rm -f *.zip && zip -r osminfo.zip osminfo -x \*.pyc \*.ts \*.ui \*.qrc \*.pro \*~ \*.git\* \resources\* \*Makefile*
 	mv ../osminfo.zip .
-
-upload:
-	plugin_uploaderNG.py osminfo.zip

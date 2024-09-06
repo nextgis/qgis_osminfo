@@ -28,6 +28,7 @@
 #
 # ******************************************************************************
 
+from pathlib import Path
 from qgis.PyQt.QtCore import (
     QCoreApplication,
     QTranslator,
@@ -36,16 +37,15 @@ from qgis.PyQt.QtCore import (
     QLocale,
 )
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction, QMessageBox
+from qgis.PyQt.QtWidgets import QAction
 from qgis.core import *
 
-from .compat import get_file_dir, QGis
 from . import osminfotool
 from . import about_dialog, settingsdialog
 
 import os
 
-_current_path = get_file_dir(__file__)
+_current_path = str(Path(__file__).parent)
 
 
 class OsmInfo:
@@ -56,7 +56,7 @@ class OsmInfo:
         """Initialize class"""
         # save reference to QGIS interface
         self.iface = iface
-        self.qgsVersion = str(QGis.QGIS_VERSION_INT)
+        self.qgsVersion = str(Qgis.QGIS_VERSION_INT)
 
         # i18n support
         override_locale = QSettings().value(
@@ -80,27 +80,6 @@ class OsmInfo:
 
     def initGui(self):
         """Initialize graphic user interface"""
-        # check if the plugin is ran below 2.0
-        if int(self.qgsVersion) < 20000:
-            qgisVersion = (
-                self.qgsVersion[0]
-                + "."
-                + self.qgsVersion[2]
-                + "."
-                + self.qgsVersion[3]
-            )
-            QMessageBox.warning(
-                self.iface.mainWindow(),
-                "OSMInfo",
-                self.tr("Error"),
-                "OSMInfo",
-                self.tr("QGIS %s detected.\n") % (qgisVersion) + "OSMInfo",
-                self.tr(
-                    "This version of OSMInfo requires at least QGIS version 2.0.\nPlugin will not be enabled."
-                ),
-            )
-            return None
-
         # create action that will be run by the plugin
         self.actionRun = QAction(
             self.tr("Get OSM info for a point"), self.iface.mainWindow()
@@ -158,8 +137,8 @@ class OsmInfo:
 
     def about(self):
         dialog = about_dialog.AboutDialog(os.path.basename(_current_path))
-        dialog.exec_()
+        dialog.exec()
 
     def settings(self):
         d = settingsdialog.SettingsDialog()
-        d.exec_()
+        d.exec()

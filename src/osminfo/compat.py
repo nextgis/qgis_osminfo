@@ -28,20 +28,8 @@
 #
 # ******************************************************************************
 
-import os
-import sys
 
 from qgis import core
-
-PY2 = sys.version_info[0] == 2
-PY3 = sys.version_info[0] == 3
-
-
-def get_file_dir(filename):
-    return os.path.dirname(filename)
-
-
-from qgis.core import Qgis as QGis
 
 
 addMapLayer = core.QgsProject.instance().addMapLayer
@@ -49,34 +37,3 @@ addMapLayer = core.QgsProject.instance().addMapLayer
 PointGeometry = core.QgsWkbTypes.PointGeometry
 PolygonGeometry = core.QgsWkbTypes.PolygonGeometry
 LineGeometry = core.QgsWkbTypes.LineGeometry
-
-
-class QgsCoordinateTransform(core.QgsCoordinateTransform):
-    def __init__(self, src_crs, dst_crs):
-        super(QgsCoordinateTransform, self).__init__()
-
-        self.setSourceCrs(src_crs)
-        self.setDestinationCrs(dst_crs)
-
-    def setDestinationCrs(self, dst_crs):
-        if QGis.QGIS_VERSION_INT >= 30000:
-            super(QgsCoordinateTransform, self).setDestinationCrs(dst_crs)
-        else:
-            self.setDestCRS(dst_crs)
-
-
-class QgsCoordinateReferenceSystem(core.QgsCoordinateReferenceSystem):
-    def __init__(self, id, type):
-        if QGis.QGIS_VERSION_INT >= 30000:
-            super(QgsCoordinateReferenceSystem, self).__init__(
-                core.QgsCoordinateReferenceSystem.fromEpsgId(id)
-            )
-        else:
-            super(QgsCoordinateReferenceSystem, self).__init__(id, type)
-
-    @staticmethod
-    def fromEpsgId(id):
-        if QGis.QGIS_VERSION_INT >= 30000:
-            return core.QgsCoordinateReferenceSystem.fromEpsgId(id)
-        else:
-            return core.QgsCoordinateReferenceSystem(id)
