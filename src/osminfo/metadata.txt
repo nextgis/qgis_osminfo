@@ -5,13 +5,20 @@ description[ru]=Получите полную информацию о точке
 about=For a selected point, extract all information abour nearby and enclosing features from OpenStreetMap database using Overpass API.
 about[ru]=Для выбранной точки извлеките всю информацию о близлежащих и окружающих объектах из базы данных OpenStreetMap, используя Overpass API.
 category=Vector
-version=0.8.1
-qgisMinimumVersion=3.0
+version=0.9.0
+qgisMinimumVersion=3.22
 qgisMaximumVersion=3.99
 
 author=NextGIS
 email=info@nextgis.com
 changelog=
+    0.9.0:
+        * Added the ability to add features to layers not in EPSG:4326
+        * Added the edit command to Undo/Redo
+        * Updated the "About" dialog
+        * Fixed a crash when exiting QGIS
+        * Fixed the issue with opening settings on Python 3.12+
+        * Fixed QgsField warnings for QGIS 3.38+
     0.8.1:
         * Added small multipolygons searching
     0.8.0:
