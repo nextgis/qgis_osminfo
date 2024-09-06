@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ******************************************************************************
 #
 # OSMInfo
@@ -26,16 +25,16 @@
 # MA 02110-1335 USA.
 #
 # ******************************************************************************
+import configparser
 import os
 
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QLocale, QUrl, QSettings
-from qgis.PyQt.QtWidgets import QDialogButtonBox, QDialog
-from qgis.PyQt.QtGui import QPixmap, QDesktopServices
+from qgis.PyQt.QtCore import QLocale, QSettings, QUrl
+from qgis.PyQt.QtGui import QDesktopServices, QPixmap
+from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox
 
-from .plugin_settings import PluginSettings
 from . import resources  # noqa: F401
-import configparser
+from .plugin_settings import PluginSettings
 
 FORM_CLASS, _ = uic.loadUiType(
     os.path.join(os.path.dirname(__file__), "ui/settingsdialogbase.ui")
@@ -44,7 +43,7 @@ FORM_CLASS, _ = uic.loadUiType(
 
 class SettingsDialog(QDialog, FORM_CLASS):
     def __init__(self, parent=None):
-        super(SettingsDialog, self).__init__(parent)
+        super().__init__(parent)
         self.setupUi(self)
         self.fill_pages()
 
@@ -54,7 +53,6 @@ class SettingsDialog(QDialog, FORM_CLASS):
 
         cfg = configparser.ConfigParser()
         cfg.read(os.path.join(os.path.dirname(__file__), "metadata.txt"))
-        version = cfg.get("general", "version")
         self.lblName.setText(self.tr("OSMInfo Settings"))
         self.lblDistance.setText(self.tr("Distance"))
         self.lblTimeout.setText(self.tr("Timeout"))

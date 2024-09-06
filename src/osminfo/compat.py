@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ******************************************************************************
 #
 # OSMInfo
@@ -30,7 +29,6 @@
 
 
 from qgis import core
-
 
 addMapLayer = core.QgsProject.instance().addMapLayer
 

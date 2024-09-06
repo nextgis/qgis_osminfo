@@ -19,15 +19,14 @@
  ***************************************************************************/
 """
 
-from qgis.PyQt.QtGui import QColor
-from qgis.gui import QgsRubberBand
-
 from qgis.core import (
-    QgsRectangle,
+    QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsProject,
-    QgsCoordinateReferenceSystem,
+    QgsRectangle,
 )
+from qgis.gui import QgsRubberBand
+from qgis.PyQt.QtGui import QColor
 from qgis.utils import iface
 
 from .compat import (
@@ -79,7 +78,7 @@ class RubberBandResultRenderer:
         )
         try:
             return self.transformation.transform(point)
-        except:
+        except Exception:
             # print('Error on transform!')  # DEBUG! need message???
             return
 
@@ -89,7 +88,7 @@ class RubberBandResultRenderer:
         )
         try:
             return self.transformation.transformBoundingBox(bbox)
-        except:
+        except Exception:
             # print('Error on transform!')  # DEBUG! need message???
             return
 
@@ -100,7 +99,7 @@ class RubberBandResultRenderer:
         try:
             geom.transform(self.transformation)
             return geom
-        except:
+        except Exception:
             # print('Error on transform!')  # DEBUG! need message???
             return
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ******************************************************************************
 #
 # OSMInfo
@@ -28,22 +27,21 @@
 #
 # ******************************************************************************
 
+import os
 from pathlib import Path
+
+from qgis.core import Qgis
 from qgis.PyQt.QtCore import (
     QCoreApplication,
-    QTranslator,
     QFileInfo,
-    QSettings,
     QLocale,
+    QSettings,
+    QTranslator,
 )
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
-from qgis.core import *
 
-from . import osminfotool
-from . import about_dialog, settingsdialog
-
-import os
+from . import about_dialog, osminfotool, settingsdialog
 
 _current_path = str(Path(__file__).parent)
 
@@ -69,9 +67,8 @@ class OsmInfo:
                 "locale/userLocale", "", type=str
             )
 
-        self.locale_path = "%s/i18n/osminfo_%s.qm" % (
-            _current_path,
-            locale_full_name[0:2],
+        self.locale_path = (
+            f"{_current_path}/i18n/osminfo_{locale_full_name[0:2]}.qm"
         )
         if QFileInfo(self.locale_path).exists():
             self.translator = QTranslator()

@@ -1,6 +1,6 @@
 from typing import List
 
-from qgis.core import QgsPointXY, QgsGeometry
+from qgis.core import QgsGeometry, QgsPointXY
 
 from .osmtags import title_rules
 
@@ -61,10 +61,10 @@ class PolygonCreator:
 class OsmElement:
     """docstring for OsmElement"""
 
-    def __init__(self, type, id, tags={}, **kwargs):
-        self.__type = type
-        self.__id = id
-        self.__tags = tags
+    def __init__(self, osm_type, osm_id, tags=None, **kwargs):
+        self.__type = osm_type
+        self.__id = osm_id
+        self.__tags = tags if tags is not None else {}
 
         self.__relation_role = kwargs.get("relation_role")
         self.__bounds = kwargs.get("bounds")
@@ -72,7 +72,7 @@ class OsmElement:
         self.__qgisGeometry = None
 
     def __str__(self):
-        return "%s id=%s" % (self.__class__.__name__, self.__id)
+        return f"{self.__class__.__name__} id={self.__id}"
 
     def asQgisGeometry(self) -> QgsGeometry:
         if self.__qgisGeometry is None:
@@ -104,7 +104,7 @@ class OsmElement:
 
     def title(self, locale):
         title = self.__tags.get(
-            "name:%s" % locale, self.__tags.get("name", None)
+            f"name:{locale}", self.__tags.get("name", None)
         )
 
         if title is None:
@@ -125,9 +125,9 @@ class OsmElement:
 class OsmNode(OsmElement):
     """docstring for OsmNode"""
 
-    def __init__(self, id, lon_lat, tags={}, **kwargs):
+    def __init__(self, osm_id, lon_lat, tags=None, **kwargs):
         (lon, lat) = lon_lat
-        super(OsmNode, self).__init__("node", id, tags, **kwargs)
+        super().__init__("node", osm_id, tags, **kwargs)
 
         self.__lon = lon
         self.__lat = lat
@@ -139,8 +139,8 @@ class OsmNode(OsmElement):
 class OsmWay(OsmElement):
     """docstring for OsmWay"""
 
-    def __init__(self, id, lon_lat_pairs, tags={}, **kwargs):
-        super(OsmWay, self).__init__("way", id, tags, **kwargs)
+    def __init__(self, osm_id, lon_lat_pairs, tags=None, **kwargs):
+        super().__init__("way", osm_id, tags, **kwargs)
 
         self.__lon_lat_pairs = lon_lat_pairs
 
@@ -194,8 +194,8 @@ class OsmWay(OsmElement):
 class OsmRelation(OsmElement):
     """docstring for OsmRelation"""
 
-    def __init__(self, id, osm_elements, tags={}, **kwargs):
-        super(OsmRelation, self).__init__("relation", id, tags, **kwargs)
+    def __init__(self, osm_id, osm_elements, tags=None, **kwargs):
+        super().__init__("relation", osm_id, tags, **kwargs)
 
         self.__osm_elements = osm_elements
 

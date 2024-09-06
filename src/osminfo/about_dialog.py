@@ -1,13 +1,13 @@
+from enum import IntEnum
 from pathlib import Path
 from typing import Dict, Optional
-from enum import IntEnum
 
 from qgis.core import QgsSettings
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QLocale, QSize, pyqtSlot, Qt
-from qgis.PyQt.QtWidgets import QDialog, QWidget, QLabel
+from qgis.PyQt.QtCore import QLocale, QSize, Qt, pyqtSlot
 from qgis.PyQt.QtGui import QPixmap
 from qgis.PyQt.QtSvg import QSvgWidget
+from qgis.PyQt.QtWidgets import QDialog, QLabel, QWidget
 from qgis.utils import pluginMetadata
 
 FORM_CLASS, _ = uic.loadUiType(

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ******************************************************************************
 #
 # OSMInfo
@@ -28,20 +27,20 @@
 #
 # ******************************************************************************
 
+from typing import Optional
+
+from qgis.core import (
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
+    QgsPointXY,
+    QgsProject,
+)
+from qgis.gui import QgsMapMouseEvent, QgsMapTool
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QCursor, QPixmap
 from qgis.PyQt.QtWidgets import QApplication
 
-from qgis.core import (
-    QgsPointXY,
-    QgsProject,
-    QgsCoordinateTransform,
-    QgsCoordinateReferenceSystem,
-)
-from qgis.gui import *
-
 from . import resources  # noqa: F401
-
 from .osminforesults import ResultsDialog
 from .rb_result_renderer import RubberBandResultRenderer
 
@@ -51,7 +50,6 @@ class OSMInfotool(QgsMapTool):
         QgsMapTool.__init__(self, iface.mapCanvas())
         self.result_renderer = RubberBandResultRenderer()
 
-        self.canvas = iface.mapCanvas()
         # self.emitPoint = QgsMapToolEmitPoint(self.canvas)
         self.iface = iface
 
@@ -81,20 +79,20 @@ class OSMInfotool(QgsMapTool):
             self.clearCanvas()
 
     def activate(self):
-        self.canvas.setCursor(self.cursor)
+        self.canvas().setCursor(self.cursor)
 
     def deactivate(self):
         if self.docWidgetResults.isFloating():
             self.docWidgetResults.setVisible(False)
 
-    def canvasReleaseEvent(self, event):
+    def canvasReleaseEvent(self, e: Optional[QgsMapMouseEvent]):
         crsSrc = self.iface.mapCanvas().mapSettings().destinationCrs()
         crsWGS = QgsCoordinateReferenceSystem.fromEpsgId(4326)
 
-        QApplication.setOverrideCursor(Qt.WaitCursor)
-        x = event.pos().x()
-        y = event.pos().y()
-        point = self.canvas.getCoordinateTransform().toMapCoordinates(x, y)
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        x = e.pos().x()
+        y = e.pos().y()
+        point = self.canvas().getCoordinateTransform().toMapCoordinates(x, y)
 
         xform = QgsCoordinateTransform(crsSrc, crsWGS, QgsProject.instance())
         point = xform.transform(QgsPointXY(point.x(), point.y()))
@@ -106,7 +104,7 @@ class OSMInfotool(QgsMapTool):
         self.result_renderer.clear()
         self.result_renderer.clear_feature()
         self.result_renderer.show_point(point, False)
-        self.canvas.update()
+        self.canvas().update()
 
         self.docWidgetResults.getInfo(xx, yy)
         self.docWidgetResults.setVisible(True)

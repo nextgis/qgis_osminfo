@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ******************************************************************************
 #
 # OSMInfo
@@ -29,35 +28,34 @@
 #
 # ******************************************************************************
 
-from qgis.PyQt.QtCore import Qt, QVariant, QSettings, QLocale
-from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import (
-    QVBoxLayout,
-    QDockWidget,
-    QMenu,
-    QAction,
-    QTreeWidgetItem,
-    QMessageBox,
-    QTreeWidget,
-    QWidget,
-    QHeaderView,
-)
-
 from qgis.core import (
     Qgis,
-    QgsMessageLog,
-    QgsVectorLayer,
+    QgsFeature,
     QgsField,
     QgsGeometry,
+    QgsMessageLog,
     QgsRectangle,
-    QgsFeature,
+    QgsVectorLayer,
 )
 from qgis.gui import QgsMessageBar
+from qgis.PyQt.QtCore import QLocale, QSettings, Qt, QVariant
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import (
+    QAction,
+    QDockWidget,
+    QHeaderView,
+    QMenu,
+    QMessageBox,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 from qgis.utils import iface
 
-from .osminfo_worker import Worker
+from .compat import LineGeometry, PointGeometry, PolygonGeometry, addMapLayer
 from .osmelements import OsmElement, parseOsmElement
-from .compat import addMapLayer, PointGeometry, LineGeometry, PolygonGeometry
+from .osminfo_worker import Worker
 
 FeatureItemType = 1001
 TagItemType = 1002
@@ -241,7 +239,7 @@ class ResultsDialog(QDockWidget):
         vLayer = None
         if create_new:
             vLayer = QgsVectorLayer(
-                "%s?crs=EPSG:4326" % (geom_type,),
+                f"{geom_type}?crs=EPSG:4326",
                 item.data(0, Qt.ItemDataRole.DisplayRole),
                 "memory",
             )
@@ -287,9 +285,9 @@ class ResultsDialog(QDockWidget):
 
         layer_fields = vLayer.fields().names()
 
-        attributes = []
-        for layer_field in layer_fields:
-            attributes.append(osm_element.tags.get(layer_field))
+        attributes = [
+            osm_element.tags.get(layer_field) for layer_field in layer_fields
+        ]
         feature.setAttributes(attributes)
 
         dataProvider.addFeatures([feature])
@@ -385,7 +383,7 @@ class ResultsDialog(QDockWidget):
         geom_type = "Multi" * geom.isMultipart() + geom_type
 
         vl = QgsVectorLayer(
-            "%s?crs=EPSG:4326" % (geom_type,),
+            f"{geom_type}?crs=EPSG:4326",
             item.data(0, Qt.ItemDataRole.DisplayRole),
             "memory",
         )

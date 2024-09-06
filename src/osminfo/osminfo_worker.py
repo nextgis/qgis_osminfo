@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ******************************************************************************
 #
 # OSMInfo
@@ -30,9 +29,9 @@
 
 import json
 
-from qgis.PyQt.QtCore import pyqtSignal, QUrl, QEventLoop, QThread
-from qgis.PyQt.QtNetwork import QNetworkRequest, QNetworkReply
 from qgis.core import QgsMessageLog, QgsNetworkAccessManager
+from qgis.PyQt.QtCore import QEventLoop, QThread, QUrl, pyqtSignal
+from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
 from .plugin_settings import PluginSettings
 
@@ -42,7 +41,7 @@ class Worker(QThread):
     gotError = pyqtSignal(str)
 
     def __init__(self, xx, yy):
-        super(Worker, self).__init__()
+        super().__init__()
         self.__xx = xx
         self.__yy = yy
 
@@ -95,7 +94,7 @@ class Worker(QThread):
             data = reply1.readAll()
             l1 = json.loads(bytes(data))["elements"]
             reply1.deleteLater()
-        except:
+        except Exception:
             self.gotError.emit(self.tr("Error parsing data"))
             return
         finally:
@@ -123,7 +122,7 @@ class Worker(QThread):
         try:
             data = reply2.readAll()
             l2 = json.loads(bytes(data))["elements"]
-        except:
+        except Exception:
             self.gotError.emit(self.tr("Error parsing data"))
             return
         finally:
