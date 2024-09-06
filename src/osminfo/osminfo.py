@@ -126,6 +126,7 @@ class OsmInfo:
         if self.iface.mapCanvas().mapTool() == self.mapTool:
             self.iface.mapCanvas().unsetMapTool(self.mapTool)
 
+        self.mapTool.deleteLater()
         del self.mapTool
 
     def run(self):
