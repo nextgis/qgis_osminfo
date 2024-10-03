@@ -8,36 +8,29 @@ import subprocess
 import zipfile
 from configparser import ConfigParser
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import tomllib
 
 
 def with_name(
-    path: Path, prefix: str = "", suffix: str = "", extension: str = ""
+    path: Path, prefix: str = "", suffix: str = "", extension: str = ".py"
 ) -> Path:
-    return path.with_name(f"{prefix}{path.stem}{suffix}.{extension}")
+    return path.with_name(f"{prefix}{path.stem}{suffix}{extension}")
 
 
 class QgisPluginBuilder:
-    settings: Dict[str, Any]
-
     def __init__(self):
         current_directory = Path(__file__).parent
         pyproject_file = current_directory / "pyproject.toml"
-        self.settings = tomllib.loads(pyproject_file.read_text())
 
-        self.ui_settings = (
-            self.settings.get("tool", {}).get("qgspb", {}).get("forms", {})
-        )
-        self.qrc_settings = (
-            self.settings.get("tool", {}).get("qgspb", {}).get("resources", {})
-        )
-        self.ts_settings = (
-            self.settings.get("tool", {})
-            .get("qgspb", {})
-            .get("translations", {})
-        )
+        self.settings = tomllib.loads(pyproject_file.read_text())
+        self.project_settings = self.settings.get("project", {})
+        self.qgspb_settings = self.settings.get("tool", {}).get("qgspb", {})
+        self.data_settings = self.qgspb_settings.get("package-data", {})
+        self.ui_settings = self.qgspb_settings.get("forms", {})
+        self.qrc_settings = self.qgspb_settings.get("resources", {})
+        self.ts_settings = self.qgspb_settings.get("translations", {})
 
     def bootstrap(
         self,
@@ -73,17 +66,14 @@ class QgisPluginBuilder:
         ui_paths = [
             ui_path
             for ui_pattern in ui_patterns
-            for ui_path in Path(__file__).parent.glob(ui_pattern)
+            for ui_path in Path(__file__).parent.rglob(ui_pattern)
         ]
         for ui_path in ui_paths:
-            output_directory = ui_path.parent
-            output_file = (
-                output_directory / f"{prefix}{ui_path.stem}{suffix}.py"
-            )
+            output_path = with_name(ui_path, prefix, suffix, ".py")
             subprocess.check_output(
-                ["pyuic5", "-o", str(output_file), str(ui_path)]
+                ["pyuic5", "-o", str(output_path), str(ui_path)]
             )
-            self.__update_generated_file(output_file)
+            self.__update_generated_file(output_path)
 
     def compile_qrc(self) -> None:
         if len(self.qrc_settings) == 0:
@@ -92,20 +82,17 @@ class QgisPluginBuilder:
         prefix = self.qrc_settings.get("target-prefix", "")
         suffix = self.qrc_settings.get("target-suffix", "")
         qrc_patterns = self.qrc_settings.get("qrc-files", [])
-        qrc_files = [
+        qrc_paths = [
             qrc_path
-            for rc_pattern in qrc_patterns
-            for qrc_path in Path(__file__).parent.glob(rc_pattern)
+            for qrc_pattern in qrc_patterns
+            for qrc_path in Path(__file__).parent.rglob(qrc_pattern)
         ]
-        for rc_file in qrc_files:
-            output_directory = rc_file.parent
-            output_file = (
-                output_directory / f"{prefix}{rc_file.stem}{suffix}.py"
-            )
+        for qrc_path in qrc_paths:
+            output_path = with_name(qrc_path, prefix, suffix, ".py")
             subprocess.check_output(
-                ["pyrcc5", "-o", str(output_file), str(rc_file)]
+                ["pyrcc5", "-o", str(output_path), str(qrc_path)]
             )
-            self.__update_generated_file(output_file)
+            self.__update_generated_file(output_path)
 
     def compile_ts(self):
         if len(self.ts_settings) == 0:
@@ -116,7 +103,7 @@ class QgisPluginBuilder:
         command_args.extend(
             str(ts_path)
             for ts_pattern in ts_patterns
-            for ts_path in Path(__file__).parent.glob(ts_pattern)
+            for ts_path in Path(__file__).parent.rglob(ts_pattern)
         )
 
         subprocess.check_output(command_args)
@@ -126,9 +113,8 @@ class QgisPluginBuilder:
 
         build_mapping = self.__create_build_mapping()
 
-        project_settings = self.settings.get("project", {})
-        project_name: str = project_settings["name"]
-        project_version: str = project_settings["version"]
+        project_name: str = self.project_settings["name"]
+        project_version: str = self.project_settings["version"]
 
         zip_file_name = f"{project_name}-{project_version}.zip"
 
@@ -150,9 +136,8 @@ class QgisPluginBuilder:
         profile_path = self.__profile_path(qgis, profile)
         plugins_path = profile_path / "python" / "plugins"
 
-        project_settings = self.settings.get("project", {})
-        project_name: str = project_settings["name"]
-        project_version: str = project_settings["version"]
+        project_name: str = self.project_settings["name"]
+        project_version: str = self.project_settings["version"]
 
         plugin_path = plugins_path / project_name
 
@@ -210,14 +195,13 @@ class QgisPluginBuilder:
         profile_path = self.__profile_path(qgis, profile)
         plugins_path = profile_path / "python" / "plugins"
 
-        project_settings = self.settings.get("project", {})
-        project_name: str = project_settings["name"]
+        project_name: str = self.project_settings["name"]
 
         plugin_path = plugins_path / project_name
 
         if not plugin_path.exists():
             print(
-                f'Plugin "{project_name}" is not installed for'
+                f"Plugin {project_name} is not installed for"
                 f' "{profile_path.name}" profile'
             )
             return
@@ -237,7 +221,7 @@ class QgisPluginBuilder:
             .lower()
         )
 
-        if confirmation in ("", "n"):
+        if confirmation != "y":
             return
 
         self.__uninstall_plugin(plugin_path)
@@ -252,10 +236,7 @@ class QgisPluginBuilder:
             **self.__create_translations_mapping(),
         }
 
-        ui_settings = (
-            self.settings.get("tool", {}).get("qgspb", {}).get("forms", {})
-        )
-        if ui_settings.get("compile", False):
+        if self.ui_settings.get("compile", False):
             mappings.update(self.__create_forms_mapping())
 
         src_directory = Path(__file__).parent / "src"
@@ -267,42 +248,48 @@ class QgisPluginBuilder:
             return
 
         command_args = ["pylupdate5"]
-        if self.ts_settings.get("noobsolete", False):
+        if self.ts_settings.get("no-obsolete", False):
             command_args.append("-noobsolete")
 
         exclude_patterns = self.ts_settings.get("exclude-files", [])
-        exclude_paths = [
+        exclude_paths = set(
             exclude_path
             for exclude_pattern in exclude_patterns
-            for exclude_path in Path(__file__).parent.glob(exclude_pattern)
-        ]
+            for exclude_path in Path(__file__).parent.rglob(exclude_pattern)
+        )
+        exclude_paths.update(
+            path
+            for path in self.__create_forms_mapping().keys()
+            if path.suffix == ".py"
+        )
+        exclude_paths.update(self.__create_resources_mapping().keys())
 
-        if self.ts_settings.get("project-file") is not None:
-            command_args.append(
-                str(
-                    Path(__file__).parent
-                    / self.ts_settings.get("project-file")
-                )
-            )
+        ui_patterns = self.ui_settings.get("ui-files", [])
+        source_paths = list(self.__create_sources_mapping().keys())
+        source_paths.extend(
+            ui_path
+            for ui_pattern in ui_patterns
+            for ui_path in Path(__file__).parent.rglob(ui_pattern)
+        )
 
-        else:
-            source_files = self.ts_settings.get("source-files", [])
-            ts_files = self.ts_settings.get("ts-files", [])
-            if len(source_files) == 0 or len(ts_files) == 0:
-                raise RuntimeError("Empty list")
+        if len(source_paths) == 0:
+            raise RuntimeError("Sources list is empty")
 
-            command_args.extend(
-                str(source_path)
-                for source_pattern in source_files
-                for source_path in Path(__file__).parent.glob(source_pattern)
-                if source_path not in exclude_paths
-            )
-            command_args.append("-ts")
-            command_args.extend(
-                str(ts_path)
-                for ts_pattern in ts_files
-                for ts_path in Path(__file__).parent.glob(ts_pattern)
-            )
+        ts_patterns = self.ts_settings.get("ts-files", [])
+        if len(ts_patterns) == 0:
+            raise RuntimeError("Empty translations list")
+
+        command_args.extend(
+            str(source_path)
+            for source_path in source_paths
+            if source_path not in exclude_paths
+        )
+        command_args.append("-ts")
+        command_args.extend(
+            str(ts_path)
+            for ts_pattern in ts_patterns
+            for ts_path in Path(__file__).parent.rglob(ts_pattern)
+        )
 
         subprocess.check_output(command_args)
 
@@ -321,11 +308,10 @@ class QgisPluginBuilder:
         return result
 
     def __create_metadata_mapping(self) -> Dict[Path, Path]:
-        project_settings = self.settings.get("project", {})
-        project_version: str = project_settings["version"]
+        project_version: str = self.project_settings["version"]
 
         src_directory = Path(__file__).parent / "src"
-        project_name: str = project_settings["name"]
+        project_name: str = self.project_settings["name"]
 
         metadata_path = src_directory / project_name / "metadata.txt"
 
@@ -338,12 +324,10 @@ class QgisPluginBuilder:
         return {metadata_path: build_path}
 
     def __create_readme_mapping(self) -> Dict[Path, Path]:
-        project_settings = self.settings.get("project", {})
-
-        if "readme" not in project_settings:
+        if "readme" not in self.project_settings:
             return {}
 
-        readme_setting = project_settings["readme"]
+        readme_setting = self.project_settings["readme"]
 
         if isinstance(readme_setting, str):
             readme_path = Path(__file__).parent / readme_setting
@@ -352,7 +336,7 @@ class QgisPluginBuilder:
         else:
             raise RuntimeError("Unknown readme setting")
 
-        project_name: str = project_settings["name"]
+        project_name: str = self.project_settings["name"]
 
         file_path = readme_path.absolute()
         build_path = Path(project_name) / file_path.name
@@ -360,16 +344,14 @@ class QgisPluginBuilder:
         return {file_path: build_path}
 
     def __create_license_mapping(self) -> Dict[Path, Path]:
-        project_settings = self.settings.get("project", {})
-
-        if "license" not in project_settings:
+        if "license" not in self.project_settings:
             return {}
 
-        license_setting = project_settings["license"]
+        license_setting = self.project_settings["license"]
         license_file = license_setting["file"]
         assert isinstance(license_file, str)
 
-        project_name: str = project_settings["name"]
+        project_name: str = self.project_settings["name"]
 
         file_path = (Path(__file__).parent / license_file).absolute()
         build_path = Path(project_name) / file_path.name
@@ -377,115 +359,98 @@ class QgisPluginBuilder:
         return {file_path: build_path}
 
     def __create_sources_mapping(self) -> Dict[Path, Path]:
-        project_settings = self.settings.get("project", {})
-        project_name: str = project_settings["name"]
+        project_name: str = self.project_settings["name"]
         src_directory = Path(__file__).parent / "src"
 
         return {
-            path.absolute(): path.relative_to(src_directory)
-            for path in (src_directory / project_name).rglob("*.py")
+            py_path.absolute(): py_path.relative_to(src_directory)
+            for py_path in (src_directory / project_name).rglob("*.py")
         }
 
     def __create_data_mapping(self) -> Dict[Path, Path]:
-        data_settings = (
-            self.settings.get("tool", {})
-            .get("qgspb", {})
-            .get("package-data", {})
-        )
-
-        if len(data_settings) == 0:
+        if len(self.data_settings) == 0:
             return {}
 
         src_directory = Path(__file__).parent / "src"
 
-        paths = []
-        for package, resources in data_settings.items():
+        data_paths = []
+        for package, resources in self.data_settings.items():
             package_path = src_directory / package.replace(".", "/")
-            for resource_template in resources:
-                paths.extend(package_path.rglob(resource_template))
+            for data_template in resources:
+                data_paths.extend(package_path.rglob(data_template))
 
         return {
-            path.absolute(): path.relative_to(src_directory) for path in paths
+            data_path.absolute(): data_path.relative_to(src_directory)
+            for data_path in data_paths
         }
 
     def __create_forms_mapping(self) -> Dict[Path, Path]:
-        ui_settings = (
-            self.settings.get("tool", {}).get("qgspb", {}).get("forms", {})
-        )
-        if len(ui_settings) == 0:
+        if len(self.ui_settings) == 0:
             return {}
 
-        ui_patterns = ui_settings.get("ui-files", [])
-        ui_files = [
+        ui_patterns = self.ui_settings.get("ui-files", [])
+        ui_paths = [
             ui_path
             for ui_pattern in ui_patterns
-            for ui_path in Path(__file__).parent.glob(ui_pattern)
+            for ui_path in Path(__file__).parent.rglob(ui_pattern)
         ]
 
         src_directory = Path(__file__).parent / "src"
 
-        if not ui_settings.get("compile", False):
+        if not self.ui_settings.get("compile", False):
             return {
                 ui_file.absolute(): ui_file.relative_to(src_directory)
-                for ui_file in ui_files
+                for ui_file in ui_paths
             }
 
-        prefix = ui_settings.get("target-prefix", "")
-        suffix = ui_settings.get("target-suffix", "")
+        prefix = self.ui_settings.get("target-prefix", "")
+        suffix = self.ui_settings.get("target-suffix", "")
 
         result = {}
-        for ui_file in ui_files:
-            py_file = ui_file.with_name(f"{prefix}{ui_file.stem}{suffix}.py")
-            result[py_file.absolute()] = py_file.relative_to(src_directory)
+        for ui_path in ui_paths:
+            py_path = with_name(ui_path, prefix, suffix, ".py")
+            result[py_path.absolute()] = py_path.relative_to(src_directory)
 
         return result
 
     def __create_resources_mapping(self) -> Dict[Path, Path]:
-        rc_settings = (
-            self.settings.get("tool", {}).get("qgspb", {}).get("resources", {})
-        )
-        if len(rc_settings) == 0:
+        if len(self.qrc_settings) == 0:
             return {}
 
-        prefix = rc_settings.get("target-prefix", "")
-        suffix = rc_settings.get("target-suffix", "")
-        qrc_patterns = rc_settings.get("qrc-files", [])
-        qrc_files = [
+        prefix = self.qrc_settings.get("target-prefix", "")
+        suffix = self.qrc_settings.get("target-suffix", "")
+        qrc_patterns = self.qrc_settings.get("qrc-files", [])
+        qrc_paths = [
             qrc_path
-            for rc_pattern in qrc_patterns
-            for qrc_path in Path(__file__).parent.glob(rc_pattern)
+            for qrc_pattern in qrc_patterns
+            for qrc_path in Path(__file__).parent.rglob(qrc_pattern)
         ]
 
         src_directory = Path(__file__).parent / "src"
 
         result = {}
-        for qrc_file in qrc_files:
-            py_file = with_name(qrc_file, prefix, suffix, "py")
-            result[py_file.absolute()] = py_file.relative_to(src_directory)
+        for qrc_path in qrc_paths:
+            py_path = with_name(qrc_path, prefix, suffix, ".py")
+            result[py_path.absolute()] = py_path.relative_to(src_directory)
 
         return result
 
     def __create_translations_mapping(self) -> Dict[Path, Path]:
-        rc_settings = (
-            self.settings.get("tool", {})
-            .get("qgspb", {})
-            .get("translations", {})
-        )
-        if len(rc_settings) == 0:
+        if len(self.ts_settings) == 0:
             return {}
 
-        ts_patterns = rc_settings.get("ts-files", [])
-        ts_files = [
+        ts_patterns = self.ts_settings.get("ts-files", [])
+        ts_paths = [
             ts_path
             for ts_pattern in ts_patterns
-            for ts_path in Path(__file__).parent.glob(ts_pattern)
+            for ts_path in Path(__file__).parent.rglob(ts_pattern)
         ]
 
         src_directory = Path(__file__).parent / "src"
 
         result = {}
-        for ts_file in ts_files:
-            qm_file = ts_file.with_suffix(".qm")
+        for ts_path in ts_paths:
+            qm_file = ts_path.with_suffix(".qm")
             result[qm_file.absolute()] = qm_file.relative_to(src_directory)
 
         return result

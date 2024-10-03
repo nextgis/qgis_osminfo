@@ -17,6 +17,7 @@ qrc-files = ["src/osminfo/resources.qrc"]
 
 [tool.qgspb.translations]
 ts-files = ["src/osminfo/i18n/*.ts"]
+no-obsolete = true
 
 
 [project.optional-dependencies]
