@@ -511,7 +511,9 @@ class QgisPluginBuilder:
             profiles_ini = ConfigParser()
             profiles_ini.read(profiles_ini_path)
 
-            default_profile = profiles_ini.get("core", "defaultProfile")
+            default_profile = profiles_ini.get(
+                "core", "defaultProfile", fallback=None
+            )
 
             if len(profiles) == 0:
                 raise RuntimeError("There are no QGIS profiles")
