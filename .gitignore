@@ -190,7 +190,7 @@ qrc_*.cpp
 ui_*.h
 *.qmlc
 *.jsc
-# Makefile*
+Makefile*
 *build-*
 *.qm
 *.prl
@@ -215,5 +215,10 @@ compile_commands.json
 *creator.user*
 
 *_qmlcache.qrc
-src/osminfo/resources.py
+
+# PyQt
+ui_*.py
+*_rc.py
+
+# QGIS
 *.db
