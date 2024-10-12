@@ -660,7 +660,6 @@ def main() -> None:
 
     except KeyboardInterrupt:
         print("\nInterrupt signal received")
-        pass
 
 
 if __name__ == "__main__":

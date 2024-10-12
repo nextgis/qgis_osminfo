@@ -24,7 +24,7 @@ no-obsolete = true
 dev = ["ruff", "pre-commit"]
 
 [tool.pyright]
-include = ["src", "tests"]
+include = ["src"]
 pythonVersion = "3.7"
 
 reportOptionalCall = false
