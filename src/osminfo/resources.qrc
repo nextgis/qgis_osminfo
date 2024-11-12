@@ -5,5 +5,7 @@
     <file>icons/about.png</file>
     <file>icons/cursor.png</file>
     <file>icons/zoom2feature.png</file>
+    <file>icons/fire.png</file>
+    <file>icons/news.png</file>
   </qresource>
 </RCC>

@@ -31,6 +31,7 @@ import os
 from pathlib import Path
 
 from qgis.core import QgsApplication
+from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import (
     QCoreApplication,
     QFileInfo,
@@ -52,7 +53,7 @@ class OsmInfo:
     def tr(self, message):
         return QCoreApplication.translate(__class__.__name__, message)
 
-    def __init__(self, iface):
+    def __init__(self, iface: QgisInterface):
         """Initialize class"""
         # save reference to QGIS interface
         self.iface = iface
@@ -79,63 +80,75 @@ class OsmInfo:
     def initGui(self):
         """Initialize graphic user interface"""
         # create action that will be run by the plugin
-        self.actionRun = QAction(
-            self.tr("Get OSM info for a point"), self.iface.mainWindow()
+        self.__tool_action = QAction(
+            QIcon(":/plugins/osminfo/icons/osminfo.png"),
+            self.tr("Get OSM info for a point"),
+            self.iface.mainWindow(),
         )
-
-        self.actionRun.setIcon(QIcon(":/plugins/osminfo/icons/osminfo.png"))
-        self.actionRun.setWhatsThis(self.tr("Select point"))
-        self.actionRun.setStatusTip(
+        self.__tool_action.setCheckable(True)
+        self.__tool_action.setWhatsThis(self.tr("Select point"))
+        self.__tool_action.setStatusTip(
             self.tr("Select point to get OpenStreetMap data for")
         )
 
-        self.actionAbout = QAction(
+        self.__about_action = QAction(
             QgsApplication.getThemeIcon("mActionPropertiesWidget.svg"),
             self.tr("About plugin…"),
             self.iface.mainWindow(),
         )
 
-        self.actionSettings = QAction(
+        self.__settings_action = QAction(
             QgsApplication.getThemeIcon("mActionOptions.svg"),
             self.tr("Settings"),
             self.iface.mainWindow(),
         )
-        self.actionSettings.setWhatsThis(
+        self.__settings_action.setWhatsThis(
             self.tr("Set various parameters related to OSMInfo")
         )
 
         # add plugin menu to Web
         self.osminfo_menu = self.tr("OSMInfo")
-        self.iface.addPluginToWebMenu(self.osminfo_menu, self.actionRun)
-        self.iface.addPluginToWebMenu(self.osminfo_menu, self.actionAbout)
-        self.iface.addPluginToWebMenu(self.osminfo_menu, self.actionSettings)
+        self.iface.addPluginToWebMenu(self.osminfo_menu, self.__tool_action)
+        self.iface.addPluginToWebMenu(self.osminfo_menu, self.__about_action)
+        self.iface.addPluginToWebMenu(
+            self.osminfo_menu, self.__settings_action
+        )
         for action in self.iface.webMenu().actions():
             if action.text() != self.osminfo_menu:
                 continue
             action.setIcon(QIcon(":/plugins/osminfo/icons/osminfo.svg"))
 
         # add icon to new menu item in Web toolbar
-        self.iface.addWebToolBarIcon(self.actionRun)
+        self.iface.addWebToolBarIcon(self.__tool_action)
 
         # connect action to the run method
-        self.actionRun.triggered.connect(self.run)
-        self.actionAbout.triggered.connect(self.about)
-        self.actionSettings.triggered.connect(self.settings)
+        self.__tool_action.triggered.connect(self.__identify)
+        self.__about_action.triggered.connect(self.__open_about)
+        self.__settings_action.triggered.connect(self.__open_settings)
 
         # prepare map tool
         self.mapTool = osminfotool.OSMInfotool(self.iface)
-        # self.iface.mapCanvas().mapToolSet.connect(self.mapToolChanged)
+        self.mapTool.setAction(self.__tool_action)
+        self.iface.mapToolActionGroup().addAction(self.__tool_action)
 
         self.__options_factory = OsmInfoOptionsWidgetFactory()
         self.iface.registerOptionsWidgetFactory(self.__options_factory)
 
     def unload(self):
         """Actions to run when the plugin is unloaded"""
+
         # remove menu and icon from the menu
-        self.iface.removeWebToolBarIcon(self.actionRun)
-        self.iface.removePluginWebMenu(self.tr("OSMInfo"), self.actionAbout)
-        self.iface.removePluginWebMenu(self.tr("OSMInfo"), self.actionSettings)
-        self.iface.removePluginWebMenu(self.tr("OSMInfo"), self.actionRun)
+        self.iface.removeWebToolBarIcon(self.__tool_action)
+
+        self.iface.removePluginWebMenu(self.tr("OSMInfo"), self.__about_action)
+        self.iface.removePluginWebMenu(
+            self.tr("OSMInfo"), self.__settings_action
+        )
+        self.iface.removePluginWebMenu(self.tr("OSMInfo"), self.__tool_action)
+
+        self.__tool_action.deleteLater()
+        self.__about_action.deleteLater()
+        self.__settings_action.deleteLater()
 
         if self.iface.mapCanvas().mapTool() == self.mapTool:
             self.iface.mapCanvas().unsetMapTool(self.mapTool)
@@ -150,13 +163,13 @@ class OsmInfo:
 
         unload_logger()
 
-    def run(self):
+    def __identify(self) -> None:
         """Action to run"""
         self.iface.mapCanvas().setMapTool(self.mapTool)
 
-    def about(self):
+    def __open_about(self) -> None:
         dialog = about_dialog.AboutDialog(os.path.basename(_current_path))
         dialog.exec()
 
-    def settings(self):
+    def __open_settings(self) -> None:
         self.iface.showOptionsDialog(self.iface.mainWindow(), "OSMInfo")

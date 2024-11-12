@@ -27,7 +27,7 @@
 #
 # ******************************************************************************
 
-from typing import Optional
+from typing import Optional, cast
 
 from qgis.core import (
     QgsCoordinateReferenceSystem,
@@ -35,18 +35,18 @@ from qgis.core import (
     QgsPointXY,
     QgsProject,
 )
-from qgis.gui import QgsMapMouseEvent, QgsMapTool
+from qgis.gui import QgisInterface, QgsMapMouseEvent, QgsMapTool
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QCursor, QPixmap
-from qgis.PyQt.QtWidgets import QApplication
+from qgis.PyQt.QtWidgets import QApplication, QMainWindow
 
 from . import resources  # noqa: F401
-from .osminforesults import ResultsDialog
+from .osminforesults import OsmInfoResultsDock
 from .rb_result_renderer import RubberBandResultRenderer
 
 
 class OSMInfotool(QgsMapTool):
-    def __init__(self, iface):
+    def __init__(self, iface: QgisInterface) -> None:
         QgsMapTool.__init__(self, iface.mapCanvas())
         self.result_renderer = RubberBandResultRenderer()
 
@@ -58,16 +58,27 @@ class OSMInfotool(QgsMapTool):
         )
         # self.visibilityChanged.connect(self.result_renderer.clear)
 
-        self.docWidgetResults = ResultsDialog(
-            "OSM Info", self.result_renderer, self.iface.mainWindow()
+        self.dockWidgetResults = OsmInfoResultsDock(
+            "OSMInfo", self.result_renderer
         )
-        self.docWidgetResults.setVisible(False)
-        self.docWidgetResults.setFloating(True)
-        self.docWidgetResults.visibilityChanged.connect(
+
+        main_window = cast(QMainWindow, iface.mainWindow())
+        if main_window.restoreDockWidget(self.dockWidgetResults):
+            main_window.panelMenu().addAction(
+                self.dockWidgetResults.toggleViewAction()
+            )
+        else:
+            main_window.addDockWidget(
+                Qt.DockWidgetArea.RightDockWidgetArea, self.dockWidgetResults
+            )
+
+        self.dockWidgetResults.visibilityChanged.connect(
             self.docWidgetResultsVisChange
         )
 
     def __del__(self):
+        main_window = cast(QMainWindow, self.iface.mainWindow())
+        main_window.removeDockWidget(self.dockWidgetResults)
         self.clearCanvas()
 
     def clearCanvas(self):
@@ -82,8 +93,8 @@ class OSMInfotool(QgsMapTool):
         self.canvas().setCursor(self.cursor)
 
     def deactivate(self):
-        if self.docWidgetResults.isFloating():
-            self.docWidgetResults.setVisible(False)
+        if self.dockWidgetResults.isFloating():
+            self.dockWidgetResults.setVisible(False)
 
     def canvasReleaseEvent(self, e: Optional[QgsMapMouseEvent]):
         crsSrc = self.iface.mapCanvas().mapSettings().destinationCrs()
@@ -106,5 +117,5 @@ class OSMInfotool(QgsMapTool):
         self.result_renderer.show_point(point, False)
         self.canvas().update()
 
-        self.docWidgetResults.getInfo(xx, yy)
-        self.docWidgetResults.setVisible(True)
+        self.dockWidgetResults.getInfo(xx, yy)
+        self.dockWidgetResults.setUserVisible(True)

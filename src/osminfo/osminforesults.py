@@ -28,7 +28,9 @@
 #
 # ******************************************************************************
 
-from typing import Optional
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import TYPE_CHECKING, List, Optional, cast
 
 from qgis.core import (
     Qgis,
@@ -43,19 +45,17 @@ from qgis.core import (
     QgsRectangle,
     QgsVectorLayer,
 )
-from qgis.gui import QgsMessageBar
+from qgis.gui import QgisInterface, QgsDockWidget, QgsMessageBar
+from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QLocale, QMetaType, QSettings, Qt, QVariant
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import (
     QAction,
-    QDockWidget,
     QHeaderView,
+    QMainWindow,
     QMenu,
     QMessageBox,
-    QTreeWidget,
     QTreeWidgetItem,
-    QVBoxLayout,
-    QWidget,
 )
 from qgis.utils import iface
 
@@ -66,8 +66,16 @@ from .compat import LineGeometry, PointGeometry, PolygonGeometry, addMapLayer
 from .osmelements import OsmElement, parseOsmElement
 from .osminfo_worker import Worker
 
+if TYPE_CHECKING:
+    assert isinstance(iface, QgisInterface)
+
 FeatureItemType = 1001
 TagItemType = 1002
+
+
+FORM_CLASS, _ = uic.loadUiType(
+    Path(__file__).parent / "ui" / "osm_info_results_widget_base.ui"
+)
 
 
 class AttributeMismatchMessageBox(QMessageBox):
@@ -94,19 +102,28 @@ class AttributeMismatchMessageBox(QMessageBox):
         self.setDefaultButton(Button.Yes)
 
 
-class ResultsDialog(QDockWidget):
-    def __init__(self, title, result_render, parent=None):
+class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
+    def __init__(self, title: str, result_render):
+        main_window = cast(QMainWindow, iface.mainWindow())
+        super().__init__(title, parent=main_window)
+
+        self.setupUi(self)
+        self.setWindowTitle(title)
+        self.setObjectName("OsmInfoResultsDock")
+
+        self.setAllowedAreas(
+            Qt.DockWidgetAreas()
+            | Qt.DockWidgetArea.LeftDockWidgetArea
+            | Qt.DockWidgetArea.RightDockWidgetArea
+        )
+
         self.__rb = result_render
         self.__selected_id = None
         self.__selected_geom = None
         self.__rel_reply = None
         self.worker = None
-        super().__init__(title, parent)
-        self.__mainWidget = QWidget()
 
-        self.__layout = QVBoxLayout(self.__mainWidget)
-
-        self.__resultsTree = QTreeWidget(self)
+        self.__resultsTree = self.results_tree
         self.__resultsTree.setContextMenuPolicy(
             Qt.ContextMenuPolicy.CustomContextMenu
         )
@@ -127,10 +144,7 @@ class ResultsDialog(QDockWidget):
             )
         self.__resultsTree.header().setStretchLastSection(False)
         self.__resultsTree.itemSelectionChanged.connect(self.selItemChanged)
-        self.__layout.addWidget(self.__resultsTree)
         self.__resultsTree.clear()
-
-        self.setWidget(self.__mainWidget)
 
         overrideLocale = QSettings().value(
             "locale/overrideFlag", False, type=bool
@@ -141,6 +155,52 @@ class ResultsDialog(QDockWidget):
             self.qgisLocale = QSettings().value(
                 "locale/userLocale", "", type=str
             )[:2]
+
+        self.show_info()
+
+    def show_info(self) -> None:
+        black_friday_start = datetime(
+            year=2024, month=11, day=26, hour=21, minute=1, tzinfo=timezone.utc
+        ).timestamp()
+        black_friday_finish = datetime(
+            year=2024, month=12, day=3, hour=5, minute=59, tzinfo=timezone.utc
+        ).timestamp()
+
+        now = datetime.now().timestamp()
+
+        is_black_friday = black_friday_start <= now <= black_friday_finish
+
+        campaign = "constant" if not is_black_friday else "black-friday24"
+        utm = f"utm_source=qgis_plugin&utm_medium=banner&utm_campaign={campaign}&utm_term=osminfo&utm_content={self.qgisLocale}"
+
+        info = {
+            "constant": self.tr(
+                '<a href="https://data.nextgis.com/?{utm}">Download geodata</a> for your project'
+            ).format(utm=utm),
+            "black-friday24": self.tr(
+                '<a href="https://data.nextgis.com/?{utm}">Fresh geodata</a> for your project <b>(50% off!)</b>'
+            ).format(utm=utm),
+        }
+        icon = {
+            "constant": ":/plugins/osminfo/icons/news.png",
+            "black-friday24": ":/plugins/osminfo/icons/fire.png",
+        }
+        html = f"""
+            <html>
+            <head></head>
+            <body>
+                <center>
+                    <table>
+                        <tr>
+                            <td><img src="{icon[campaign]}"></td>
+                            <td>&nbsp;{info[campaign]}</td>
+                        </tr>
+                    </table>
+                </center>
+            </body>
+            </html>
+        """
+        self.info_label.setText(html)
 
     def openMenu(self, position):
         selected_items = self.__resultsTree.selectedItems()
@@ -470,10 +530,15 @@ class ResultsDialog(QDockWidget):
         self.__resultsTree.clear()
         self.__resultsTree.addTopLevelItem(QTreeWidgetItem([msg]))
 
-    def showData(self, l1, l2):
+    def showData(self, l1: List, l2: List):
         self.__resultsTree.clear()
 
         settings = OsmInfoSettings()
+        if len(l1) + len(l2) == 0:
+            self.__resultsTree.addTopLevelItem(
+                QTreeWidgetItem([self.tr("No features found")])
+            )
+            return
 
         if settings.fetch_nearby:
             near = QTreeWidgetItem([self.tr("Nearby features")])
