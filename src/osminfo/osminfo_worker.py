@@ -27,13 +27,16 @@
 #
 # ******************************************************************************
 
+import html
 import json
+from typing import Any, List
 
-from qgis.core import QgsMessageLog, QgsNetworkAccessManager
-from qgis.PyQt.QtCore import QEventLoop, QThread, QUrl, pyqtSignal
+from qgis.core import QgsNetworkAccessManager
+from qgis.PyQt.QtCore import QThread, QUrl, pyqtSignal
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
-from .plugin_settings import PluginSettings
+from osminfo.logging import logger
+from osminfo.settings import OsmInfoSettings
 
 
 class Worker(QThread):
@@ -48,62 +51,57 @@ class Worker(QThread):
     def run(self):
         xx = str(self.__xx)
         yy = str(self.__yy)
-
         if abs(float(xx)) > 180 or abs(float(yy)) > 90:
-            QgsMessageLog.logMessage(
-                self.tr("Worker: %s, %s are wrong coords!") % (xx, yy),
-                self.tr("OSMInfo"),
-                QgsMessageLog.INFO,
-            )
-
             self.gotError.emit(
                 self.tr("Worker: %s, %s are wrong coords!") % (xx, yy)
             )
             return
 
-        url = "http://overpass-api.de/api/interpreter"
-        request = QNetworkRequest(QUrl(url))
-        request.setHeader(
-            QNetworkRequest.ContentTypeHeader,
-            "application/x-www-form-urlencoded",
-        )
-        qnam = QgsNetworkAccessManager.instance()
+        settings = OsmInfoSettings()
+        if not settings.fetch_nearby and not settings.fetch_surrounding:
+            self.gotError.emit("No object category selected in settings")
+            return
 
-        # around request
-        dist = PluginSettings.distance_value()
-        timeout = PluginSettings.timeout_value()
+        try:
+            nearby_elements = self.__fetch_nearby(settings)
+            surrounding_elements = self.__fetch_surrounding(settings)
+        except Exception as error:
+            self.gotError.emit(str(error))
+            return
 
-        request_data = f"""
-            [out:json][timeout:{timeout}];
+        self.gotData.emit(nearby_elements, surrounding_elements)
+
+    def __fetch_nearby(self, settings: OsmInfoSettings) -> List[Any]:
+        if not settings.fetch_nearby:
+            logger.debug("Skip fetching nearby features")
+            return []
+
+        distance = settings.distance
+        query = f"""
+            [out:json][timeout:{settings.timeout}];
             (
-                node(around:{dist},{yy},{xx});
-                way(around:{dist},{yy},{xx});
-                relation(around:{dist},{yy},{xx});
+                node(around:{distance},{self.__yy},{self.__xx});
+                way(around:{distance},{self.__yy},{self.__xx});
+                relation(around:{distance},{self.__yy},{self.__xx});
             );
             out tags geom;
         """
-        reply1 = qnam.post(request, str.encode(request_data))
-        loop = QEventLoop()
-        reply1.finished.connect(loop.quit)
-        loop.exec()
-        if reply1.error() != QNetworkReply.NoError:
-            reply1.deleteLater()
-            self.gotError.emit(self.tr("Error getting data from the server"))
-            return
-        try:
-            data = reply1.readAll()
-            l1 = json.loads(bytes(data))["elements"]
-            reply1.deleteLater()
-        except Exception:
-            self.gotError.emit(self.tr("Error parsing data"))
-            return
-        finally:
-            reply1.deleteLater()
+        logger.debug(
+            f"Fetch nearby features for {self.__yy}, {self.__xx}\n"
+            f"{html.escape(query)}"
+        )
+
+        return self.__fetch_from_overpass(settings, query)
+
+    def __fetch_surrounding(self, settings: OsmInfoSettings) -> List[Any]:
+        if not settings.fetch_surrounding:
+            logger.debug("Skip fetching surrounding features")
+            return []
 
         # TODO is .b really needed there? Probably this is a bug in overpass
-        request_data = f"""
-            [out:json][timeout:{timeout}];
-            is_in({yy},{xx})->.a;
+        query = f"""
+            [out:json][timeout:{settings.timeout}];
+            is_in({self.__yy},{self.__xx})->.a;
             way(pivot.a)->.b;
             .b out tags geom;
             .b <;
@@ -111,21 +109,37 @@ class Worker(QThread):
             relation(pivot.a);
             out geom;
         """
-        reply2 = qnam.post(request, str.encode(request_data))
-        loop = QEventLoop()
-        reply2.finished.connect(loop.quit)
-        loop.exec()
-        if reply2.error() != QNetworkReply.NoError:
-            reply2.deleteLater()
-            self.gotError.emit(self.tr("Error getting data from the server"))
-            return
-        try:
-            data = reply2.readAll()
-            l2 = json.loads(bytes(data))["elements"]
-        except Exception:
-            self.gotError.emit(self.tr("Error parsing data"))
-            return
-        finally:
-            reply2.deleteLater()
+        logger.debug(
+            f"Fetch surrounding features for {self.__yy}, {self.__xx}\n"
+            f"{html.escape(query)}"
+        )
 
-        self.gotData.emit(l1, l2)
+        return self.__fetch_from_overpass(settings, query)
+
+    def __fetch_from_overpass(
+        self, settings: OsmInfoSettings, query: str
+    ) -> List[Any]:
+        request = QNetworkRequest(QUrl(settings.overpass_endpoint))
+        request.setHeader(
+            QNetworkRequest.ContentTypeHeader,
+            "application/x-www-form-urlencoded",
+        )
+
+        qnam = QgsNetworkAccessManager.instance()
+        reply_content = qnam.blockingPost(request, str.encode(query))
+        if reply_content.error() != QNetworkReply.NetworkError.NoError:
+            logger.error(reply_content.errorString())
+            raise RuntimeError(self.tr("Error getting data from the server"))
+
+        try:
+            json_content = json.loads(reply_content.content().data())
+        except Exception as error:
+            logger.exception("Parsing data error")
+            raise RuntimeError(self.tr("Parsing data error")) from error
+
+        if json_content.get("remark") is not None:
+            raise RuntimeError(json_content["remark"])
+
+        elements = json_content.get("elements", [])
+        logger.debug(f"Fetched {len(elements)} elements")
+        return elements

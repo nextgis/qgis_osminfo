@@ -59,6 +59,9 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.utils import iface
 
+from osminfo.logging import logger
+from osminfo.settings.osm_info_settings import OsmInfoSettings
+
 from .compat import LineGeometry, PointGeometry, PolygonGeometry, addMapLayer
 from .osmelements import OsmElement, parseOsmElement
 from .osminfo_worker import Worker
@@ -463,88 +466,97 @@ class ResultsDialog(QDockWidget):
         self.worker = worker
 
     def showError(self, msg):
+        logger.error(msg)
         self.__resultsTree.clear()
         self.__resultsTree.addTopLevelItem(QTreeWidgetItem([msg]))
 
     def showData(self, l1, l2):
         self.__resultsTree.clear()
 
-        near = QTreeWidgetItem([self.tr("Nearby features")])
-        self.__resultsTree.addTopLevelItem(near)
-        self.__resultsTree.expandItem(near)
+        settings = OsmInfoSettings()
 
-        for element in l1:
-            try:
-                osm_element = parseOsmElement(element)
-                # osm_element.asQgisGeometry()
-                if osm_element is not None:
-                    elementItem = QTreeWidgetItem(
-                        near,
-                        [osm_element.title(self.qgisLocale)],
-                        FeatureItemType,
+        if settings.fetch_nearby:
+            near = QTreeWidgetItem([self.tr("Nearby features")])
+            self.__resultsTree.addTopLevelItem(near)
+            self.__resultsTree.expandItem(near)
+
+            for element in l1:
+                try:
+                    osm_element = parseOsmElement(element)
+                    # osm_element.asQgisGeometry()
+                    if osm_element is not None:
+                        elementItem = QTreeWidgetItem(
+                            near,
+                            [osm_element.title(self.qgisLocale)],
+                            FeatureItemType,
+                        )
+                        elementItem.setData(
+                            0, Qt.ItemDataRole.UserRole, osm_element
+                        )
+
+                        for tag in sorted(osm_element.tags.items()):
+                            elementItem.addChild(
+                                QTreeWidgetItem(tag, TagItemType)
+                            )
+
+                        self.__resultsTree.addTopLevelItem(elementItem)
+
+                        # qApp.processEvents()
+                except Exception as e:
+                    QgsMessageLog.logMessage(
+                        self.tr(
+                            f"Element process error: {e}. Element: {element}."
+                        ),
+                        self.tr("OSMInfo"),
+                        Qgis.MessageLevel.Critical,
                     )
-                    elementItem.setData(
-                        0, Qt.ItemDataRole.UserRole, osm_element
+
+        if settings.fetch_surrounding:
+            isin = QTreeWidgetItem([self.tr("Is inside")])
+            self.__resultsTree.addTopLevelItem(isin)
+            self.__resultsTree.expandItem(isin)
+
+            l2Sorted = sorted(
+                l2,
+                key=lambda element: QgsGeometry()
+                .fromRect(
+                    QgsRectangle(
+                        element["bounds"]["minlon"],
+                        element["bounds"]["minlat"],
+                        element["bounds"]["maxlon"],
+                        element["bounds"]["maxlat"],
                     )
-
-                    for tag in sorted(osm_element.tags.items()):
-                        elementItem.addChild(QTreeWidgetItem(tag, TagItemType))
-
-                    self.__resultsTree.addTopLevelItem(elementItem)
-
-                    # qApp.processEvents()
-            except Exception as e:
-                QgsMessageLog.logMessage(
-                    self.tr(
-                        f"Element process error: {e}. Element: {element}."
-                    ),
-                    self.tr("OSMInfo"),
-                    Qgis.MessageLevel.Critical,
                 )
-
-        isin = QTreeWidgetItem([self.tr("Is inside")])
-        self.__resultsTree.addTopLevelItem(isin)
-        self.__resultsTree.expandItem(isin)
-
-        l2Sorted = sorted(
-            l2,
-            key=lambda element: QgsGeometry()
-            .fromRect(
-                QgsRectangle(
-                    element["bounds"]["minlon"],
-                    element["bounds"]["minlat"],
-                    element["bounds"]["maxlon"],
-                    element["bounds"]["maxlat"],
-                )
+                .area(),
             )
-            .area(),
-        )
 
-        for element in l2Sorted:
-            try:
-                osm_element = parseOsmElement(element)
-                if osm_element is not None:
-                    elementItem = QTreeWidgetItem(
-                        isin,
-                        [osm_element.title(self.qgisLocale)],
-                        FeatureItemType,
-                    )
-                    elementItem.setData(
-                        0, Qt.ItemDataRole.UserRole, osm_element
-                    )
-                    for tag in sorted(osm_element.tags.items()):
-                        elementItem.addChild(QTreeWidgetItem(tag, TagItemType))
+            for element in l2Sorted:
+                try:
+                    osm_element = parseOsmElement(element)
+                    if osm_element is not None:
+                        elementItem = QTreeWidgetItem(
+                            isin,
+                            [osm_element.title(self.qgisLocale)],
+                            FeatureItemType,
+                        )
+                        elementItem.setData(
+                            0, Qt.ItemDataRole.UserRole, osm_element
+                        )
+                        for tag in sorted(osm_element.tags.items()):
+                            elementItem.addChild(
+                                QTreeWidgetItem(tag, TagItemType)
+                            )
 
-                    self.__resultsTree.addTopLevelItem(elementItem)
-                    # qApp.processEvents()
-            except Exception as e:
-                QgsMessageLog.logMessage(
-                    self.tr(
-                        f"Element process error: {e}. Element: {element}."
-                    ),
-                    self.tr("OSMInfo"),
-                    Qgis.MessageLevel.Critical,
-                )
+                        self.__resultsTree.addTopLevelItem(elementItem)
+                        # qApp.processEvents()
+                except Exception as e:
+                    QgsMessageLog.logMessage(
+                        self.tr(
+                            f"Element process error: {e}. Element: {element}."
+                        ),
+                        self.tr("OSMInfo"),
+                        Qgis.MessageLevel.Critical,
+                    )
 
     def selItemChanged(self):
         selection = self.__resultsTree.selectedItems()

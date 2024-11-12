@@ -30,7 +30,7 @@
 import os
 from pathlib import Path
 
-from qgis.core import Qgis
+from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import (
     QCoreApplication,
     QFileInfo,
@@ -41,7 +41,9 @@ from qgis.PyQt.QtCore import (
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
-from . import about_dialog, osminfotool, settingsdialog
+from osminfo import about_dialog, osminfotool
+from osminfo.logging import unload_logger
+from osminfo.settings.osm_info_settings_page import OsmInfoOptionsWidgetFactory
 
 _current_path = str(Path(__file__).parent)
 
@@ -54,7 +56,6 @@ class OsmInfo:
         """Initialize class"""
         # save reference to QGIS interface
         self.iface = iface
-        self.qgsVersion = str(Qgis.QGIS_VERSION_INT)
 
         # i18n support
         override_locale = QSettings().value(
@@ -88,10 +89,16 @@ class OsmInfo:
             self.tr("Select point to get OpenStreetMap data for")
         )
 
-        self.actionAbout = QAction(self.tr("About…"), self.iface.mainWindow())
+        self.actionAbout = QAction(
+            QgsApplication.getThemeIcon("mActionPropertiesWidget.svg"),
+            self.tr("About plugin…"),
+            self.iface.mainWindow(),
+        )
 
         self.actionSettings = QAction(
-            self.tr("Settings"), self.iface.mainWindow()
+            QgsApplication.getThemeIcon("mActionOptions.svg"),
+            self.tr("Settings"),
+            self.iface.mainWindow(),
         )
         self.actionSettings.setWhatsThis(
             self.tr("Set various parameters related to OSMInfo")
@@ -102,6 +109,10 @@ class OsmInfo:
         self.iface.addPluginToWebMenu(self.osminfo_menu, self.actionRun)
         self.iface.addPluginToWebMenu(self.osminfo_menu, self.actionAbout)
         self.iface.addPluginToWebMenu(self.osminfo_menu, self.actionSettings)
+        for action in self.iface.webMenu().actions():
+            if action.text() != self.osminfo_menu:
+                continue
+            action.setIcon(QIcon(":/plugins/osminfo/icons/osminfo.svg"))
 
         # add icon to new menu item in Web toolbar
         self.iface.addWebToolBarIcon(self.actionRun)
@@ -114,6 +125,9 @@ class OsmInfo:
         # prepare map tool
         self.mapTool = osminfotool.OSMInfotool(self.iface)
         # self.iface.mapCanvas().mapToolSet.connect(self.mapToolChanged)
+
+        self.__options_factory = OsmInfoOptionsWidgetFactory()
+        self.iface.registerOptionsWidgetFactory(self.__options_factory)
 
     def unload(self):
         """Actions to run when the plugin is unloaded"""
@@ -129,6 +143,13 @@ class OsmInfo:
         self.mapTool.deleteLater()
         del self.mapTool
 
+        if self.__options_factory is not None:
+            self.iface.unregisterOptionsWidgetFactory(self.__options_factory)
+            self.__options_factory.deleteLater()
+            self.__options_factory = None
+
+        unload_logger()
+
     def run(self):
         """Action to run"""
         self.iface.mapCanvas().setMapTool(self.mapTool)
@@ -138,5 +159,4 @@ class OsmInfo:
         dialog.exec()
 
     def settings(self):
-        d = settingsdialog.SettingsDialog()
-        d.exec()
+        self.iface.showOptionsDialog(self.iface.mainWindow(), "OSMInfo")
