@@ -101,6 +101,36 @@ class OsmInfoSettings:
             f"{self.COMPANY_NAME}/{self.PRODUCT}/debugEnabled", value
         )
 
+    @property
+    def fetch_nearby(self) -> bool:
+        result = self.__settings.value(
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/fetchNearby",
+            defaultValue=True,
+            type=bool,
+        )
+        return result
+
+    @fetch_nearby.setter
+    def fetch_nearby(self, value: bool) -> None:
+        self.__settings.setValue(
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/fetchNearby", value
+        )
+
+    @property
+    def fetch_surrounding(self) -> bool:
+        result = self.__settings.value(
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/fetchSurrounding",
+            defaultValue=True,
+            type=bool,
+        )
+        return result
+
+    @fetch_surrounding.setter
+    def fetch_surrounding(self, value: bool) -> None:
+        self.__settings.setValue(
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/fetchSurrounding", value
+        )
+
     @classmethod
     def __migrate_from_qsettings(cls):
         """Migrate from QSettings to QgsSettings"""
