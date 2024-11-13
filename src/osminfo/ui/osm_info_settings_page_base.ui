@@ -11,13 +11,13 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string/>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QGroupBox" name="overpass_group">
      <property name="title">
-      <string>Overpass endpoint</string>
+      <string>Overpass server</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
@@ -28,7 +28,7 @@
         <item>
          <widget class="QToolButton" name="endpoint_button">
           <property name="text">
-           <string>...</string>
+           <string/>
           </property>
          </widget>
         </item>

@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>DockWidget</string>
+   <string/>
   </property>
   <widget class="QWidget" name="content">
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -48,7 +48,7 @@
        <item>
         <widget class="QLabel" name="info_label">
          <property name="text">
-          <string>Info Panel</string>
+          <string/>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
