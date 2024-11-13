@@ -27,9 +27,10 @@
 #
 # ******************************************************************************
 
-from typing import Optional, cast
+from typing import TYPE_CHECKING, Optional, cast
 
 from qgis.core import (
+    QgsApplication,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsPointXY,
@@ -37,26 +38,25 @@ from qgis.core import (
 )
 from qgis.gui import QgisInterface, QgsMapMouseEvent, QgsMapTool
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtGui import QCursor, QPixmap
 from qgis.PyQt.QtWidgets import QApplication, QMainWindow
+from qgis.utils import iface
 
 from . import resources  # noqa: F401
 from .osminforesults import OsmInfoResultsDock
 from .rb_result_renderer import RubberBandResultRenderer
 
+if TYPE_CHECKING:
+    assert isinstance(iface, QgisInterface)
+
 
 class OSMInfotool(QgsMapTool):
     def __init__(self, iface: QgisInterface) -> None:
-        QgsMapTool.__init__(self, iface.mapCanvas())
-        self.result_renderer = RubberBandResultRenderer()
-
-        # self.emitPoint = QgsMapToolEmitPoint(self.canvas)
-        self.iface = iface
-
-        self.cursor = QCursor(
-            QPixmap(":/plugins/osminfo/icons/cursor.png"), 1, 1
+        super().__init__(iface.mapCanvas())
+        self.setCursor(
+            QgsApplication.getThemeCursor(QgsApplication.Cursor.Identify)
         )
-        # self.visibilityChanged.connect(self.result_renderer.clear)
+
+        self.result_renderer = RubberBandResultRenderer()
 
         self.dockWidgetResults = OsmInfoResultsDock(
             "OSMInfo", self.result_renderer
@@ -77,7 +77,7 @@ class OSMInfotool(QgsMapTool):
         )
 
     def __del__(self):
-        main_window = cast(QMainWindow, self.iface.mainWindow())
+        main_window = cast(QMainWindow, iface.mainWindow())
         main_window.removeDockWidget(self.dockWidgetResults)
         self.clearCanvas()
 
@@ -89,15 +89,12 @@ class OSMInfotool(QgsMapTool):
         if vis is False:
             self.clearCanvas()
 
-    def activate(self):
-        self.canvas().setCursor(self.cursor)
-
     def deactivate(self):
         if self.dockWidgetResults.isFloating():
             self.dockWidgetResults.setVisible(False)
 
     def canvasReleaseEvent(self, e: Optional[QgsMapMouseEvent]):
-        crsSrc = self.iface.mapCanvas().mapSettings().destinationCrs()
+        crsSrc = iface.mapCanvas().mapSettings().destinationCrs()
         crsWGS = QgsCoordinateReferenceSystem.fromEpsgId(4326)
 
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
