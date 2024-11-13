@@ -47,8 +47,17 @@ from qgis.core import (
 )
 from qgis.gui import QgisInterface, QgsDockWidget, QgsMessageBar
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QLocale, QMetaType, QSettings, Qt, QVariant
-from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtCore import (
+    QByteArray,
+    QLocale,
+    QMetaType,
+    QSettings,
+    Qt,
+    QUrl,
+    QVariant,
+    pyqtSlot,
+)
+from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.PyQt.QtWidgets import (
     QAction,
     QHeaderView,
@@ -59,12 +68,17 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.utils import iface
 
+from osminfo.compat import (
+    LineGeometry,
+    PointGeometry,
+    PolygonGeometry,
+    addMapLayer,
+)
 from osminfo.logging import logger
+from osminfo.osmelements import OsmElement, parseOsmElement
+from osminfo.osminfo_worker import Worker
 from osminfo.settings.osm_info_settings import OsmInfoSettings
-
-from .compat import LineGeometry, PointGeometry, PolygonGeometry, addMapLayer
-from .osmelements import OsmElement, parseOsmElement
-from .osminfo_worker import Worker
+from osminfo.utils import set_clipboard_data
 
 if TYPE_CHECKING:
     assert isinstance(iface, QgisInterface)
@@ -220,6 +234,14 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         menu.addAction(actionZoom)
         actionZoom.triggered.connect(self.zoom2feature)
 
+        actionCopy2Clipboard = QAction(
+            QIcon(":/images/themes/default/mActionEditCopy.svg"),
+            self.tr("Copy feature to clipboard"),
+            self,
+        )
+        actionCopy2Clipboard.triggered.connect(self.copy2Clipboard)
+        menu.addAction(actionCopy2Clipboard)
+
         actionMove2NewTempLayer = QAction(
             QIcon(":/images/themes/default/mActionCreateMemory.svg"),
             self.tr("Save feature in new temporary layer"),
@@ -243,27 +265,37 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
             lambda: self.copy2Layer(False)
         )
 
-        actionCopy2Clipboard = QAction(
-            QIcon(":/images/themes/default/mActionEditCopy.svg"),
-            self.tr("Copy feature to clipboard"),
+        open_in_osm_action = QAction(
+            QIcon(":/plugins/osminfo/icons/osm_logo.svg"),
+            self.tr("Open in OpenStreetMap"),
             self,
         )
-        menu.addAction(actionCopy2Clipboard)
-        actionCopy2Clipboard.triggered.connect(self.copy2Clipboard)
+        open_in_osm_action.triggered.connect(self.__open_in_osm)
+        menu.addAction(open_in_osm_action)
+
+        copy_link_to_osm_action = QAction(
+            QIcon(":/plugins/osminfo/icons/osm_logo.svg"),
+            self.tr("Copy OpenStreetMap URL"),
+            self,
+        )
+        copy_link_to_osm_action.triggered.connect(self.__copy_osm_url)
+        menu.addAction(copy_link_to_osm_action)
 
         menu.exec(self.__resultsTree.viewport().mapToGlobal(position))
 
     def zoom2feature(self):
         selected_items = self.__resultsTree.selectedItems()
-        if len(selected_items) > 0:
-            item = selected_items[0]
-            # if selected tag - use parent
-            if item.type() == TagItemType:
-                item = item.parent()
-            if item and item.type() == FeatureItemType:
-                osm_element = item.data(0, Qt.ItemDataRole.UserRole)
-                geom = osm_element.asQgisGeometry()
-                self.__rb.zoom_to_bbox(geom.boundingBox())
+        if len(selected_items) == 0:
+            return
+
+        item = selected_items[0]
+        # if selected tag - use parent
+        if item.type() == TagItemType:
+            item = item.parent()
+        if item and item.type() == FeatureItemType:
+            osm_element = item.data(0, Qt.ItemDataRole.UserRole)
+            geom = osm_element.asQgisGeometry()
+            self.__rb.zoom_to_bbox(geom.boundingBox())
 
     def copy2Layer(self, create_new: bool):
         selected_items = self.__resultsTree.selectedItems()
@@ -382,7 +414,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         if not in_edit_mode:
             assert vLayer.startEditing()
 
-        vLayer.beginEditCommand(f"Added OSM feature (id={osm_element.id})")
+        vLayer.beginEditCommand(f"Added OSM feature (id={osm_element.osm_id})")
         vLayer.addFeature(feature)
         vLayer.endEditCommand()
 
@@ -645,3 +677,44 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
             osm_element = item.data(0, Qt.ItemDataRole.UserRole)
 
             self.__rb.show_feature(osm_element.asQgisGeometry())
+
+    @pyqtSlot()
+    def __open_in_osm(self) -> None:
+        selected_items = self.__resultsTree.selectedItems()
+        if len(selected_items) == 0:
+            return
+
+        item = selected_items[0]
+        if item.type() == TagItemType:
+            item = item.parent()
+        if not item or item.type() != FeatureItemType:
+            return
+
+        osm_element: Optional[OsmElement] = item.data(
+            0, Qt.ItemDataRole.UserRole
+        )
+
+        QDesktopServices.openUrl(
+            QUrl(
+                f"https://www.openstreetmap.org/{osm_element.type()}/{osm_element.osm_id}"
+            )
+        )
+
+    @pyqtSlot()
+    def __copy_osm_url(self) -> None:
+        selected_items = self.__resultsTree.selectedItems()
+        if len(selected_items) == 0:
+            return
+
+        item = selected_items[0]
+        if item.type() == TagItemType:
+            item = item.parent()
+        if not item or item.type() != FeatureItemType:
+            return
+
+        osm_element: Optional[OsmElement] = item.data(
+            0, Qt.ItemDataRole.UserRole
+        )
+        link = f"https://www.openstreetmap.org/{osm_element.type()}/{osm_element.osm_id}"
+        data = QByteArray(link.encode())
+        set_clipboard_data("text/plain", data, link)

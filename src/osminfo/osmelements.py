@@ -87,7 +87,7 @@ class OsmElement:
         return self.__type
 
     @property
-    def id(self):
+    def osm_id(self):
         return self.__id
 
     @property

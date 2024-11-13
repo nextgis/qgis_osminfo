@@ -1,9 +1,9 @@
 <RCC>
   <qresource prefix="/plugins/osminfo/">
     <file>icons/osminfo.svg</file>
+    <file>icons/osm_logo.svg</file>
     <file>icons/osminfo.png</file>
     <file>icons/about.png</file>
-    <file>icons/cursor.png</file>
     <file>icons/zoom2feature.png</file>
     <file>icons/fire.png</file>
     <file>icons/news.png</file>
