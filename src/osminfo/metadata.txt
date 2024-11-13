@@ -5,7 +5,7 @@ description[ru]=Получите полную информацию о точке
 about=For a selected point, extract all information abour nearby and enclosing features from OpenStreetMap database using Overpass API.
 about[ru]=Для выбранной точки извлеките всю информацию о близлежащих и окружающих объектах из базы данных OpenStreetMap, используя Overpass API.
 category=Vector
-version=0.9.1
+version=1.0.0
 qgisMinimumVersion=3.22
 qgisMaximumVersion=3.99
 
@@ -25,6 +25,18 @@ video[ru]=https://youtu.be/rRhHekQZH_8
 deprecated=False
 
 changelog=
+    1.0.0:
+        * The settings dialog has been moved to QGIS settings
+        * Added the ability to select an Overpass server
+        * Added the ability to copy the link and open the object in OpenStreetMap
+        * Added the ability to disable data set requests (Nearby objects, surrounding objects)
+        * Cursor changed to the standard QGIS cursor
+        * The tool button now displays its status
+        * Added icons to the "Web" menu
+        * Added handling of Overpass errors
+        * Added debug messages
+        * Updated the "About plugin" dialog
+        * Fixed saving of toolbar position
     0.9.1:
         * Fixed the issue of adding empty holes in polygons
     0.9.0:
