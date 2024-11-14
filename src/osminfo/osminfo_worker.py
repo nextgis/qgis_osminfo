@@ -42,6 +42,7 @@ from osminfo.settings import OsmInfoSettings
 class Worker(QThread):
     gotData = pyqtSignal(list, list)
     gotError = pyqtSignal(str)
+    finished = pyqtSignal()
 
     def __init__(self, xx, yy):
         super().__init__()
@@ -55,11 +56,13 @@ class Worker(QThread):
             self.gotError.emit(
                 self.tr("Worker: %s, %s are wrong coords!") % (xx, yy)
             )
+            self.finished.emit()
             return
 
         settings = OsmInfoSettings()
         if not settings.fetch_nearby and not settings.fetch_surrounding:
             self.gotError.emit("No object category selected in settings")
+            self.finished.emit()
             return
 
         try:
@@ -67,9 +70,11 @@ class Worker(QThread):
             surrounding_elements = self.__fetch_surrounding(settings)
         except Exception as error:
             self.gotError.emit(str(error))
+            self.finished.emit()
             return
 
         self.gotData.emit(nearby_elements, surrounding_elements)
+        self.finished.emit()
 
     def __fetch_nearby(self, settings: OsmInfoSettings) -> List[Any]:
         if not settings.fetch_nearby:

@@ -547,8 +547,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         if self.worker:
             self.worker.gotData.disconnect(self.showData)
             self.worker.gotError.disconnect(self.showError)
-            self.worker.quit()
-            self.worker.deleteLater()
+            self.worker.finished.connect(self.worker.deleteLater)
 
         worker = Worker(xx, yy)
         worker.gotData.connect(self.showData)
