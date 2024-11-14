@@ -241,27 +241,27 @@ p, li { white-space: pre-wrap; }
         <translation>Загрузка...</translation>
     </message>
     <message>
-        <location filename="../osminforesults.py" line="570"/>
+        <location filename="../osminforesults.py" line="569"/>
         <source>No features found</source>
         <translation>Не найдены объекты</translation>
     </message>
     <message>
-        <location filename="../osminforesults.py" line="576"/>
+        <location filename="../osminforesults.py" line="575"/>
         <source>Nearby features</source>
         <translation>Ближайшие объекты</translation>
     </message>
     <message>
-        <location filename="../osminforesults.py" line="650"/>
+        <location filename="../osminforesults.py" line="649"/>
         <source>Element process error: {e}. Element: {element}.</source>
         <translation>Ошибка обработки элемента: {e}. Элемент: {element}.</translation>
     </message>
     <message>
-        <location filename="../osminforesults.py" line="650"/>
+        <location filename="../osminforesults.py" line="649"/>
         <source>OSMInfo</source>
         <translation>OSMInfo</translation>
     </message>
     <message>
-        <location filename="../osminforesults.py" line="612"/>
+        <location filename="../osminforesults.py" line="611"/>
         <source>Is inside</source>
         <translation>Входит в</translation>
     </message>
@@ -312,17 +312,17 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>Worker</name>
     <message>
-        <location filename="../osminfo_worker.py" line="55"/>
+        <location filename="../osminfo_worker.py" line="56"/>
         <source>Worker: %s, %s are wrong coords!</source>
         <translation>Worker: неправильные координаты %s, %s!</translation>
     </message>
     <message>
-        <location filename="../osminfo_worker.py" line="132"/>
+        <location filename="../osminfo_worker.py" line="137"/>
         <source>Error getting data from the server</source>
         <translation>Ошибка получения данных с сервера</translation>
     </message>
     <message>
-        <location filename="../osminfo_worker.py" line="138"/>
+        <location filename="../osminfo_worker.py" line="143"/>
         <source>Parsing data error</source>
         <translation>Ошибка разбора данных</translation>
     </message>
