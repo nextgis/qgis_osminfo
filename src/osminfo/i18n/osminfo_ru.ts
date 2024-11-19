@@ -59,7 +59,7 @@
     <message>
         <location filename="../ui/about_dialog_base.ui" line="14"/>
         <source>About {plugin_name}</source>
-        <translation>О {plugin_name}</translation>
+        <translation>О модуле {plugin_name}</translation>
     </message>
     <message>
         <location filename="../ui/about_dialog_base.ui" line="33"/>
