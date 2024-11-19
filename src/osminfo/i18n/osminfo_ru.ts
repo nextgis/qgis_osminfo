@@ -9,47 +9,47 @@
         <translation> от NextGIS</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="181"/>
+        <location filename="../about_dialog.py" line="184"/>
         <source>REPORT_END</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="186"/>
+        <location filename="../about_dialog.py" line="189"/>
         <source>Developers</source>
         <translation>Разработчики</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="187"/>
+        <location filename="../about_dialog.py" line="190"/>
         <source>Homepage</source>
         <translation>Домашняя страница</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="188"/>
+        <location filename="../about_dialog.py" line="191"/>
         <source>Please report bugs at</source>
         <translation>Пожалуйста, сообщайте о багах в</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="190"/>
+        <location filename="../about_dialog.py" line="193"/>
         <source>bugtracker</source>
         <translation>багтрекер</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="191"/>
+        <location filename="../about_dialog.py" line="194"/>
         <source>Video with an overview of the plugin</source>
         <translation>Видео с обзором на плагин</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="192"/>
+        <location filename="../about_dialog.py" line="195"/>
         <source>Other helpful services by NextGIS</source>
         <translation>Другие полезные сервисы от NextGIS</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="193"/>
+        <location filename="../about_dialog.py" line="196"/>
         <source>Convenient up-to-date data extracts for any place in the world</source>
         <translation>Удобная выборка актуальных данных из любой точки мира</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="196"/>
+        <location filename="../about_dialog.py" line="199"/>
         <source>Fully featured Web GIS service</source>
         <translation>Полнофункциональный Веб ГИС-сервис</translation>
     </message>
@@ -142,7 +142,7 @@ p, li { white-space: pre-wrap; }
         <translation>Щелкните в точке по которой хотите получить информацию из OpenStreetMap</translation>
     </message>
     <message>
-        <location filename="../osminfo.py" line="147"/>
+        <location filename="../osminfo.py" line="157"/>
         <source>OSMInfo</source>
         <translation>OSMInfo</translation>
     </message>
