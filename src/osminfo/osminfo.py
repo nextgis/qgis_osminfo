@@ -121,9 +121,19 @@ class OsmInfo:
         # add icon to new menu item in Web toolbar
         self.iface.addWebToolBarIcon(self.__tool_action)
 
+        self.__help_action = QAction(
+            QIcon(":/plugins/osminfo/icons/osminfo.svg"),
+            "OSMInfo",
+        )
+
+        plugin_help_menu = self.iface.pluginHelpMenu()
+        assert plugin_help_menu is not None
+        plugin_help_menu.addAction(self.__help_action)
+
         # connect action to the run method
         self.__tool_action.triggered.connect(self.__identify)
         self.__about_action.triggered.connect(self.__open_about)
+        self.__help_action.triggered.connect(self.__open_about)
         self.__settings_action.triggered.connect(self.__open_settings)
 
         # prepare map tool
