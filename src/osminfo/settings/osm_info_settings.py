@@ -150,15 +150,13 @@ class OsmInfoSettings:
             qgs_settings.setValue(
                 f"{cls.COMPANY_NAME}/{cls.PRODUCT}/distance", old_distance
             )
-            old_settings.remove(f"{cls.COMPANY_NAME}/{cls.PRODUCT}/distance")
+            old_settings.remove("distance")
 
         old_timeout = old_settings.value("timeout")
         if old_timeout is not None:
             qgs_settings.setValue(
                 f"{cls.COMPANY_NAME}/{cls.PRODUCT}/timeout", old_timeout
             )
-            old_settings.remove(f"{cls.COMPANY_NAME}/{cls.PRODUCT}/timeout")
-
-        old_settings.clear()
+            old_settings.remove("timeout")
 
         cls.__is_migrated_from_qsettings = True
