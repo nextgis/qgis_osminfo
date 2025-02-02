@@ -20,6 +20,7 @@
  ***************************************************************************/
 """
 
+import platform
 from typing import ClassVar, Optional
 
 from qgis.core import QgsSettings
@@ -138,19 +139,25 @@ class OsmInfoSettings:
             return
 
         old_settings = QSettings(cls.COMPANY_NAME, cls.PRODUCT)
-        if len(old_settings.allKeys()) == 0:
+        if platform.system() != "Darwin" and len(old_settings.allKeys()) == 0:
             cls.__is_migrated_from_qsettings = True
             return
 
         qgs_settings = QgsSettings()
-        qgs_settings.setValue(
-            f"{cls.COMPANY_NAME}/{cls.PRODUCT}/distance",
-            old_settings.value("distance", type=int),
-        )
-        qgs_settings.setValue(
-            f"{cls.COMPANY_NAME}/{cls.PRODUCT}/timeout",
-            old_settings.value("timeout", type=int),
-        )
+
+        old_distance = old_settings.value("distance")
+        if old_distance is not None:
+            qgs_settings.setValue(
+                f"{cls.COMPANY_NAME}/{cls.PRODUCT}/distance", old_distance
+            )
+            old_settings.remove(f"{cls.COMPANY_NAME}/{cls.PRODUCT}/distance")
+
+        old_timeout = old_settings.value("timeout")
+        if old_timeout is not None:
+            qgs_settings.setValue(
+                f"{cls.COMPANY_NAME}/{cls.PRODUCT}/timeout", old_timeout
+            )
+            old_settings.remove(f"{cls.COMPANY_NAME}/{cls.PRODUCT}/timeout")
 
         old_settings.clear()
 
