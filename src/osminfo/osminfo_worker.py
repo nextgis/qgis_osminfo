@@ -60,20 +60,20 @@ class Worker(QThread):
             return
 
         settings = OsmInfoSettings()
-        if not settings.fetch_nearby and not settings.fetch_surrounding:
+        if not settings.fetch_nearby and not settings.fetch_enclosing:
             self.gotError.emit("No object category selected in settings")
             self.finished.emit()
             return
 
         try:
             nearby_elements = self.__fetch_nearby(settings)
-            surrounding_elements = self.__fetch_surrounding(settings)
+            enclosing_elements = self.__fetch_enclosing(settings)
         except Exception as error:
             self.gotError.emit(str(error))
             self.finished.emit()
             return
 
-        self.gotData.emit(nearby_elements, surrounding_elements)
+        self.gotData.emit(nearby_elements, enclosing_elements)
         self.finished.emit()
 
     def __fetch_nearby(self, settings: OsmInfoSettings) -> List[Any]:
@@ -98,9 +98,9 @@ class Worker(QThread):
 
         return self.__fetch_from_overpass(settings, query)
 
-    def __fetch_surrounding(self, settings: OsmInfoSettings) -> List[Any]:
-        if not settings.fetch_surrounding:
-            logger.debug("Skip fetching surrounding features")
+    def __fetch_enclosing(self, settings: OsmInfoSettings) -> List[Any]:
+        if not settings.fetch_enclosing:
+            logger.debug("Skip fetching enclosing features")
             return []
 
         # TODO is .b really needed there? Probably this is a bug in overpass
@@ -115,7 +115,7 @@ class Worker(QThread):
             out geom;
         """
         logger.debug(
-            f"Fetch surrounding features for {self.__yy}, {self.__xx}\n"
+            f"Fetch enclosing features for {self.__yy}, {self.__xx}\n"
             f"{html.escape(query)}"
         )
 

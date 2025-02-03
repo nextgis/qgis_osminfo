@@ -607,7 +607,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
                         Qgis.MessageLevel.Critical,
                     )
 
-        if settings.fetch_surrounding:
+        if settings.fetch_enclosing:
             isin = QTreeWidgetItem([self.tr("Is inside")])
             self.__resultsTree.addTopLevelItem(isin)
             self.__resultsTree.expandItem(isin)

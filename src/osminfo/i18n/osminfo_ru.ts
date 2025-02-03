@@ -4,52 +4,52 @@
 <context>
     <name>AboutDialog</name>
     <message>
-        <location filename="../about_dialog.py" line="46"/>
+        <location filename="../about_dialog.py" line="75"/>
         <source> by NextGIS</source>
         <translation> от NextGIS</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="184"/>
+        <location filename="../about_dialog.py" line="215"/>
         <source>REPORT_END</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="189"/>
+        <location filename="../about_dialog.py" line="220"/>
         <source>Developers</source>
         <translation>Разработчики</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="190"/>
+        <location filename="../about_dialog.py" line="221"/>
         <source>Homepage</source>
         <translation>Домашняя страница</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="191"/>
+        <location filename="../about_dialog.py" line="222"/>
         <source>Please report bugs at</source>
-        <translation>Пожалуйста, сообщайте о багах в</translation>
+        <translation>Пожалуйста, сообщайте об ошибках в</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="193"/>
+        <location filename="../about_dialog.py" line="224"/>
         <source>bugtracker</source>
         <translation>багтрекер</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="194"/>
+        <location filename="../about_dialog.py" line="225"/>
         <source>Video with an overview of the plugin</source>
-        <translation>Видео с обзором на плагин</translation>
+        <translation>Видео с обзором плагина</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="195"/>
+        <location filename="../about_dialog.py" line="226"/>
         <source>Other helpful services by NextGIS</source>
         <translation>Другие полезные сервисы от NextGIS</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="196"/>
+        <location filename="../about_dialog.py" line="227"/>
         <source>Convenient up-to-date data extracts for any place in the world</source>
         <translation>Удобная выборка актуальных данных из любой точки мира</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="199"/>
+        <location filename="../about_dialog.py" line="230"/>
         <source>Fully featured Web GIS service</source>
         <translation>Полнофункциональный Веб ГИС-сервис</translation>
     </message>
@@ -280,7 +280,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <location filename="../ui/osm_info_settings_page_base.ui" line="65"/>
-        <source>Fetch surrounding features</source>
+        <source>Fetch enclosing features</source>
         <translation>Получать окружающие объекты</translation>
     </message>
     <message>

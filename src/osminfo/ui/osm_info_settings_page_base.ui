@@ -60,9 +60,9 @@
        </widget>
       </item>
       <item>
-       <widget class="QCheckBox" name="surrounding_checkbox">
+       <widget class="QCheckBox" name="enclosing_checkbox">
         <property name="text">
-         <string>Fetch surrounding features</string>
+         <string>Fetch enclosing features</string>
         </property>
         <property name="checked">
          <bool>true</bool>

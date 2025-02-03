@@ -100,9 +100,7 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
             )
         )
         self.__widget.nearby_checkbox.setChecked(settings.fetch_nearby)
-        self.__widget.surrounding_checkbox.setChecked(
-            settings.fetch_surrounding
-        )
+        self.__widget.enclosing_checkbox.setChecked(settings.fetch_enclosing)
         self.__widget.timeout_spinbox.setValue(settings.timeout)
         self.__widget.distance_spinbox.setValue(settings.distance)
         self.__widget.debug_checkbox.setChecked(settings.is_debug_enabled)
@@ -112,9 +110,7 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
         settings.overpass_endpoint = (
             self.__widget.endpoint_combobox.currentData()
         )
-        settings.fetch_surrounding = (
-            self.__widget.surrounding_checkbox.isChecked()
-        )
+        settings.fetch_enclosing = self.__widget.enclosing_checkbox.isChecked()
         settings.fetch_nearby = self.__widget.nearby_checkbox.isChecked()
         settings.timeout = self.__widget.timeout_spinbox.value()
         settings.distance = self.__widget.distance_spinbox.value()

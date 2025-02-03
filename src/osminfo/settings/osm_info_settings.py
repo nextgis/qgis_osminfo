@@ -33,13 +33,13 @@ class OsmInfoSettings:
     COMPANY_NAME = "NextGIS"
     PRODUCT = "OSMInfo"
 
-    __is_migrated_from_qsettings: ClassVar[bool] = False
+    __is_updated: ClassVar[bool] = False
 
     __settings: QgsSettings
 
     def __init__(self) -> None:
         self.__settings = QgsSettings()
-        self.__migrate_from_qsettings()
+        self.__update_settings()
 
     @property
     def default_overpass_endpoint(self) -> Optional[str]:
@@ -118,32 +118,38 @@ class OsmInfoSettings:
         )
 
     @property
-    def fetch_surrounding(self) -> bool:
+    def fetch_enclosing(self) -> bool:
         result = self.__settings.value(
-            f"{self.COMPANY_NAME}/{self.PRODUCT}/fetchSurrounding",
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/fetchEnclosing",
             defaultValue=True,
             type=bool,
         )
         return result
 
-    @fetch_surrounding.setter
-    def fetch_surrounding(self, value: bool) -> None:
+    @fetch_enclosing.setter
+    def fetch_enclosing(self, value: bool) -> None:
         self.__settings.setValue(
-            f"{self.COMPANY_NAME}/{self.PRODUCT}/fetchSurrounding", value
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/fetchEnclosing", value
         )
 
     @classmethod
-    def __migrate_from_qsettings(cls):
-        """Migrate from QSettings to QgsSettings"""
-        if cls.__is_migrated_from_qsettings:
-            return
-
-        old_settings = QSettings(cls.COMPANY_NAME, cls.PRODUCT)
-        if platform.system() != "Darwin" and len(old_settings.allKeys()) == 0:
-            cls.__is_migrated_from_qsettings = True
+    def __update_settings(cls):
+        if cls.__is_updated:
             return
 
         qgs_settings = QgsSettings()
+        cls.__migrate_from_qsettings(qgs_settings)
+        cls.__rename_settings(qgs_settings)
+
+        cls.__is_updated = True
+
+    @classmethod
+    def __migrate_from_qsettings(cls, qgs_settings: QgsSettings):
+        """Migrate from QSettings to QgsSettings"""
+
+        old_settings = QSettings(cls.COMPANY_NAME, cls.PRODUCT)
+        if platform.system() != "Darwin" and len(old_settings.allKeys()) == 0:
+            return
 
         old_distance = old_settings.value("distance")
         if old_distance is not None:
@@ -159,4 +165,13 @@ class OsmInfoSettings:
             )
             old_settings.remove("timeout")
 
-        cls.__is_migrated_from_qsettings = True
+    @classmethod
+    def __rename_settings(cls, qgs_settings: QgsSettings):
+        fetch_surrounding = qgs_settings.value(
+            f"{cls.COMPANY_NAME}/{cls.PRODUCT}/fetchSurrounding"
+        )
+        if fetch_surrounding is not None:
+            qgs_settings.setValue(
+                f"{cls.COMPANY_NAME}/{cls.PRODUCT}/fetchEnclosing",
+                fetch_surrounding,
+            )
