@@ -1,6 +1,6 @@
 [project]
 name = "osminfo"
-version = "1.1.0"
+version = "1.1.1"
 readme = "README.md"
 license = { file = "LICENSE" }
 

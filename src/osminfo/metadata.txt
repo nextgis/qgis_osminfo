@@ -5,7 +5,7 @@ description[ru]=Получите полную информацию о точке
 about=For a selected point, extract all information abour nearby and enclosing features from OpenStreetMap database using Overpass API.
 about[ru]=Для выбранной точки извлеките всю информацию о близлежащих и окружающих объектах из базы данных OpenStreetMap, используя Overpass API.
 category=Vector
-version=1.1.0
+version=1.1.1
 qgisMinimumVersion=3.22
 qgisMaximumVersion=3.99
 
@@ -25,6 +25,9 @@ video[ru]=https://youtu.be/rRhHekQZH_8
 deprecated=False
 
 changelog=
+    1.1.1
+        * Surrounding objects have been renamed to enclosing objects
+        * Fixed settings migration error on macOS
     1.1.0
         * Added plugin item to help menu
     1.0.1
@@ -33,7 +36,7 @@ changelog=
         * The settings dialog has been moved to QGIS settings
         * Added the ability to select an Overpass server
         * Added the ability to copy the link and open the object in OpenStreetMap
-        * Added the ability to disable data set requests (Nearby objects, surrounding objects)
+        * Added the ability to disable data set requests (Nearby objects, enclosing objects)
         * Cursor changed to the standard QGIS cursor
         * The tool button now displays its status
         * Added icons to the "Web" menu
