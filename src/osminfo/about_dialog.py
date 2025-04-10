@@ -1,14 +1,22 @@
-from enum import IntEnum
+from enum import Enum
+from importlib.util import find_spec
 from pathlib import Path
 from typing import Dict, Optional
 
 from qgis.core import QgsSettings
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QFile, QLocale, QSize, Qt, QUrl
+from qgis.PyQt.QtCore import QT_VERSION_STR, QFile, QLocale, QSize, Qt, QUrl
 from qgis.PyQt.QtGui import QDesktopServices, QIcon, QPixmap
-from qgis.PyQt.QtSvg import QSvgWidget
 from qgis.PyQt.QtWidgets import QDialog, QLabel, QWidget
 from qgis.utils import pluginMetadata
+
+QT_MAJOR_VERSION = int(QT_VERSION_STR.split(".")[0])
+if QT_MAJOR_VERSION < 6:
+    from qgis.PyQt.QtSvg import QSvgWidget
+elif find_spec("qgis.PyQt.QtSvgWidgets"):
+    from qgis.PyQt.QtSvgWidgets import QSvgWidget
+else:
+    from PyQt6.QtSvgWidgets import QSvgWidget
 
 CURRENT_PATH = Path(__file__).parent
 UI_PATH = Path(__file__).parent / "ui"
@@ -44,11 +52,14 @@ else:
     raise ImportError
 
 
-class AboutTab(IntEnum):
-    Information = 0
-    License = 1
-    Components = 2
-    Contributors = 3
+class AboutTab(str, Enum):
+    Information = "information_tab"
+    License = "license_tab"
+    Components = "components_tab"
+    Contributors = "contributors_tab"
+
+    def __str__(self) -> str:
+        return str(self.value)
 
 
 class AboutDialog(QDialog, Ui_AboutDialogBase):
@@ -141,17 +152,16 @@ class AboutDialog(QDialog, Ui_AboutDialogBase):
     def __fill_license(self) -> None:
         license_path = Path(__file__).parent / "LICENSE"
         if not license_path.exists():
-            self.tab_widget.setTabVisible(AboutTab.License, False)
+            self.tab_widget.removeTab(self.__tab_to_index(AboutTab.License))
             return
 
-        self.tab_widget.setTabVisible(AboutTab.License, True)
         self.license_text_browser.setPlainText(license_path.read_text())
 
     def __fill_components(self) -> None:
-        self.tab_widget.setTabVisible(AboutTab.Components, False)
+        self.tab_widget.removeTab(self.__tab_to_index(AboutTab.Components))
 
     def __fill_contributors(self) -> None:
-        self.tab_widget.setTabVisible(AboutTab.Contributors, False)
+        self.tab_widget.removeTab(self.__tab_to_index(AboutTab.Contributors))
 
     def __locale(self) -> str:
         override_locale = QgsSettings().value(
@@ -256,3 +266,7 @@ class AboutDialog(QDialog, Ui_AboutDialogBase):
         replacements.update(metadata)
 
         return (description + services).format_map(replacements)
+
+    def __tab_to_index(self, tab_name: AboutTab) -> int:
+        tab = self.tab_widget.findChild(QWidget, str(tab_name))
+        return self.tab_widget.indexOf(tab)
