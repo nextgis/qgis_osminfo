@@ -23,6 +23,7 @@ video=https://youtu.be/k-DZVAh_i18
 video[ru]=https://youtu.be/rRhHekQZH_8
 
 deprecated=False
+supportsQt6=True
 
 changelog=
     1.1.1
