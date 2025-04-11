@@ -222,3 +222,6 @@ resources.py
 
 # QGIS
 *.db
+
+# VS Code
+.vscode
