@@ -150,11 +150,11 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         )
         if hasattr(self.__resultsTree.header(), "setResizeMode"):
             self.__resultsTree.header().setResizeMode(
-                QHeaderView.ResizeToContents
+                QHeaderView.ResizeMode.ResizeToContents
             )
         else:
             self.__resultsTree.header().setSectionResizeMode(
-                QHeaderView.ResizeToContents
+                QHeaderView.ResizeMode.ResizeToContents
             )
         self.__resultsTree.header().setStretchLastSection(False)
         self.__resultsTree.itemSelectionChanged.connect(self.selItemChanged)
@@ -356,7 +356,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         assert dataProvider is not None
 
         string_type = (
-            QVariant.Type.String
+            QVariant.String
             if Qgis.versionInt() < 33800
             else QMetaType.Type.QString
         )
@@ -378,7 +378,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
                     new_fields = set(element_tags) - set(layer_fields)
 
                     string_type = (
-                        QVariant.Type.String
+                        QVariant.String
                         if Qgis.versionInt() < 33800
                         else QMetaType.Type.QString
                     )
