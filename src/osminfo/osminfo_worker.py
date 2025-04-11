@@ -126,7 +126,7 @@ class Worker(QThread):
     ) -> List[Any]:
         request = QNetworkRequest(QUrl(settings.overpass_endpoint))
         request.setHeader(
-            QNetworkRequest.ContentTypeHeader,
+            QNetworkRequest.KnownHeaders.ContentTypeHeader,
             "application/x-www-form-urlencoded",
         )
 
