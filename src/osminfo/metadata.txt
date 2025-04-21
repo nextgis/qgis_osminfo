@@ -17,6 +17,8 @@ icon=icons/osminfo.png
 tags=osm,openstreetmap,overpass
 
 homepage=https://github.com/nextgis/osminfo
+user_guide=https://docs.nextgis.com/docs_ngqgis/source/osminfo.html
+user_guide[ru]=https://docs.nextgis.ru/docs_ngqgis/source/osminfo.html
 tracker=https://github.com/nextgis/osminfo/issues
 repository=https://github.com/nextgis/osminfo
 video=https://youtu.be/k-DZVAh_i18
