@@ -1,5 +1,5 @@
+import importlib.util
 from enum import Enum
-from importlib.util import find_spec
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -13,7 +13,7 @@ from qgis.utils import pluginMetadata
 QT_MAJOR_VERSION = int(QT_VERSION_STR.split(".")[0])
 if QT_MAJOR_VERSION < 6:
     from qgis.PyQt.QtSvg import QSvgWidget
-elif find_spec("qgis.PyQt.QtSvgWidgets"):
+elif importlib.util.find_spec("qgis.PyQt.QtSvgWidgets"):
     from qgis.PyQt.QtSvgWidgets import QSvgWidget
 else:
     from PyQt6.QtSvgWidgets import QSvgWidget
@@ -68,6 +68,12 @@ class AboutDialog(QDialog, Ui_AboutDialogBase):
         self.setupUi(self)
         self.__package_name = package_name
 
+        module_spec = importlib.util.find_spec(self.__package_name)
+        if module_spec and module_spec.origin:
+            self.__package_path = Path(module_spec.origin).parent
+        else:
+            self.__package_path = Path(__file__).parent
+
         self.tab_widget.setCurrentIndex(0)
 
         metadata = self.__metadata()
@@ -99,7 +105,7 @@ class AboutDialog(QDialog, Ui_AboutDialogBase):
 
         header_size: QSize = self.info_layout.sizeHint()
 
-        icon_path = Path(__file__).parent / str(metadata.get("icon_path"))
+        icon_path = self.__package_path / str(metadata.get("icon_path"))
         svg_icon_path = icon_path.with_suffix(".svg")
 
         if svg_icon_path.exists():
@@ -129,8 +135,7 @@ class AboutDialog(QDialog, Ui_AboutDialogBase):
         self.header_layout.insertWidget(0, icon_widget)
 
     def __fill_get_involved(self, metadata: Dict[str, Optional[str]]) -> None:
-        plugin_path = Path(__file__).parent
-        file_path = str(plugin_path / "icons" / "nextgis_logo.svg")
+        file_path = str(self.__package_path / "icons" / "nextgis_logo.svg")
         resources_path = (
             f":/plugins/{self.__package_name}/icons/nextgis_logo.svg"
         )
@@ -150,7 +155,7 @@ class AboutDialog(QDialog, Ui_AboutDialogBase):
         self.about_text_browser.setHtml(self.__html(metadata))
 
     def __fill_license(self) -> None:
-        license_path = Path(__file__).parent / "LICENSE"
+        license_path = self.__package_path / "LICENSE"
         if not license_path.exists():
             self.tab_widget.removeTab(self.__tab_to_index(AboutTab.License))
             return
@@ -214,6 +219,7 @@ class AboutDialog(QDialog, Ui_AboutDialogBase):
             "video_url": metadata_value("video"),
             "homepage_url": metadata_value("homepage"),
             "tracker_url": metadata_value("tracker"),
+            "user_guide_url": metadata_value("user_guide"),
             "main_url": main_url,
             "data_url": main_url.replace("://", "://data."),
             "get_involved_url": f"https://nextgis.com/redirect/{locale}/ak45prp5?{utm}",
@@ -229,6 +235,7 @@ class AboutDialog(QDialog, Ui_AboutDialogBase):
         titles = {
             "developers_title": self.tr("Developers"),
             "homepage_title": self.tr("Homepage"),
+            "user_guide": self.tr("User Guide"),
             "report_title": self.tr("Please report bugs at"),
             "report_end": report_end,
             "bugtracker_title": self.tr("bugtracker"),
@@ -243,10 +250,16 @@ class AboutDialog(QDialog, Ui_AboutDialogBase):
         description = """
             <p>{description}</p>
             <p>{about}</p>
+        """
+
+        if metadata.get("user_guide_url") is not None:
+            description += '<p><b>{user_guide}:</b> <a href="{user_guide_url}{utm}">{user_guide_url}</a></p>'
+
+        description += """
             <p><b>{developers_title}:</b> <a href="{main_url}/{utm}">{authors}</a></p>
             <p><b>{homepage_title}:</b> <a href="{homepage_url}">{homepage_url}</a></p>
             <p><b>{report_title}</b> <a href="{tracker_url}">{bugtracker_title}</a> {report_end}</p>
-            """
+        """
 
         if metadata.get("video_url") is not None:
             description += '<p><b>{video_title}:</b> <a href="{video_url}">{video_url}</a></p>'
