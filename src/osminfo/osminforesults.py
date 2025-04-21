@@ -356,7 +356,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         assert dataProvider is not None
 
         string_type = (
-            QVariant.String
+            QVariant.Type.String
             if Qgis.versionInt() < 33800
             else QMetaType.Type.QString
         )
@@ -378,7 +378,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
                     new_fields = set(element_tags) - set(layer_fields)
 
                     string_type = (
-                        QVariant.String
+                        QVariant.Type.String
                         if Qgis.versionInt() < 33800
                         else QMetaType.Type.QString
                     )
