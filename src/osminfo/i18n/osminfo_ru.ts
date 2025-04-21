@@ -4,54 +4,59 @@
 <context>
     <name>AboutDialog</name>
     <message>
-        <location filename="../about_dialog.py" line="75"/>
+        <location filename="../about_dialog.py" line="92"/>
         <source> by NextGIS</source>
         <translation> от NextGIS</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="215"/>
+        <location filename="../about_dialog.py" line="231"/>
         <source>REPORT_END</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="220"/>
+        <location filename="../about_dialog.py" line="236"/>
         <source>Developers</source>
         <translation>Разработчики</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="221"/>
+        <location filename="../about_dialog.py" line="237"/>
         <source>Homepage</source>
         <translation>Домашняя страница</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="222"/>
+        <location filename="../about_dialog.py" line="239"/>
         <source>Please report bugs at</source>
         <translation>Пожалуйста, сообщайте об ошибках в</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="224"/>
+        <location filename="../about_dialog.py" line="241"/>
         <source>bugtracker</source>
         <translation>багтрекер</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="225"/>
+        <location filename="../about_dialog.py" line="242"/>
         <source>Video with an overview of the plugin</source>
         <translation>Видео с обзором плагина</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="226"/>
+        <location filename="../about_dialog.py" line="243"/>
         <source>Other helpful services by NextGIS</source>
         <translation>Другие полезные сервисы от NextGIS</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="227"/>
+        <location filename="../about_dialog.py" line="244"/>
         <source>Convenient up-to-date data extracts for any place in the world</source>
         <translation>Удобная выборка актуальных данных из любой точки мира</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="230"/>
+        <location filename="../about_dialog.py" line="247"/>
         <source>Fully featured Web GIS service</source>
         <translation>Полнофункциональный Веб ГИС-сервис</translation>
+    </message>
+    <message>
+        <location filename="../about_dialog.py" line="238"/>
+        <source>User Guide</source>
+        <translation>Руководство пользователя</translation>
     </message>
 </context>
 <context>
@@ -165,7 +170,7 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>OsmInfoOptionsErrorPageWidget</name>
     <message>
-        <location filename="../settings/osm_info_settings_page.py" line="144"/>
+        <location filename="../settings/osm_info_settings_page.py" line="140"/>
         <source>Settings dialog was crashed</source>
         <translation>В диалоге настроек возникла ошибка</translation>
     </message>
