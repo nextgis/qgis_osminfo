@@ -83,6 +83,9 @@
           <property name="suffix">
            <string> s</string>
           </property>
+          <property name="maximum">
+           <number>262144</number>
+          </property>
          </widget>
         </item>
         <item row="0" column="1">

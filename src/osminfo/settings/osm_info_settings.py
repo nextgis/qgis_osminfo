@@ -77,7 +77,7 @@ class OsmInfoSettings:
     def timeout(self) -> int:
         return self.__settings.value(
             f"{self.COMPANY_NAME}/{self.PRODUCT}/timeout",
-            defaultValue=30,
+            defaultValue=60,
             type=int,
         )
 
