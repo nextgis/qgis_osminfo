@@ -30,7 +30,6 @@
 from typing import TYPE_CHECKING, Optional, cast
 
 from qgis.core import (
-    QgsApplication,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsPointXY,
@@ -40,6 +39,8 @@ from qgis.gui import QgisInterface, QgsMapMouseEvent, QgsMapTool
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QApplication, QMainWindow
 from qgis.utils import iface
+
+from osminfo.ui.cursor import OsmInfoCursor, create_cursor
 
 from . import resources  # noqa: F401
 from .osminforesults import OsmInfoResultsDock
@@ -53,7 +54,7 @@ class OSMInfotool(QgsMapTool):
     def __init__(self, iface: QgisInterface) -> None:
         super().__init__(iface.mapCanvas())
         self.setCursor(
-            QgsApplication.getThemeCursor(QgsApplication.Cursor.Identify)
+            create_cursor(OsmInfoCursor.IDENTIFY)
         )
 
         self.result_renderer = RubberBandResultRenderer()

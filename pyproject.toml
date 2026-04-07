@@ -6,7 +6,7 @@ license = { file = "LICENSE" }
 
 
 [tool.qgspb.package-data]
-"osminfo.icons" = ["osminfo.png"]
+"osminfo.icons" = ["osminfo.svg"]
 
 [tool.qgspb.forms]
 ui-files = ["src/osminfo/ui/*.ui"]

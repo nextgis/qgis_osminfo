@@ -16,7 +16,8 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from osminfo.logging import logger, update_level
+from osminfo.icon import plugin_icon
+from osminfo.logging import logger, update_logging_level
 from osminfo.settings.osm_info_settings import OsmInfoSettings
 
 
@@ -155,7 +156,7 @@ class OsmInfoOptionsWidgetFactory(QgsOptionsWidgetFactory):
     def __init__(self):
         super().__init__(
             "OSMInfo",
-            QIcon(":/plugins/osminfo/icons/osminfo.svg"),
+            plugin_icon("osminfo.svg"),
         )
 
     def path(self) -> List[str]:

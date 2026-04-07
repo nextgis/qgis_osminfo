@@ -39,12 +39,12 @@ from qgis.PyQt.QtCore import (
     QSettings,
     QTranslator,
 )
-from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
 from osminfo import about_dialog, osminfotool
 from osminfo.logging import unload_logger
 from osminfo.settings.osm_info_settings_page import OsmInfoOptionsWidgetFactory
+from osminfo.ui.icon import plugin_icon
 
 _current_path = str(Path(__file__).parent)
 
@@ -81,7 +81,7 @@ class OsmInfo:
         """Initialize graphic user interface"""
         # create action that will be run by the plugin
         self.__tool_action = QAction(
-            QIcon(":/plugins/osminfo/icons/osminfo.png"),
+            plugin_icon("mActionIdentify.svg"),
             self.tr("Get OSM info for a point"),
             self.iface.mainWindow(),
         )
@@ -116,13 +116,13 @@ class OsmInfo:
         for action in self.iface.webMenu().actions():
             if action.text() != self.osminfo_menu:
                 continue
-            action.setIcon(QIcon(":/plugins/osminfo/icons/osminfo.svg"))
+            action.setIcon(plugin_icon("osminfo.svg"))
 
         # add icon to new menu item in Web toolbar
         self.iface.addWebToolBarIcon(self.__tool_action)
 
         self.__help_action = QAction(
-            QIcon(":/plugins/osminfo/icons/osminfo.svg"),
+            plugin_icon("osminfo.svg"),
             "OSMInfo",
         )
 

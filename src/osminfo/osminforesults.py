@@ -57,7 +57,7 @@ from qgis.PyQt.QtCore import (
     QVariant,
     pyqtSlot,
 )
-from qgis.PyQt.QtGui import QDesktopServices, QIcon
+from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtWidgets import (
     QAction,
     QHeaderView,
@@ -78,6 +78,7 @@ from osminfo.logging import logger
 from osminfo.osmelements import OsmElement, parseOsmElement
 from osminfo.osminfo_worker import Worker
 from osminfo.settings.osm_info_settings import OsmInfoSettings
+from osminfo.ui.icon import plugin_icon, qgis_icon
 from osminfo.utils import set_clipboard_data
 
 if TYPE_CHECKING:
@@ -227,7 +228,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         menu = QMenu()
 
         actionZoom = QAction(
-            QIcon(":/plugins/osminfo/icons/zoom2feature.png"),
+            plugin_icon("zoom2feature.png"),
             self.tr("Zoom to feature"),
             self,
         )
@@ -235,7 +236,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         actionZoom.triggered.connect(self.zoom2feature)
 
         actionCopy2Clipboard = QAction(
-            QIcon(":/images/themes/default/mActionEditCopy.svg"),
+            qgis_icon("mActionEditCopy.svg"),
             self.tr("Copy feature to clipboard"),
             self,
         )
@@ -243,7 +244,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         menu.addAction(actionCopy2Clipboard)
 
         actionMove2NewTempLayer = QAction(
-            QIcon(":/images/themes/default/mActionCreateMemory.svg"),
+            qgis_icon("mActionCreateMemory.svg"),
             self.tr("Save feature in new temporary layer"),
             self,
         )
@@ -253,7 +254,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         )
 
         actionMove2SelectedLayer = QAction(
-            QIcon(":/images/themes/default/mActionCreateMemory.svg"),
+            qgis_icon("mActionCreateMemory.svg"),
             self.tr("Save feature in selected layer"),
             self,
         )
@@ -266,7 +267,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         )
 
         open_in_osm_action = QAction(
-            QIcon(":/plugins/osminfo/icons/osm_logo.svg"),
+            plugin_icon("osm_logo.svg"),
             self.tr("Open in OpenStreetMap"),
             self,
         )
@@ -274,7 +275,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         menu.addAction(open_in_osm_action)
 
         copy_link_to_osm_action = QAction(
-            QIcon(":/plugins/osminfo/icons/osm_logo.svg"),
+            plugin_icon("osm_logo.svg"),
             self.tr("Copy OpenStreetMap URL"),
             self,
         )
