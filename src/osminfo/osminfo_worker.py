@@ -124,7 +124,11 @@ class Worker(QThread):
     def __fetch_from_overpass(
         self, settings: OsmInfoSettings, query: str
     ) -> List[Any]:
-        request = QNetworkRequest(QUrl(settings.overpass_endpoint))
+        overpass_url = settings.overpass_url
+        if len(overpass_url) == 0:
+            raise RuntimeError(self.tr("Custom Overpass API URL is not set"))
+
+        request = QNetworkRequest(QUrl(overpass_url))
         request.setHeader(
             QNetworkRequest.KnownHeaders.ContentTypeHeader,
             "application/x-www-form-urlencoded",
