@@ -267,3 +267,120 @@ class OsmInfoUiLoadError(OsmInfoError):
             user_message=user_message,
             detail=detail,
         )
+
+
+class OsmInfoOverpassHealthCheckError(OsmInfoError):
+    def __init__(
+        self,
+        log_message: Optional[str] = None,
+        *,
+        user_message: Optional[str] = None,
+        detail: Optional[str] = None,
+    ) -> None:
+        # fmt: off
+        default_message = QgsApplication.translate(
+            "Exceptions",
+            "Failed to check Overpass service health.",
+        )
+        # fmt: on
+        super().__init__(
+            log_message=log_message if log_message else default_message,
+            user_message=user_message if user_message else default_message,
+            detail=detail,
+        )
+
+
+class OsmInfoOverpassHealthCheckNetworkError(OsmInfoOverpassHealthCheckError):
+    def __init__(
+        self,
+        request_url: str,
+        method: str,
+        *,
+        http_status_code: Optional[int] = None,
+        log_message: Optional[str] = None,
+        user_message: Optional[str] = None,
+        detail: Optional[str] = None,
+    ) -> None:
+        self._request_url = request_url
+        self._method = method
+        self._http_status_code = http_status_code
+
+        if log_message is None:
+            if http_status_code is None:
+                log_message = (
+                    f"Overpass {method} request failed: {request_url}"
+                )
+            else:
+                log_message = (
+                    f"Overpass {method} request failed with HTTP "
+                    f"{http_status_code}: {request_url}"
+                )
+
+        if user_message is None:
+            # fmt: off
+            if http_status_code is None:
+                user_message = QgsApplication.translate(
+                    "Exceptions",
+                    "Network request failed."
+                )
+            else:
+                user_message = QgsApplication.translate(
+                    "Exceptions",
+                    "Network request failed with HTTP {status_code}."
+                ).format(status_code=http_status_code)
+            # fmt: on
+
+        super().__init__(
+            log_message=log_message,
+            user_message=user_message,
+            detail=detail,
+        )
+
+    @property
+    def request_url(self) -> str:
+        return self._request_url
+
+    @property
+    def method(self) -> str:
+        return self._method
+
+    @property
+    def http_status_code(self) -> Optional[int]:
+        return self._http_status_code
+
+
+class OsmInfoOverpassHealthCheckWarning(OsmInfoWarning):
+    def __init__(
+        self,
+        log_message: Optional[str] = None,
+        *,
+        user_message: Optional[str] = None,
+        detail: Optional[str] = None,
+    ) -> None:
+        # fmt: off
+        default_message = QgsApplication.translate(
+            "Exceptions",
+            "Overpass service health check completed with warnings."
+        )
+        # fmt: on
+        super().__init__(
+            log_message=log_message if log_message else default_message,
+            user_message=user_message if user_message else default_message,
+            detail=detail,
+        )
+
+
+class OsmInfoOverpassHealthCheckCancelledError(
+    OsmInfoOverpassHealthCheckError
+):
+    def __init__(self) -> None:
+        # fmt: off
+        message = QgsApplication.translate(
+            "Exceptions",
+            "Overpass health check was cancelled."
+        )
+        # fmt: on
+        super().__init__(
+            log_message=message,
+            user_message=message,
+        )

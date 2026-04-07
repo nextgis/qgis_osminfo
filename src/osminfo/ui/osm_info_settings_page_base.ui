@@ -15,22 +15,21 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
+    <widget class="QgsMessageBar" name="message_bar" native="true"/>
+   </item>
+   <item>
     <widget class="QGroupBox" name="overpass_group">
      <property name="title">
       <string>Overpass server</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
-       <layout class="QHBoxLayout" name="endpoint_laout">
+       <layout class="QHBoxLayout" name="endpoint_layout">
+        <property name="spacing">
+         <number>3</number>
+        </property>
         <item>
          <widget class="QComboBox" name="endpoint_combobox"/>
-        </item>
-        <item>
-         <widget class="QToolButton" name="endpoint_button">
-          <property name="text">
-           <string/>
-          </property>
-         </widget>
         </item>
        </layout>
       </item>
@@ -138,6 +137,14 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsMessageBar</class>
+   <extends>QWidget</extends>
+   <header>qgis.gui</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

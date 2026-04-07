@@ -18,7 +18,7 @@ from qgis.PyQt.QtWidgets import QLabel
 from osminfo.core.constants import PACKAGE_NAME
 from osminfo.logging import logger
 
-_plugin_path = Path(__file__).parent
+_plugin_path = Path(__file__).parents[1]
 
 
 def qgis_icon(icon_name: str) -> QIcon:
