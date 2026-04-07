@@ -143,7 +143,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         )
         self.__resultsTree.customContextMenuRequested.connect(self.openMenu)
 
-        self.__resultsTree.setMinimumSize(350, 250)
+        self.__resultsTree.setMinimumSize(150, 300)
         self.__resultsTree.setColumnCount(2)
         self.__resultsTree.setHeaderLabels(
             [self.tr("Feature/Key"), self.tr("Value")]
