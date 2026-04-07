@@ -37,7 +37,8 @@ from qgis.core import (
 )
 from qgis.gui import QgisInterface, QgsMapMouseEvent, QgsMapTool
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QApplication, QMainWindow
+from qgis.PyQt.QtGui import QCursor
+from qgis.PyQt.QtWidgets import QMainWindow
 from qgis.utils import iface
 
 from osminfo.ui.cursor import OsmInfoCursor, create_cursor
@@ -53,9 +54,9 @@ if TYPE_CHECKING:
 class OSMInfotool(QgsMapTool):
     def __init__(self, iface: QgisInterface) -> None:
         super().__init__(iface.mapCanvas())
-        self.setCursor(
-            create_cursor(OsmInfoCursor.IDENTIFY)
-        )
+        self.__default_cursor = create_cursor(OsmInfoCursor.IDENTIFY)
+        self.__is_loading = False
+        self.setCursor(self.__default_cursor)
 
         self.result_renderer = RubberBandResultRenderer()
 
@@ -76,6 +77,9 @@ class OSMInfotool(QgsMapTool):
         self.dockWidgetResults.visibilityChanged.connect(
             self.docWidgetResultsVisChange
         )
+        self.dockWidgetResults.loadingStateChanged.connect(
+            self.__set_loading_state
+        )
 
     def __del__(self):
         main_window = cast(QMainWindow, iface.mainWindow())
@@ -94,18 +98,35 @@ class OSMInfotool(QgsMapTool):
         if self.dockWidgetResults.isFloating():
             self.dockWidgetResults.setVisible(False)
 
+        super().deactivate()
+
+    def activate(self):
+        super().activate()
+        self.__update_cursor()
+
+    def __set_loading_state(self, is_loading: bool) -> None:
+        self.__is_loading = is_loading
+        self.__update_cursor()
+
+    def __update_cursor(self) -> None:
+        cursor = self.__default_cursor
+        if self.__is_loading:
+            cursor = QCursor(Qt.CursorShape.WaitCursor)
+
+        self.setCursor(cursor)
+        if self.canvas().mapTool() == self:
+            self.canvas().setCursor(cursor)
+
     def canvasReleaseEvent(self, e: Optional[QgsMapMouseEvent]):
         crsSrc = iface.mapCanvas().mapSettings().destinationCrs()
         crsWGS = QgsCoordinateReferenceSystem.fromEpsgId(4326)
 
-        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         x = e.pos().x()
         y = e.pos().y()
         point = self.canvas().getCoordinateTransform().toMapCoordinates(x, y)
 
         xform = QgsCoordinateTransform(crsSrc, crsWGS, QgsProject.instance())
         point = xform.transform(QgsPointXY(point.x(), point.y()))
-        QApplication.restoreOverrideCursor()
 
         xx = str(point.x())
         yy = str(point.y())

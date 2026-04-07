@@ -55,6 +55,7 @@ from qgis.PyQt.QtCore import (
     Qt,
     QUrl,
     QVariant,
+    pyqtSignal,
     pyqtSlot,
 )
 from qgis.PyQt.QtGui import QDesktopServices
@@ -118,6 +119,8 @@ class AttributeMismatchMessageBox(QMessageBox):
 
 
 class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
+    loadingStateChanged = pyqtSignal(bool)
+
     def __init__(self, title: str, result_render):
         main_window = cast(QMainWindow, iface.mainWindow())
         super().__init__(title, parent=main_window)
@@ -137,6 +140,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         self.__selected_geom = None
         self.__rel_reply = None
         self.worker = None
+        self.__active_requests = 0
 
         self.__resultsTree = self.results_tree
         self.__resultsTree.setContextMenuPolicy(
@@ -553,9 +557,30 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         worker = Worker(xx, yy)
         worker.gotData.connect(self.showData)
         worker.gotError.connect(self.showError)
+        worker.finished.connect(self.__on_worker_finished)
+        worker.finished.connect(worker.deleteLater)
+
+        self.__start_loading()
         worker.start()
 
         self.worker = worker
+
+    def __start_loading(self) -> None:
+        if self.__active_requests == 0:
+            self.loadingStateChanged.emit(True)
+
+        self.__active_requests += 1
+
+    def __on_worker_finished(self) -> None:
+        if self.__active_requests > 0:
+            self.__active_requests -= 1
+
+        if self.__active_requests == 0:
+            self.loadingStateChanged.emit(False)
+
+        sender = self.sender()
+        if sender is self.worker:
+            self.worker = None
 
     def showError(self, msg):
         logger.error(msg)
