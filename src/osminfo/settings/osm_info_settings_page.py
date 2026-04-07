@@ -16,6 +16,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from osminfo.endpoints import OverpassEndpoint
 from osminfo.icon import plugin_icon
 from osminfo.logging import logger, update_logging_level
 from osminfo.settings.osm_info_settings import OsmInfoSettings
@@ -38,30 +39,11 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
     def __init_ui(self) -> None:
         self.__load_ui()
 
-        self.__widget.endpoint_combobox.addItem(
-            "Main Overpass API instance",
-            "https://overpass-api.de/api/interpreter",
-        )
-        self.__widget.endpoint_combobox.addItem(
-            "VK Maps Overpass API instance (Russia)",
-            "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
-        )
-        self.__widget.endpoint_combobox.addItem(
-            "Russian Overpass API instance",
-            "https://overpass.openstreetmap.ru/api/interpreter",
-        )
-        self.__widget.endpoint_combobox.addItem(
-            "Swiss Overpass API instance",
-            "https://overpass.osm.ch/api/interpreter",
-        )
-        self.__widget.endpoint_combobox.addItem(
-            "Private.coffee Overpass Instance",
-            "https://overpass.private.coffee/api/interpreter",
-        )
-        self.__widget.endpoint_combobox.addItem(
-            "Japan Overpass API instance",
-            "https://overpass.osm.jp/api/interpreter",
-        )
+        for endpoint in OverpassEndpoint:
+            self.__widget.endpoint_combobox.addItem(
+                endpoint.value.name,
+                endpoint.value.url,
+            )
 
         self.__widget.endpoint_button.setIcon(
             QgsApplication.getThemeIcon("mActionPropertiesWidget.svg")
