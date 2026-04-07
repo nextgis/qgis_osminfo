@@ -120,7 +120,7 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
         settings.is_debug_enabled = new_debug_enabled
         if old_debug_enabled != new_debug_enabled:
             debug_state = "enabled" if new_debug_enabled else "disabled"
-            update_level()
+            update_logging_level()
             logger.info(f"Debug messages are now {debug_state}")
 
     @pyqtSlot()
