@@ -156,7 +156,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         self.__active_task: Optional[OverpassQueryTask] = None
         self.__active_task_kind: Optional[str] = None
         self.__active_endpoint = ""
-        self.__pending_queries: List[Tuple[str, str]] = []
+        self.__pending_queries: List[Tuple[str, str, Optional[int]]] = []
         self.__query_results: Dict[str, List] = {
             "nearby": [],
             "enclosing": [],
@@ -761,12 +761,17 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         settings: OsmInfoSettings,
         xx: str,
         yy: str,
-    ) -> List[Tuple[str, str]]:
-        queries: List[Tuple[str, str]] = []
+    ) -> List[Tuple[str, str, Optional[int]]]:
+        queries: List[Tuple[str, str, Optional[int]]] = []
+        timeout_seconds = self.__query_timeout_seconds(settings)
 
         if settings.fetch_nearby:
             queries.append(
-                ("nearby", self.__build_nearby_query(settings, xx, yy))
+                (
+                    "nearby",
+                    self.__build_nearby_query(settings, xx, yy),
+                    timeout_seconds,
+                )
             )
 
         if settings.fetch_enclosing:
@@ -774,10 +779,44 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
                 (
                     "enclosing",
                     self.__build_enclosing_query(settings, xx, yy),
+                    timeout_seconds,
                 )
             )
 
         return queries
+
+    def __build_query_header(self, settings: OsmInfoSettings) -> str:
+        query_settings = ["[out:json]"]
+        if settings.is_timeout_enabled:
+            query_settings.append(f"[timeout:{settings.timeout}]")
+
+        max_size_bytes = self.__query_max_size_bytes(settings)
+        if max_size_bytes is not None:
+            query_settings.append(f"[maxsize:{max_size_bytes}]")
+
+        return "".join(query_settings) + ";"
+
+    def __query_timeout_seconds(
+        self,
+        settings: OsmInfoSettings,
+    ) -> Optional[int]:
+        if not settings.is_timeout_enabled:
+            return None
+
+        return settings.timeout
+
+    def __query_max_size_bytes(
+        self,
+        settings: OsmInfoSettings,
+    ) -> Optional[int]:
+        if not settings.is_max_size_enabled:
+            return None
+
+        max_size_megabytes = settings.max_size_megabytes
+        if max_size_megabytes <= 0:
+            return None
+
+        return max_size_megabytes * 1024 * 1024
 
     def __build_nearby_query(
         self,
@@ -786,8 +825,9 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         yy: str,
     ) -> str:
         distance = settings.distance
+        query_header = self.__build_query_header(settings)
         return f"""
-            [out:json][timeout:{settings.timeout}];
+            {query_header}
             (
                 node(around:{distance},{yy},{xx});
                 way(around:{distance},{yy},{xx});
@@ -803,8 +843,9 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         yy: str,
     ) -> str:
         # TODO is .b really needed there? Probably this is a bug in overpass
+        query_header = self.__build_query_header(settings)
         return f"""
-            [out:json][timeout:{settings.timeout}];
+            {query_header}
             is_in({yy},{xx})->.a;
             way(pivot.a)->.b;
             .b out tags geom;
@@ -827,8 +868,12 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
             self.__finish_loading()
             return
 
-        query_kind, query = self.__pending_queries.pop(0)
-        task = OverpassQueryTask(self.__active_endpoint, query)
+        query_kind, query, timeout_seconds = self.__pending_queries.pop(0)
+        task = OverpassQueryTask(
+            self.__active_endpoint,
+            query,
+            timeout_seconds=timeout_seconds,
+        )
         task.taskCompleted.connect(self.__on_query_task_completed)
         task.taskTerminated.connect(self.__on_query_task_terminated)
 

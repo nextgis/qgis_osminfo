@@ -113,6 +113,48 @@ class OsmInfoSettings:
         )
 
     @property
+    def is_timeout_enabled(self) -> bool:
+        return self.__settings.value(
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/timeoutEnabled",
+            defaultValue=False,
+            type=bool,
+        )
+
+    @is_timeout_enabled.setter
+    def is_timeout_enabled(self, value: bool) -> None:
+        self.__settings.setValue(
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/timeoutEnabled", value
+        )
+
+    @property
+    def max_size_megabytes(self) -> int:
+        return self.__settings.value(
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/maxSizeMegabytes",
+            defaultValue=512,
+            type=int,
+        )
+
+    @max_size_megabytes.setter
+    def max_size_megabytes(self, value: int) -> None:
+        self.__settings.setValue(
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/maxSizeMegabytes", value
+        )
+
+    @property
+    def is_max_size_enabled(self) -> bool:
+        return self.__settings.value(
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/maxSizeEnabled",
+            defaultValue=False,
+            type=bool,
+        )
+
+    @is_max_size_enabled.setter
+    def is_max_size_enabled(self, value: bool) -> None:
+        self.__settings.setValue(
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/maxSizeEnabled", value
+        )
+
+    @property
     def is_debug_enabled(self) -> bool:
         result = self.__settings.value(
             f"{self.COMPANY_NAME}/{self.PRODUCT}/debugEnabled",
@@ -189,6 +231,9 @@ class OsmInfoSettings:
             qgs_settings.setValue(
                 f"{cls.COMPANY_NAME}/{cls.PRODUCT}/timeout", old_timeout
             )
+            # qgs_settings.setValue(
+            #     f"{cls.COMPANY_NAME}/{cls.PRODUCT}/timeoutEnabled", True
+            # )
             old_settings.remove("timeout")
 
     @classmethod

@@ -92,6 +92,16 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
         self._widget.custom_endpoint_lineedit.setPlaceholderText(
             OverpassEndpoint.MAIN.value.url
         )
+        self._widget.nearby_checkbox.toggled.connect(
+            self._update_distance_controls_enabled
+        )
+        self._widget.timeout_checkbox.toggled.connect(
+            self._update_timeout_controls_enabled
+        )
+        self._widget.max_size_checkbox.toggled.connect(
+            self._update_max_size_controls_enabled
+        )
+        self._init_tooltips()
         self._widget.info_label.setTextFormat(Qt.TextFormat.RichText)
         self._widget.info_label.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextBrowserInteraction
@@ -140,9 +150,21 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
         self._update_endpoint_info_label()
         self._widget.nearby_checkbox.setChecked(settings.fetch_nearby)
         self._widget.enclosing_checkbox.setChecked(settings.fetch_enclosing)
+        self._widget.timeout_checkbox.setChecked(settings.is_timeout_enabled)
         self._widget.timeout_spinbox.setValue(settings.timeout)
+        self._widget.max_size_checkbox.setChecked(settings.is_max_size_enabled)
+        self._widget.max_size_spinbox.setValue(settings.max_size_megabytes)
         self._widget.distance_spinbox.setValue(settings.distance)
         self._widget.debug_checkbox.setChecked(settings.is_debug_enabled)
+        self._update_distance_controls_enabled(
+            self._widget.nearby_checkbox.isChecked()
+        )
+        self._update_timeout_controls_enabled(
+            self._widget.timeout_checkbox.isChecked()
+        )
+        self._update_max_size_controls_enabled(
+            self._widget.max_size_checkbox.isChecked()
+        )
 
     def _apply_settings(self):
         settings = OsmInfoSettings()
@@ -152,7 +174,12 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
         )
         settings.fetch_enclosing = self._widget.enclosing_checkbox.isChecked()
         settings.fetch_nearby = self._widget.nearby_checkbox.isChecked()
+        settings.is_timeout_enabled = self._widget.timeout_checkbox.isChecked()
         settings.timeout = self._widget.timeout_spinbox.value()
+        settings.is_max_size_enabled = (
+            self._widget.max_size_checkbox.isChecked()
+        )
+        settings.max_size_megabytes = self._widget.max_size_spinbox.value()
         settings.distance = self._widget.distance_spinbox.value()
 
         old_debug_enabled = settings.is_debug_enabled
@@ -229,6 +256,54 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
     def _on_endpoint_changed(self, _: int) -> None:
         self._update_custom_endpoint_widget_visibility()
         self._update_endpoint_info_label()
+
+    def _init_tooltips(self) -> None:
+        timeout_tooltip = self.tr(
+            "Enable a custom Overpass query timeout. When disabled, the "
+            "server default timeout is used."
+        )
+        max_size_tooltip = self.tr(
+            "Enable a custom maximum Overpass response size. When disabled, "
+            "the server default limit is used."
+        )
+
+        self._set_tooltip_for_widgets(
+            timeout_tooltip,
+            [
+                self._widget.timeout_label,
+                self._widget.timeout_checkbox,
+                self._widget.timeout_spinbox,
+            ],
+        )
+        self._set_tooltip_for_widgets(
+            max_size_tooltip,
+            [
+                self._widget.max_size_label,
+                self._widget.max_size_checkbox,
+                self._widget.max_size_spinbox,
+            ],
+        )
+
+    def _set_tooltip_for_widgets(
+        self,
+        tooltip: str,
+        widgets: List[QWidget],
+    ) -> None:
+        for widget in widgets:
+            widget.setToolTip(tooltip)
+
+    @pyqtSlot(bool)
+    def _update_distance_controls_enabled(self, is_enabled: bool) -> None:
+        self._widget.distance_label.setEnabled(is_enabled)
+        self._widget.distance_spinbox.setEnabled(is_enabled)
+
+    @pyqtSlot(bool)
+    def _update_timeout_controls_enabled(self, is_enabled: bool) -> None:
+        self._widget.timeout_spinbox.setEnabled(is_enabled)
+
+    @pyqtSlot(bool)
+    def _update_max_size_controls_enabled(self, is_enabled: bool) -> None:
+        self._widget.max_size_spinbox.setEnabled(is_enabled)
 
     def _update_custom_endpoint_widget_visibility(self) -> None:
         is_custom_endpoint = (

@@ -1,6 +1,5 @@
 import html
 import json
-import re
 from typing import Any, List, Optional
 
 from qgis.core import (
@@ -15,7 +14,6 @@ from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 from osminfo.core.exceptions import OsmInfoOverpassQueryError
 from osminfo.logging import logger
 
-OVERPASS_TIMEOUT_PATTERN = re.compile(r"\[timeout:(\d+)\]")
 OVERPASS_TRANSFER_TIMEOUT_MARGIN_SECONDS = 5
 
 
@@ -32,9 +30,15 @@ class _OverpassQueryCancelledError(OsmInfoOverpassQueryError):
 
 
 class OverpassQueryTask(QgsTask):
-    def __init__(self, endpoint: str, overpass_query: str) -> None:
+    def __init__(
+        self,
+        endpoint: str,
+        overpass_query: str,
+        timeout_seconds: Optional[int] = None,
+    ) -> None:
         self._endpoint = endpoint.strip()
         self._overpass_query = overpass_query
+        self._timeout_seconds = timeout_seconds
         description = f"Overpass query: {self._endpoint or 'unknown endpoint'}"
         super().__init__(description, QgsTask.Flag.CanCancel)
 
@@ -160,10 +164,9 @@ class OverpassQueryTask(QgsTask):
             raise _OverpassQueryCancelledError()
 
     def _transfer_timeout_milliseconds(self) -> Optional[int]:
-        timeout_match = OVERPASS_TIMEOUT_PATTERN.search(self._overpass_query)
-        if timeout_match is None:
+        if self._timeout_seconds is None:
             return None
 
-        timeout_seconds = int(timeout_match.group(1))
+        timeout_seconds = self._timeout_seconds
         timeout_seconds += OVERPASS_TRANSFER_TIMEOUT_MARGIN_SECONDS
         return timeout_seconds * 1000
