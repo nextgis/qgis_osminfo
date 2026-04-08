@@ -370,17 +370,22 @@ class OsmInfoOverpassHealthCheckWarning(OsmInfoWarning):
         )
 
 
-class OsmInfoOverpassHealthCheckCancelledError(
-    OsmInfoOverpassHealthCheckError
-):
-    def __init__(self) -> None:
+class OsmInfoOverpassQueryError(OsmInfoError):
+    def __init__(
+        self,
+        log_message: Optional[str] = None,
+        *,
+        user_message: Optional[str] = None,
+        detail: Optional[str] = None,
+    ) -> None:
         # fmt: off
-        message = QgsApplication.translate(
+        default_message = QgsApplication.translate(
             "Exceptions",
-            "Overpass health check was cancelled."
+            "Failed to execute Overpass query.",
         )
         # fmt: on
         super().__init__(
-            log_message=message,
-            user_message=message,
+            log_message=log_message if log_message else default_message,
+            user_message=user_message if user_message else default_message,
+            detail=detail,
         )

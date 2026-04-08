@@ -30,10 +30,11 @@
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, cast
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, cast
 
 from qgis.core import (
     Qgis,
+    QgsApplication,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsEditError,
@@ -77,7 +78,7 @@ from osminfo.compat import (
 )
 from osminfo.logging import logger
 from osminfo.osmelements import OsmElement, parseOsmElement
-from osminfo.osminfo_worker import Worker
+from osminfo.overpass.query_task import OverpassQueryTask
 from osminfo.settings.osm_info_settings import OsmInfoSettings
 from osminfo.ui.icon import plugin_icon, qgis_icon
 from osminfo.utils import set_clipboard_data
@@ -138,9 +139,15 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         self.__rb = result_render
         self.__selected_id = None
         self.__selected_geom = None
-        self.__rel_reply = None
-        self.worker = None
-        self.__active_requests = 0
+        self.__active_task: Optional[OverpassQueryTask] = None
+        self.__active_task_kind: Optional[str] = None
+        self.__active_endpoint = ""
+        self.__pending_queries: List[Tuple[str, str]] = []
+        self.__query_results: Dict[str, List] = {
+            "nearby": [],
+            "enclosing": [],
+        }
+        self.__is_loading = False
 
         self.__resultsTree = self.results_tree
         self.__resultsTree.setContextMenuPolicy(
@@ -176,6 +183,9 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
             )[:2]
 
         self.show_info()
+
+    def __del__(self) -> None:
+        self.__cancel_active_task()
 
     def show_info(self) -> None:
         black_friday_start = datetime(
@@ -544,43 +554,195 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         iface.copySelectionToClipboard(vl)
 
     def getInfo(self, xx, yy):
+        self.__cancel_active_task()
+
         self.__resultsTree.clear()
         self.__resultsTree.addTopLevelItem(
             QTreeWidgetItem([self.tr("Loading...")])
         )
 
-        if self.worker:
-            self.worker.gotData.disconnect(self.showData)
-            self.worker.gotError.disconnect(self.showError)
-            self.worker.finished.connect(self.worker.deleteLater)
+        validation_error = self.__validate_coordinates(xx, yy)
+        if validation_error is not None:
+            self.__finish_loading()
+            self.showError(validation_error)
+            return
 
-        worker = Worker(xx, yy)
-        worker.gotData.connect(self.showData)
-        worker.gotError.connect(self.showError)
-        worker.finished.connect(self.__on_worker_finished)
-        worker.finished.connect(worker.deleteLater)
+        settings = OsmInfoSettings()
+        if not settings.fetch_nearby and not settings.fetch_enclosing:
+            self.__finish_loading()
+            self.showError(self.tr("No object category selected in settings"))
+            return
+
+        self.__active_endpoint = settings.overpass_url
+        if len(self.__active_endpoint) == 0:
+            self.__finish_loading()
+            self.showError(self.tr("Custom Overpass API URL is not set"))
+            return
+
+        self.__pending_queries = self.__build_queries(settings, xx, yy)
+        self.__query_results = {
+            "nearby": [],
+            "enclosing": [],
+        }
 
         self.__start_loading()
-        worker.start()
-
-        self.worker = worker
+        self.__start_next_query()
 
     def __start_loading(self) -> None:
-        if self.__active_requests == 0:
-            self.loadingStateChanged.emit(True)
+        if self.__is_loading:
+            return
 
-        self.__active_requests += 1
+        self.__is_loading = True
+        self.loadingStateChanged.emit(True)
 
-    def __on_worker_finished(self) -> None:
-        if self.__active_requests > 0:
-            self.__active_requests -= 1
+    def __finish_loading(self) -> None:
+        if not self.__is_loading:
+            return
 
-        if self.__active_requests == 0:
-            self.loadingStateChanged.emit(False)
+        self.__is_loading = False
+        self.loadingStateChanged.emit(False)
 
+    def __cancel_active_task(self) -> None:
+        if self.__active_task is not None:
+            self.__active_task.cancel()
+
+        self.__reset_query_state()
+
+    def __reset_query_state(self) -> None:
+        self.__active_task = None
+        self.__active_task_kind = None
+        self.__active_endpoint = ""
+        self.__pending_queries = []
+        self.__query_results = {
+            "nearby": [],
+            "enclosing": [],
+        }
+
+    def __validate_coordinates(self, xx: str, yy: str) -> Optional[str]:
+        try:
+            longitude = float(xx)
+            latitude = float(yy)
+        except (TypeError, ValueError):
+            return self.tr("%s, %s are wrong coords!") % (xx, yy)
+
+        if abs(longitude) > 180 or abs(latitude) > 90:
+            return self.tr("%s, %s are wrong coords!") % (xx, yy)
+
+        return None
+
+    def __build_queries(
+        self,
+        settings: OsmInfoSettings,
+        xx: str,
+        yy: str,
+    ) -> List[Tuple[str, str]]:
+        queries: List[Tuple[str, str]] = []
+
+        if settings.fetch_nearby:
+            queries.append(
+                ("nearby", self.__build_nearby_query(settings, xx, yy))
+            )
+
+        if settings.fetch_enclosing:
+            queries.append(
+                (
+                    "enclosing",
+                    self.__build_enclosing_query(settings, xx, yy),
+                )
+            )
+
+        return queries
+
+    def __build_nearby_query(
+        self,
+        settings: OsmInfoSettings,
+        xx: str,
+        yy: str,
+    ) -> str:
+        distance = settings.distance
+        return f"""
+            [out:json][timeout:{settings.timeout}];
+            (
+                node(around:{distance},{yy},{xx});
+                way(around:{distance},{yy},{xx});
+                relation(around:{distance},{yy},{xx});
+            );
+            out tags geom;
+        """
+
+    def __build_enclosing_query(
+        self,
+        settings: OsmInfoSettings,
+        xx: str,
+        yy: str,
+    ) -> str:
+        # TODO is .b really needed there? Probably this is a bug in overpass
+        return f"""
+            [out:json][timeout:{settings.timeout}];
+            is_in({yy},{xx})->.a;
+            way(pivot.a)->.b;
+            .b out tags geom;
+            .b <;
+            out geom;
+            relation(pivot.a);
+            out geom;
+        """
+
+    def __start_next_query(self) -> None:
+        if len(self.__pending_queries) == 0:
+            nearby_elements = self.__query_results["nearby"]
+            enclosing_elements = self.__query_results["enclosing"]
+            self.__query_results = {
+                "nearby": [],
+                "enclosing": [],
+            }
+            self.__active_endpoint = ""
+            self.showData(nearby_elements, enclosing_elements)
+            self.__finish_loading()
+            return
+
+        query_kind, query = self.__pending_queries.pop(0)
+        task = OverpassQueryTask(self.__active_endpoint, query)
+        task.taskCompleted.connect(self.__on_query_task_completed)
+        task.taskTerminated.connect(self.__on_query_task_terminated)
+
+        self.__active_task = task
+        self.__active_task_kind = query_kind
+        QgsApplication.taskManager().addTask(task)
+
+    @pyqtSlot()
+    def __on_query_task_completed(self) -> None:
         sender = self.sender()
-        if sender is self.worker:
-            self.worker = None
+        if sender is not self.__active_task or self.__active_task_kind is None:
+            return
+
+        self.__query_results[self.__active_task_kind] = (
+            self.__active_task.elements
+        )
+        self.__active_task = None
+        self.__active_task_kind = None
+
+        self.__start_next_query()
+
+    @pyqtSlot()
+    def __on_query_task_terminated(self) -> None:
+        sender = self.sender()
+        if sender is not self.__active_task:
+            return
+
+        error = self.__active_task.error
+        self.__active_task = None
+        self.__active_task_kind = None
+        self.__active_endpoint = ""
+        self.__pending_queries = []
+        self.__query_results = {
+            "nearby": [],
+            "enclosing": [],
+        }
+        self.__finish_loading()
+
+        if error is not None:
+            self.showError(error.user_message)
 
     def showError(self, msg):
         logger.error(msg)
@@ -640,16 +802,18 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
 
             l2Sorted = sorted(
                 l2,
-                key=lambda element: QgsGeometry()
-                .fromRect(
-                    QgsRectangle(
-                        element["bounds"]["minlon"],
-                        element["bounds"]["minlat"],
-                        element["bounds"]["maxlon"],
-                        element["bounds"]["maxlat"],
+                key=lambda element: (
+                    QgsGeometry()
+                    .fromRect(
+                        QgsRectangle(
+                            element["bounds"]["minlon"],
+                            element["bounds"]["minlat"],
+                            element["bounds"]["maxlon"],
+                            element["bounds"]["maxlat"],
+                        )
                     )
-                )
-                .area(),
+                    .area()
+                ),
             )
 
             for element in l2Sorted:

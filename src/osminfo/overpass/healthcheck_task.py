@@ -7,12 +7,16 @@ from enum import Enum
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlencode, urlparse
 
-from qgis.core import QgsFeedback, QgsNetworkAccessManager, QgsTask
+from qgis.core import (
+    QgsApplication,
+    QgsFeedback,
+    QgsNetworkAccessManager,
+    QgsTask,
+)
 from qgis.PyQt.QtCore import QByteArray, QUrl
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
 from osminfo.core.exceptions import (
-    OsmInfoOverpassHealthCheckCancelledError,
     OsmInfoOverpassHealthCheckError,
     OsmInfoOverpassHealthCheckNetworkError,
     OsmInfoOverpassHealthCheckWarning,
@@ -49,6 +53,20 @@ OVERPASS_OPTIONAL_STATUS_HTTP_CODES = {403, 404, 405, 501}
 OVERPASS_GENERATOR_PATTERN = re.compile(r"Overpass API ([\d.]+)\s*(\w+)?")
 OVERPASS_SLOTS_AVAILABLE_PATTERN = re.compile(r"(\d+) slots")
 OVERPASS_NEXT_SLOT_PATTERN = re.compile(r"Slot available after: ([^,]+)")
+
+
+class _OverpassHealthCheckCancelledError(
+    OsmInfoOverpassHealthCheckError
+):
+    def __init__(self) -> None:
+        message = QgsApplication.translate(
+            "Exceptions",
+            "Overpass health check was cancelled.",
+        )
+        super().__init__(
+            log_message=message,
+            user_message=message,
+        )
 
 
 class HealthCheckStatus(Enum):
@@ -196,7 +214,7 @@ class HealthCheckTask(QgsTask):
 
         self._status: Optional[HealthCheckStatus] = None
         self._warning: str = ""
-        self._error: str = ""
+        self._error: Optional[OsmInfoOverpassHealthCheckError] = None
         self._details = OverpassHealthCheckDetails(
             service_url=self._service_url,
             status_url=self._status_url,
@@ -221,10 +239,10 @@ class HealthCheckTask(QgsTask):
         return self._warning
 
     @property
-    def error(self) -> str:
-        """Return error text collected during the check.
+    def error(self) -> Optional[OsmInfoOverpassHealthCheckError]:
+        """Return the error collected during the check.
 
-        :return: Return the final error message.
+        :return: Return the final task error when available.
         """
         return self._error
 
@@ -256,7 +274,7 @@ class HealthCheckTask(QgsTask):
 
         self._status = None
         self._warning = ""
-        self._error = ""
+        self._error = None
         self._details = OverpassHealthCheckDetails(
             service_url=self._service_url,
             status_url=self._status_url,
@@ -304,13 +322,13 @@ class HealthCheckTask(QgsTask):
                 )
 
             self._evaluate_result(warnings)
-        except OsmInfoOverpassHealthCheckCancelledError as error:
+        except _OverpassHealthCheckCancelledError as error:
             self._status = HealthCheckStatus.FAILURE
-            self._error = error.user_message
+            self._error = error
             return False
         except OsmInfoOverpassHealthCheckError as error:
             self._status = HealthCheckStatus.FAILURE
-            self._error = error.user_message
+            self._error = error
             logger.warning(
                 "Overpass health check failed: %s",
                 error.log_message,
@@ -318,7 +336,13 @@ class HealthCheckTask(QgsTask):
             return False
         except Exception as error:
             self._status = HealthCheckStatus.FAILURE
-            self._error = str(error)
+            self._error = OsmInfoOverpassHealthCheckError(
+                log_message=(
+                    f"Unexpected Overpass health check error: {error}"
+                ),
+                user_message=str(error),
+                detail=repr(error),
+            )
             logger.exception("Unexpected Overpass health check error")
             return False
 
@@ -340,7 +364,7 @@ class HealthCheckTask(QgsTask):
                 method="GET",
                 timeout=OVERPASS_STATUS_REQUEST_TIMEOUT_SECONDS,
             )
-        except OsmInfoOverpassHealthCheckCancelledError:
+        except _OverpassHealthCheckCancelledError:
             raise
         except OsmInfoOverpassHealthCheckNetworkError as error:
             if error.http_status_code in OVERPASS_OPTIONAL_STATUS_HTTP_CODES:
@@ -378,7 +402,7 @@ class HealthCheckTask(QgsTask):
                     "Content-Type": "application/x-www-form-urlencoded",
                 },
             )
-        except OsmInfoOverpassHealthCheckCancelledError:
+        except _OverpassHealthCheckCancelledError:
             raise
         except OsmInfoOverpassHealthCheckNetworkError as error:
             warning = OsmInfoOverpassHealthCheckWarning(
@@ -479,7 +503,10 @@ class HealthCheckTask(QgsTask):
 
         if failure_messages:
             self._status = HealthCheckStatus.FAILURE
-            self._error = "; ".join(failure_messages)
+            self._error = OsmInfoOverpassHealthCheckError(
+                log_message="; ".join(failure_messages),
+                user_message="; ".join(failure_messages),
+            )
             self._warning = "; ".join(warning_messages)
             logger.debug(
                 "Overpass health check result: failure\nFailures:\n%s\nWarnings:\n%s",
@@ -491,7 +518,7 @@ class HealthCheckTask(QgsTask):
         if warning_messages:
             self._status = HealthCheckStatus.WARNING
             self._warning = "; ".join(warning_messages)
-            self._error = ""
+            self._error = None
             logger.debug(
                 "Overpass health check result: warning\nWarnings:\n%s",
                 self._format_messages_for_debug(warning_messages),
@@ -500,7 +527,7 @@ class HealthCheckTask(QgsTask):
 
         self._status = HealthCheckStatus.SUCCESS
         self._warning = ""
-        self._error = ""
+        self._error = None
         logger.debug("Overpass health check result: success")
 
     def _parse_status_response(self, status_text: str) -> None:
@@ -631,7 +658,7 @@ class HealthCheckTask(QgsTask):
             self._active_feedback = None
 
         if self.isCanceled() or feedback.isCanceled():
-            raise OsmInfoOverpassHealthCheckCancelledError()
+            raise _OverpassHealthCheckCancelledError()
 
         elapsed_milliseconds = int(
             round((time.perf_counter() - started_at) * 1000)
@@ -692,7 +719,7 @@ class HealthCheckTask(QgsTask):
 
     def _check_cancellation(self) -> None:
         if self.isCanceled():
-            raise OsmInfoOverpassHealthCheckCancelledError()
+            raise _OverpassHealthCheckCancelledError()
 
     @classmethod
     def _resolve_endpoint_urls(cls, overpass_url: str) -> Tuple[str, str, str]:
