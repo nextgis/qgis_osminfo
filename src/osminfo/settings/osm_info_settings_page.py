@@ -61,9 +61,11 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
         )
 
         self.check_endpoint_button = LoadingToolButton(
-            ":images/themes/default/mIconLoading.gif", self._widget
+            ":images/themes/default/mIconLoading.gif",
+            material_icon("stethoscope"),
+            None,
+            self._widget,
         )
-        self.check_endpoint_button.setIcon(material_icon("stethoscope"))
         self.check_endpoint_button.setToolTip(
             self.tr("Check connection to the selected Overpass API instance")
         )
@@ -118,9 +120,7 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
             )
 
         self._widget.endpoint_combobox.setCurrentIndex(current_index)
-        self._widget.custom_endpoint_lineedit.setText(
-            settings.custom_endpoint
-        )
+        self._widget.custom_endpoint_lineedit.setText(settings.custom_endpoint)
         self._update_custom_endpoint_widget_visibility()
         self._widget.nearby_checkbox.setChecked(settings.fetch_nearby)
         self._widget.enclosing_checkbox.setChecked(settings.fetch_enclosing)
@@ -185,7 +185,9 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
         if self._task.check_status == HealthCheckStatus.SUCCESS:
             self._widget.message_bar.pushMessage(
                 self.tr("Connection successful"),
-                self.tr("Successfully connected to the Overpass API instance."),
+                self.tr(
+                    "Successfully connected to the Overpass API instance."
+                ),
                 level=Qgis.MessageLevel.Success,
             )
         elif self._task.check_status == HealthCheckStatus.WARNING:

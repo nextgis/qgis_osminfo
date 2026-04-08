@@ -65,6 +65,7 @@ from qgis.PyQt.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
+    QToolButton,
     QTreeWidgetItem,
 )
 from qgis.utils import iface
@@ -80,6 +81,7 @@ from osminfo.osmelements import OsmElement, parseOsmElement
 from osminfo.overpass.query_task import OverpassQueryTask
 from osminfo.settings.osm_info_settings import OsmInfoSettings
 from osminfo.ui.icon import material_icon, plugin_icon, qgis_icon
+from osminfo.ui.loading_tool_button import LoadingToolButton
 from osminfo.utils import set_clipboard_data
 
 if TYPE_CHECKING:
@@ -162,6 +164,25 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         self.__is_loading = False
 
         self.__resultsTree = self.results_tree
+        self.search_button = LoadingToolButton(
+            ":images/themes/default/mIconLoading.gif",
+            material_icon("map_search"),
+            material_icon("cancel"),
+            self,
+        )
+        self.search_button.setObjectName("search_button")
+        self.search_button.setToolTip(
+            self.tr("Search OSM features")
+        )
+        self.search_button.cancelRequested.connect(self.__cancel_search)
+        self.search_layout.addWidget(self.search_button)
+
+        self.menu_button = QToolButton(self)
+        self.menu_button.setObjectName("menu_button")
+        self.menu_button.setIcon(material_icon("menu"))
+        self.menu_button.setToolTip(self.tr("Open OSMInfo menu"))
+        self.search_layout.addWidget(self.menu_button)
+
         self.__resultsTree.setContextMenuPolicy(
             Qt.ContextMenuPolicy.CustomContextMenu
         )
@@ -656,6 +677,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
             return
 
         self.__is_loading = True
+        self.search_button.start()
         self.loadingStateChanged.emit(True)
 
     def __finish_loading(self) -> None:
@@ -663,13 +685,26 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
             return
 
         self.__is_loading = False
+        self.search_button.stop()
         self.loadingStateChanged.emit(False)
 
     def __cancel_active_task(self) -> None:
         if self.__active_task is not None:
             self.__active_task.cancel()
 
+        self.__finish_loading()
         self.__reset_query_state()
+
+    @pyqtSlot()
+    def __cancel_search(self) -> None:
+        if not self.__is_loading:
+            return
+
+        self.__cancel_active_task()
+        self.__resultsTree.clear()
+        self.__resultsTree.addTopLevelItem(
+            QTreeWidgetItem([self.tr("Search cancelled")])
+        )
 
     def __reset_query_state(self) -> None:
         self.__active_task = None

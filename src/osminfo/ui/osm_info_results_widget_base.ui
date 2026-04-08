@@ -31,6 +31,20 @@
      <number>4</number>
     </property>
     <item>
+     <layout class="QHBoxLayout" name="search_layout">
+      <property name="spacing">
+       <number>3</number>
+      </property>
+      <item>
+       <widget class="QComboBox" name="comboBox">
+        <property name="editable">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
      <widget class="QTreeWidget" name="results_tree">
       <column>
        <property name="text">
