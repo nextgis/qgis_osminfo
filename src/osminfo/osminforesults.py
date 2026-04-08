@@ -51,11 +51,9 @@ from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (
     QByteArray,
     QLocale,
-    QMetaType,
     QSettings,
     Qt,
     QUrl,
-    QVariant,
     pyqtSignal,
     pyqtSlot,
 )
@@ -71,9 +69,8 @@ from qgis.PyQt.QtWidgets import (
 from qgis.utils import iface
 
 from osminfo.compat import (
-    LineGeometry,
-    PointGeometry,
-    PolygonGeometry,
+    FieldType,
+    GeometryType,
     addMapLayer,
 )
 from osminfo.logging import logger
@@ -343,11 +340,11 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
 
         assert geom is not None
 
-        if geom.type() == PolygonGeometry:
+        if geom.type() == GeometryType.Polygon:
             geom_type = "Polygon"
-        elif geom.type() == LineGeometry:
+        elif geom.type() == GeometryType.Line:
             geom_type = "LineString"
-        elif geom.type() == PointGeometry:
+        elif geom.type() == GeometryType.Point:
             geom_type = "Point"
         else:
             return
@@ -370,11 +367,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         dataProvider = vLayer.dataProvider()
         assert dataProvider is not None
 
-        string_type = (
-            QVariant.Type.String
-            if Qgis.versionInt() < 33800
-            else QMetaType.Type.QString
-        )
+        string_type = FieldType.QString
         if create_new:
             dataProvider.addAttributes(
                 [QgsField(k, string_type) for k in osm_element.tags]
@@ -392,11 +385,6 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
                     layer_fields = vLayer.fields().names()
                     new_fields = set(element_tags) - set(layer_fields)
 
-                    string_type = (
-                        QVariant.Type.String
-                        if Qgis.versionInt() < 33800
-                        else QMetaType.Type.QString
-                    )
                     dataProvider.addAttributes(
                         [
                             QgsField(key, string_type)
@@ -517,11 +505,11 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         if geom is None:
             geom = self.__selected_geom
         assert geom is not None
-        if geom.type() == PolygonGeometry:
+        if geom.type() == GeometryType.Polygon:
             geom_type = "Polygon"
-        elif geom.type() == LineGeometry:
+        elif geom.type() == GeometryType.Line:
             geom_type = "LineString"
-        elif geom.type() == PointGeometry:
+        elif geom.type() == GeometryType.Point:
             geom_type = "Point"
         else:
             return
@@ -538,7 +526,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
 
         # add fields
         pr.addAttributes(
-            [QgsField(k, QVariant.String) for k in osm_element.tags]
+            [QgsField(k, FieldType.QString) for k in osm_element.tags]
         )
         vl.updateFields()
 

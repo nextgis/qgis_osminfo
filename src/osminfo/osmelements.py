@@ -116,7 +116,6 @@ class OsmElement:
                         pass
 
         if title is None:
-            # print(self.__tags)
             title = str(self.__tags.get("id", self.__id))
 
         return title

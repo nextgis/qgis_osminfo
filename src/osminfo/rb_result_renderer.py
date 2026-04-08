@@ -29,9 +29,8 @@ from qgis.gui import QgsRubberBand
 from qgis.PyQt.QtGui import QColor
 from qgis.utils import iface
 
-from .compat import (
-    PointGeometry,
-)
+from osminfo.compat import GeometryType
+from osminfo.logging import logger
 
 
 class RubberBandResultRenderer:
@@ -45,11 +44,15 @@ class RubberBandResultRenderer:
 
         self.featureColor = QColor("green")
 
-        self.rb = QgsRubberBand(self.iface.mapCanvas(), PointGeometry)
+        self.rb = QgsRubberBand(
+            self.iface.mapCanvas(), GeometryType.Point
+        )
         self.rb.setColor(QColor("magenta"))
         self.rb.setIconSize(12)
 
-        self.features_rb = QgsRubberBand(self.iface.mapCanvas(), PointGeometry)
+        self.features_rb = QgsRubberBand(
+            self.iface.mapCanvas(), GeometryType.Point
+        )
         self.features_rb.setColor(self.featureColor)
         self.features_rb.setIconSize(12)
         self.features_rb.setWidth(3)
@@ -64,7 +67,7 @@ class RubberBandResultRenderer:
             self.center_to_point(point)
 
     def clear(self):
-        self.rb.reset(PointGeometry)
+        self.rb.reset(GeometryType.Point)
 
     def need_transform(self):
         return (
@@ -79,7 +82,7 @@ class RubberBandResultRenderer:
         try:
             return self.transformation.transform(point)
         except Exception:
-            # print('Error on transform!')  # DEBUG! need message???
+            logger.exception("Error on transform!")
             return
 
     def transform_bbox(self, bbox):
@@ -89,7 +92,7 @@ class RubberBandResultRenderer:
         try:
             return self.transformation.transformBoundingBox(bbox)
         except Exception:
-            # print('Error on transform!')  # DEBUG! need message???
+            logger.exception("Error on transform!")
             return
 
     def transform_geom(self, geom):
@@ -100,7 +103,7 @@ class RubberBandResultRenderer:
             geom.transform(self.transformation)
             return geom
         except Exception:
-            # print('Error on transform!')  # DEBUG! need message???
+            logger.exception("Error on transform!")
             return
 
     def center_to_point(self, point):
@@ -120,7 +123,7 @@ class RubberBandResultRenderer:
         if self.need_transform():
             geom = self.transform_geom(geom)
 
-        if geom.type() == PointGeometry:
+        if geom.type() == GeometryType.Point:
             self.features_rb.setFillColor(self.featureColor)
         else:
             self.features_rb.setFillColor(QColor(0, 255, 0, 50))
@@ -128,4 +131,4 @@ class RubberBandResultRenderer:
         self.features_rb.setToGeometry(geom, None)
 
     def clear_feature(self):
-        self.features_rb.reset(PointGeometry)
+        self.features_rb.reset(GeometryType.Point)
