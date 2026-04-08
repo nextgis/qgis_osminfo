@@ -29,6 +29,7 @@
 # ******************************************************************************
 
 from datetime import datetime, timezone
+from enum import IntEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, cast
 
@@ -57,7 +58,7 @@ from qgis.PyQt.QtCore import (
     pyqtSignal,
     pyqtSlot,
 )
-from qgis.PyQt.QtGui import QDesktopServices
+from qgis.PyQt.QtGui import QBrush, QDesktopServices
 from qgis.PyQt.QtWidgets import (
     QAction,
     QHeaderView,
@@ -74,17 +75,30 @@ from osminfo.compat import (
     addMapLayer,
 )
 from osminfo.logging import logger
+from osminfo.openstreetmap.tag2link import TagLink, TagLinkResolver
 from osminfo.osmelements import OsmElement, parseOsmElement
 from osminfo.overpass.query_task import OverpassQueryTask
 from osminfo.settings.osm_info_settings import OsmInfoSettings
-from osminfo.ui.icon import plugin_icon, qgis_icon
+from osminfo.ui.icon import material_icon, plugin_icon, qgis_icon
 from osminfo.utils import set_clipboard_data
 
 if TYPE_CHECKING:
     assert isinstance(iface, QgisInterface)
 
-FeatureItemType = 1001
-TagItemType = 1002
+
+class ResultTreeItemType(IntEnum):
+    FEATURE = 1001
+    TAG = 1002
+
+
+class ResultTreeItemDataRole(IntEnum):
+    OSM_ELEMENT = int(Qt.ItemDataRole.UserRole)
+    TAG_LINKS = int(Qt.ItemDataRole.UserRole) + 1
+
+
+class ResultTreeColumn(IntEnum):
+    FEATURE_OR_KEY = 0
+    VALUE = 1
 
 
 FORM_CLASS, _ = uic.loadUiType(
@@ -134,6 +148,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         )
 
         self.__rb = result_render
+        self.__tag_link_resolver = TagLinkResolver()
         self.__selected_id = None
         self.__selected_geom = None
         self.__active_task: Optional[OverpassQueryTask] = None
@@ -167,6 +182,12 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
             )
         self.__resultsTree.header().setStretchLastSection(False)
         self.__resultsTree.itemSelectionChanged.connect(self.selItemChanged)
+        self.__resultsTree.itemActivated.connect(self.__on_item_activated)
+
+        self.__tag_link_brush = QBrush(self.__resultsTree.palette().link())
+        self.__tag_link_font = self.__resultsTree.font()
+        self.__tag_link_font.setUnderline(True)
+
         self.__resultsTree.clear()
 
         overrideLocale = QSettings().value(
@@ -231,8 +252,8 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
     def openMenu(self, position):
         selected_items = self.__resultsTree.selectedItems()
         if len(selected_items) == 0 or selected_items[0].type() not in [
-            TagItemType,
-            FeatureItemType,
+            ResultTreeItemType.TAG,
+            ResultTreeItemType.FEATURE,
         ]:
             return
 
@@ -293,7 +314,53 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         copy_link_to_osm_action.triggered.connect(self.__copy_osm_url)
         menu.addAction(copy_link_to_osm_action)
 
+        tag_item = selected_items[0]
+        if tag_item.type() == ResultTreeItemType.TAG:
+            tag_links = self.__tag_links_from_item(tag_item)
+            if len(tag_links) > 0:
+                menu.addSeparator()
+                self.__populate_tag_link_menu(menu, tag_links)
+
         menu.exec(self.__resultsTree.viewport().mapToGlobal(position))
+
+    def __populate_tag_link_menu(
+        self, menu: QMenu, tag_links: Tuple[TagLink, ...]
+    ) -> None:
+        if len(tag_links) == 1:
+            tag_link = tag_links[0]
+
+            open_link_action = QAction(self.tr("Open tag link"), self)
+            open_link_action.setIcon(material_icon("open_in_new"))
+            open_link_action.triggered.connect(
+                lambda checked=False, url=tag_link.url: self.__open_url(url)
+            )
+            menu.addAction(open_link_action)
+
+            copy_link_action = QAction(self.tr("Copy tag link"), self)
+            copy_link_action.setIcon(material_icon("link"))
+            copy_link_action.triggered.connect(
+                lambda checked=False, url=tag_link.url: self.__copy_link(url)
+            )
+            menu.addAction(copy_link_action)
+            return
+
+        open_links_menu = menu.addMenu(self.tr("Open tag links"))
+        copy_links_menu = menu.addMenu(self.tr("Copy tag links"))
+        open_links_menu.setIcon(material_icon("open_in_new"))
+        copy_links_menu.setIcon(material_icon("link"))
+
+        for tag_link in tag_links:
+            open_action = QAction(tag_link.title, self)
+            open_action.triggered.connect(
+                lambda checked=False, url=tag_link.url: self.__open_url(url)
+            )
+            open_links_menu.addAction(open_action)
+
+            copy_action = QAction(tag_link.title, self)
+            copy_action.triggered.connect(
+                lambda checked=False, url=tag_link.url: self.__copy_link(url)
+            )
+            copy_links_menu.addAction(copy_action)
 
     def zoom2feature(self):
         selected_items = self.__resultsTree.selectedItems()
@@ -302,10 +369,10 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
 
         item = selected_items[0]
         # if selected tag - use parent
-        if item.type() == TagItemType:
+        if item.type() == ResultTreeItemType.TAG:
             item = item.parent()
-        if item and item.type() == FeatureItemType:
-            osm_element = item.data(0, Qt.ItemDataRole.UserRole)
+        if item and item.type() == ResultTreeItemType.FEATURE:
+            osm_element = self.__osm_element_from_item(item)
             geom = osm_element.asQgisGeometry()
             self.__rb.zoom_to_bbox(geom.boundingBox())
 
@@ -316,14 +383,12 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
 
         item = selected_items[0]
         # if selected tag - use parent
-        if item.type() == TagItemType:
+        if item.type() == ResultTreeItemType.TAG:
             item = item.parent()
-        if not item or item.type() != FeatureItemType:
+        if not item or item.type() != ResultTreeItemType.FEATURE:
             return
 
-        osm_element: Optional[OsmElement] = item.data(
-            0, Qt.ItemDataRole.UserRole
-        )
+        osm_element = self.__osm_element_from_item(item)
 
         if osm_element is None:
             iface.messageBar().pushMessage(
@@ -355,7 +420,10 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         if create_new:
             vLayer = QgsVectorLayer(
                 f"{geom_type}?crs=EPSG:4326",
-                item.data(0, Qt.ItemDataRole.DisplayRole),
+                item.data(
+                    ResultTreeColumn.FEATURE_OR_KEY,
+                    Qt.ItemDataRole.DisplayRole,
+                ),
                 "memory",
             )
         else:
@@ -445,12 +513,14 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
 
         item = items[0]
 
-        if item.type() == TagItemType:
+        if item.type() == ResultTreeItemType.TAG:
             item = item.parent()
-        if not item or item.type() != FeatureItemType:
+        if not item or item.type() != ResultTreeItemType.FEATURE:
             return False
 
-        osm_element: OsmElement = item.data(0, Qt.ItemDataRole.UserRole)
+        osm_element = self.__osm_element_from_item(item)
+        if osm_element is None:
+            return False
 
         layer: QgsVectorLayer = layers[0]
         geom = osm_element.asQgisGeometry()
@@ -483,13 +553,15 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
 
         item = selected_items[0]
         # if selected tag - use parent
-        if item.type() == TagItemType:
+        if item.type() == ResultTreeItemType.TAG:
             item = item.parent()
 
-        if not item or item.type() != FeatureItemType:
+        if not item or item.type() != ResultTreeItemType.FEATURE:
             return
 
-        osm_element: OsmElement = item.data(0, Qt.ItemDataRole.UserRole)
+        osm_element = self.__osm_element_from_item(item)
+        if osm_element is None:
+            return
 
         # dst_crs = iface.mapCanvas().mapSettings().destinationCrs().authid()
         if osm_element is None:
@@ -518,7 +590,10 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
 
         vl = QgsVectorLayer(
             f"{geom_type}?crs=EPSG:4326",
-            item.data(0, Qt.ItemDataRole.DisplayRole),
+            item.data(
+                ResultTreeColumn.FEATURE_OR_KEY,
+                Qt.ItemDataRole.DisplayRole,
+            ),
             "memory",
         )
 
@@ -760,15 +835,15 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
                         elementItem = QTreeWidgetItem(
                             near,
                             [osm_element.title(self.qgisLocale)],
-                            FeatureItemType,
+                            ResultTreeItemType.FEATURE,
                         )
-                        elementItem.setData(
-                            0, Qt.ItemDataRole.UserRole, osm_element
+                        self.__set_osm_element_item_data(
+                            elementItem, osm_element
                         )
 
                         for tag in sorted(osm_element.tags.items()):
                             elementItem.addChild(
-                                QTreeWidgetItem(tag, TagItemType)
+                                self.__create_tag_item(tag[0], tag[1])
                             )
 
                         self.__resultsTree.addTopLevelItem(elementItem)
@@ -811,14 +886,14 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
                         elementItem = QTreeWidgetItem(
                             isin,
                             [osm_element.title(self.qgisLocale)],
-                            FeatureItemType,
+                            ResultTreeItemType.FEATURE,
                         )
-                        elementItem.setData(
-                            0, Qt.ItemDataRole.UserRole, osm_element
+                        self.__set_osm_element_item_data(
+                            elementItem, osm_element
                         )
                         for tag in sorted(osm_element.tags.items()):
                             elementItem.addChild(
-                                QTreeWidgetItem(tag, TagItemType)
+                                self.__create_tag_item(tag[0], tag[1])
                             )
 
                         self.__resultsTree.addTopLevelItem(elementItem)
@@ -838,7 +913,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
             return
         item = selection[0]
         # if selected tag - use parent
-        if item.type() == TagItemType:
+        if item.type() == ResultTreeItemType.TAG:
             item = item.parent()
         # if already selected - exit
         if self.__selected_id == item:
@@ -849,11 +924,92 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         # clear old highlights
         self.__rb.clear_feature()
         # set new
-        if item and item.type() == FeatureItemType:
+        if item and item.type() == ResultTreeItemType.FEATURE:
             self.__selected_id = item
-            osm_element = item.data(0, Qt.ItemDataRole.UserRole)
+            osm_element = self.__osm_element_from_item(item)
+            if osm_element is None:
+                return
 
             self.__rb.show_feature(osm_element.asQgisGeometry())
+
+    def __create_tag_item(self, key: str, value: str) -> QTreeWidgetItem:
+        tag_item = QTreeWidgetItem([key, value], ResultTreeItemType.TAG)
+        tag_links = self.__tag_link_resolver.resolve(
+            key, value, self.qgisLocale
+        )
+        if len(tag_links) == 0:
+            return tag_item
+
+        tag_item.setData(
+            ResultTreeColumn.VALUE,
+            ResultTreeItemDataRole.TAG_LINKS,
+            tag_links,
+        )
+        tag_item.setForeground(ResultTreeColumn.VALUE, self.__tag_link_brush)
+        tag_item.setToolTip(
+            ResultTreeColumn.VALUE,
+            self.__tag_links_tooltip(tag_links),
+        )
+        tag_item.setFont(ResultTreeColumn.VALUE, self.__tag_link_font)
+
+        return tag_item
+
+    def __tag_links_tooltip(self, tag_links: Tuple[TagLink, ...]) -> str:
+        if len(tag_links) == 1:
+            return tag_links[0].url
+
+        return "\n".join(link.url for link in tag_links)
+
+    def __tag_links_from_item(
+        self, item: QTreeWidgetItem
+    ) -> Tuple[TagLink, ...]:
+        if item.type() != ResultTreeItemType.TAG:
+            return tuple()
+
+        tag_links = item.data(
+            ResultTreeColumn.VALUE, ResultTreeItemDataRole.TAG_LINKS
+        )
+        if tag_links is None:
+            return tuple()
+
+        return tuple(tag_links)
+
+    def __set_osm_element_item_data(
+        self, item: QTreeWidgetItem, osm_element: OsmElement
+    ) -> None:
+        item.setData(
+            ResultTreeColumn.FEATURE_OR_KEY,
+            ResultTreeItemDataRole.OSM_ELEMENT,
+            osm_element,
+        )
+
+    def __osm_element_from_item(
+        self, item: QTreeWidgetItem
+    ) -> Optional[OsmElement]:
+        osm_element = item.data(
+            ResultTreeColumn.FEATURE_OR_KEY,
+            ResultTreeItemDataRole.OSM_ELEMENT,
+        )
+        if osm_element is None:
+            return None
+
+        return cast(OsmElement, osm_element)
+
+    @pyqtSlot(QTreeWidgetItem, int)
+    def __on_item_activated(self, item: QTreeWidgetItem, column: int) -> None:
+        del column
+        tag_links = self.__tag_links_from_item(item)
+        if len(tag_links) == 0:
+            return
+
+        self.__open_url(tag_links[0].url)
+
+    def __open_url(self, url: str) -> None:
+        QDesktopServices.openUrl(QUrl(url))
+
+    def __copy_link(self, link: str) -> None:
+        data = QByteArray(link.encode())
+        set_clipboard_data("text/plain", data, link)
 
     @pyqtSlot()
     def __open_in_osm(self) -> None:
@@ -862,14 +1018,14 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
             return
 
         item = selected_items[0]
-        if item.type() == TagItemType:
+        if item.type() == ResultTreeItemType.TAG:
             item = item.parent()
-        if not item or item.type() != FeatureItemType:
+        if not item or item.type() != ResultTreeItemType.FEATURE:
             return
 
-        osm_element: Optional[OsmElement] = item.data(
-            0, Qt.ItemDataRole.UserRole
-        )
+        osm_element = self.__osm_element_from_item(item)
+        if osm_element is None:
+            return
 
         QDesktopServices.openUrl(
             QUrl(
@@ -884,14 +1040,14 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
             return
 
         item = selected_items[0]
-        if item.type() == TagItemType:
+        if item.type() == ResultTreeItemType.TAG:
             item = item.parent()
-        if not item or item.type() != FeatureItemType:
+        if not item or item.type() != ResultTreeItemType.FEATURE:
             return
 
-        osm_element: Optional[OsmElement] = item.data(
-            0, Qt.ItemDataRole.UserRole
-        )
+        osm_element = self.__osm_element_from_item(item)
+        if osm_element is None:
+            return
         link = f"https://www.openstreetmap.org/{osm_element.type()}/{osm_element.osm_id}"
         data = QByteArray(link.encode())
         set_clipboard_data("text/plain", data, link)
