@@ -1,3 +1,4 @@
+from html import escape
 from pathlib import Path
 from typing import List, Optional
 
@@ -18,7 +19,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from osminfo.logging import logger, update_logging_level
-from osminfo.overpass.endpoints import OverpassEndpoint
+from osminfo.overpass.endpoints import OverpassEndpoint, OverpassEndpointInfo
 from osminfo.overpass.healthcheck_task import (
     HealthCheckStatus,
     HealthCheckTask,
@@ -91,6 +92,12 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
         self._widget.custom_endpoint_lineedit.setPlaceholderText(
             OverpassEndpoint.MAIN.value.url
         )
+        self._widget.info_label.setTextFormat(Qt.TextFormat.RichText)
+        self._widget.info_label.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextBrowserInteraction
+        )
+        self._widget.info_label.setOpenExternalLinks(True)
+        self._widget.info_label.setWordWrap(True)
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -130,6 +137,7 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
         self._widget.endpoint_combobox.setCurrentIndex(current_index)
         self._widget.custom_endpoint_lineedit.setText(settings.custom_endpoint)
         self._update_custom_endpoint_widget_visibility()
+        self._update_endpoint_info_label()
         self._widget.nearby_checkbox.setChecked(settings.fetch_nearby)
         self._widget.enclosing_checkbox.setChecked(settings.fetch_enclosing)
         self._widget.timeout_spinbox.setValue(settings.timeout)
@@ -220,6 +228,7 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
     @pyqtSlot(int)
     def _on_endpoint_changed(self, _: int) -> None:
         self._update_custom_endpoint_widget_visibility()
+        self._update_endpoint_info_label()
 
     def _update_custom_endpoint_widget_visibility(self) -> None:
         is_custom_endpoint = (
@@ -227,6 +236,138 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
             == OverpassEndpoint.CUSTOM.value.service_id
         )
         self._widget.custom_endpoint_widget.setVisible(is_custom_endpoint)
+
+    def _update_endpoint_info_label(self) -> None:
+        selected_endpoint = self._selected_endpoint()
+        is_custom_endpoint = selected_endpoint == OverpassEndpoint.CUSTOM
+        self._widget.info_label.setVisible(not is_custom_endpoint)
+
+        if is_custom_endpoint:
+            self._widget.info_label.clear()
+            return
+
+        self._widget.info_label.setText(
+            self._build_endpoint_info_html(selected_endpoint)
+        )
+
+    def _selected_endpoint(self) -> OverpassEndpoint:
+        selected_endpoint = OverpassEndpoint.from_service_id(
+            self._selected_service_id()
+        )
+        if selected_endpoint is None:
+            return OverpassEndpoint.MAIN
+
+        return selected_endpoint
+
+    def _build_endpoint_info_html(self, endpoint: OverpassEndpoint) -> str:
+        endpoint_info = endpoint.value
+        lines = []
+
+        lines.append('<table cellspacing="4" cellpadding="0">')
+
+        if endpoint_info.project_url is not None:
+            lines.append(
+                self._build_info_row_html(
+                    self.tr("Project"),
+                    self._build_link_html(
+                        endpoint_info.project_url,
+                        endpoint_info.project_url,
+                    ),
+                )
+            )
+
+        lines.append(
+            self._build_info_row_html(
+                self.tr("Coverage"),
+                escape(endpoint_info.data_coverage),
+            )
+        )
+
+        if endpoint_info.overpass_turbo_url is not None:
+            lines.append(
+                self._build_info_row_html(
+                    self.tr("Overpass Turbo"),
+                    self._build_link_html(
+                        endpoint_info.overpass_turbo_url,
+                        endpoint_info.overpass_turbo_url,
+                    ),
+                )
+            )
+
+        lines.append(
+            self._build_info_row_html(
+                self.tr("Endpoint"),
+                self._build_link_html(
+                    endpoint_info.url,
+                    endpoint_info.url,
+                ),
+            )
+        )
+
+        if endpoint_info.note is not None:
+            lines.append(
+                self._build_info_row_html(
+                    self.tr("Note"),
+                    f"<i>{escape(endpoint_info.note)}</i>",
+                )
+            )
+
+        if endpoint_info.usage_policy is not None:
+            lines.append(
+                self._build_info_row_html(
+                    self.tr("Usage policy"),
+                    escape(endpoint_info.usage_policy),
+                )
+            )
+
+        if endpoint_info.contact is not None:
+            lines.append(
+                self._build_info_row_html(
+                    self.tr("Contact"),
+                    self._build_contact_html(endpoint_info),
+                )
+            )
+        lines.append("</table>")
+
+        lines.append("<br><br>")
+
+        lines.append(
+            'For more details please check the <a href="https://wiki.openstreetmap.org/wiki/Overpass_API#Public_Overpass_API_instances">OSM Wiki</a> page with the list of Overpass API instances.'
+        )
+
+        return "".join(lines)
+
+    def _build_info_row_html(
+        self,
+        label: str,
+        value_html: str,
+    ) -> str:
+        return (
+            f"<tr><td><b>{escape(label)}:</b></td><td>{value_html}</td></tr>"
+        )
+
+    def _build_link_html(
+        self,
+        url: str,
+        label: str,
+    ) -> str:
+        return f'<a href="{escape(url, quote=True)}">{escape(label)}</a>'
+
+    def _build_contact_html(
+        self,
+        endpoint: OverpassEndpointInfo,
+    ) -> str:
+        contact = endpoint.contact
+        if contact is None:
+            return ""
+
+        if endpoint.contact_url is None:
+            return escape(contact)
+
+        return self._build_link_html(
+            endpoint.contact_url,
+            contact,
+        )
 
     def _selected_service_id(self) -> str:
         current_data = self._widget.endpoint_combobox.currentData()

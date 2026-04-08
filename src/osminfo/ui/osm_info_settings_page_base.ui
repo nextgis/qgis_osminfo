@@ -34,6 +34,13 @@
        </layout>
       </item>
       <item>
+       <widget class="QLabel" name="info_label">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QWidget" name="custom_endpoint_widget" native="true">
         <layout class="QHBoxLayout" name="horizontalLayout_2">
          <property name="leftMargin">
