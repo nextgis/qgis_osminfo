@@ -36,7 +36,7 @@
        <number>3</number>
       </property>
       <item>
-       <widget class="QComboBox" name="comboBox">
+       <widget class="QComboBox" name="search_combobox">
         <property name="editable">
          <bool>true</bool>
         </property>

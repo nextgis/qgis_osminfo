@@ -171,16 +171,44 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
             self,
         )
         self.search_button.setObjectName("search_button")
-        self.search_button.setToolTip(
-            self.tr("Search OSM features")
-        )
+        self.search_button.setToolTip(self.tr("Search OSM features"))
         self.search_button.cancelRequested.connect(self.__cancel_search)
+        self.search_button.setFixedSize(
+            self.search_combobox.sizeHint().height(),
+            self.search_combobox.sizeHint().height(),
+        )
         self.search_layout.addWidget(self.search_button)
 
         self.menu_button = QToolButton(self)
         self.menu_button.setObjectName("menu_button")
         self.menu_button.setIcon(material_icon("menu"))
         self.menu_button.setToolTip(self.tr("Open OSMInfo menu"))
+        self.menu_button.setFixedSize(
+            self.search_combobox.sizeHint().height(),
+            self.search_combobox.sizeHint().height(),
+        )
+        self.menu_button.setStyleSheet(
+            """
+            QToolButton::menu-indicator {
+                image: none;
+            }
+            """
+        )
+
+        search_menu = QMenu(self.menu_button)
+        settings_action = QAction(
+            qgis_icon("iconSettingsConsole.svg"),
+            self.tr("Settings"),
+            self.menu_button,
+        )
+        settings_action.triggered.connect(self.__open_settings)
+        search_menu.addAction(settings_action)
+
+        self.menu_button.setMenu(search_menu)
+        self.menu_button.setPopupMode(
+            QToolButton.ToolButtonPopupMode.InstantPopup
+        )
+
         self.search_layout.addWidget(self.menu_button)
 
         self.__resultsTree.setContextMenuPolicy(
@@ -1086,3 +1114,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         link = f"https://www.openstreetmap.org/{osm_element.type()}/{osm_element.osm_id}"
         data = QByteArray(link.encode())
         set_clipboard_data("text/plain", data, link)
+
+    @pyqtSlot()
+    def __open_settings(self) -> None:
+        iface.showOptionsDialog(iface.mainWindow(), "OSMInfo")

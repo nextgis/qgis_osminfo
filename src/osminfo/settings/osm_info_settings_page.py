@@ -70,6 +70,10 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
             self.tr("Check connection to the selected Overpass API instance")
         )
         self.check_endpoint_button.clicked.connect(self._check_endpoint)
+        self.check_endpoint_button.setFixedSize(
+            self._widget.endpoint_combobox.sizeHint().height(),
+            self._widget.endpoint_combobox.sizeHint().height(),
+        )
         self._widget.endpoint_layout.addWidget(self.check_endpoint_button)
 
         wiki_button = QToolButton(self._widget)
@@ -78,6 +82,10 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
             self.tr("Open OSM Wiki page with Overpass API instances list")
         )
         wiki_button.clicked.connect(self._open_osm_wiki)
+        wiki_button.setFixedSize(
+            self._widget.endpoint_combobox.sizeHint().height(),
+            self._widget.endpoint_combobox.sizeHint().height(),
+        )
         self._widget.endpoint_layout.addWidget(wiki_button)
 
         self._widget.custom_endpoint_lineedit.setPlaceholderText(

@@ -34,6 +34,8 @@ def qgis_icon(icon_name: str) -> QIcon:
         icon = QIcon(f":images/themes/default/{icon_name}")
     if icon.isNull():
         icon = QIcon(f":images/themes/default/propertyicons/{icon_name}")
+    if icon.isNull():
+        icon = QIcon(f":images/themes/default/console/{icon_name}")
     return icon
 
 
