@@ -1,5 +1,5 @@
-import html
 import json
+from time import perf_counter
 from typing import Any, List, Optional
 
 from qgis.core import (
@@ -13,6 +13,7 @@ from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
 from osminfo.core.exceptions import OsmInfoOverpassQueryError
 from osminfo.logging import logger
+from osminfo.utils import human_readable_size
 
 OVERPASS_TRANSFER_TIMEOUT_MARGIN_SECONDS = 5
 
@@ -91,10 +92,12 @@ class OverpassQueryTask(QgsTask):
 
         self._check_cancellation()
 
+        started_at = perf_counter()
+
         logger.debug(
             "Running Overpass query for %s\n%s",
             self._endpoint,
-            html.escape(self._overpass_query),
+            self._overpass_query,
         )
 
         request = QNetworkRequest(QUrl(self._endpoint))
@@ -136,8 +139,12 @@ class OverpassQueryTask(QgsTask):
                 detail=detail,
             )
 
+        response_content = reply_content.content()
+        response_size_bytes = int(response_content.size())
+        elapsed_seconds = perf_counter() - started_at
+
         try:
-            json_content = json.loads(reply_content.content().data())
+            json_content = json.loads(response_content.data())
         except Exception as error:
             logger.exception("Parsing data error")
             raise OsmInfoOverpassQueryError(
@@ -156,7 +163,12 @@ class OverpassQueryTask(QgsTask):
             )
 
         elements = json_content.get("elements", [])
-        logger.debug("Fetched %d elements", len(elements))
+        logger.debug(
+            "Fetched %d elements in %.3f s, response size %s",
+            len(elements),
+            elapsed_seconds,
+            human_readable_size(response_size_bytes / 1024.0),
+        )
         return elements
 
     def _check_cancellation(self) -> None:

@@ -389,3 +389,123 @@ class OsmInfoOverpassQueryError(OsmInfoError):
             user_message=user_message if user_message else default_message,
             detail=detail,
         )
+
+
+class OsmInfoQueryBuilderError(OsmInfoError):
+    """Raise an error when query builder strategies cannot produce a query."""
+
+    def __init__(
+        self,
+        log_message: Optional[str] = None,
+        *,
+        user_message: Optional[str] = None,
+        detail: Optional[str] = None,
+    ) -> None:
+        # fmt: off
+        default_message = QgsApplication.translate(
+            "Exceptions",
+            "Failed to build Overpass query."
+        )
+        # fmt: on
+        super().__init__(
+            log_message=log_message if log_message else default_message,
+            user_message=user_message if user_message else default_message,
+            detail=detail,
+        )
+
+
+class OsmInfoWizardError(OsmInfoQueryBuilderError):
+    """Raise a base error for failures in the wizard query pipeline."""
+
+    def __init__(
+        self,
+        log_message: Optional[str] = None,
+        *,
+        user_message: Optional[str] = None,
+        detail: Optional[str] = None,
+    ) -> None:
+        # fmt: off
+        default_message = QgsApplication.translate(
+            "Exceptions",
+            "Failed to build wizard query."
+        )
+        # fmt: on
+        super().__init__(
+            log_message=log_message if log_message else default_message,
+            user_message=user_message if user_message else default_message,
+            detail=detail,
+        )
+
+
+class OsmInfoWizardDependencyError(OsmInfoWizardError):
+    """Raise an error when an optional wizard dependency is unavailable."""
+
+    def __init__(self, dependency_name: str) -> None:
+        # fmt: off
+        message = QgsApplication.translate(
+            "Exceptions",
+            "Wizard dependency '{dependency_name}' is not installed."
+        ).format(dependency_name=dependency_name)
+        # fmt: on
+        super().__init__(
+            log_message=message,
+            user_message=message,
+            detail=dependency_name,
+        )
+
+
+class OsmInfoWizardParserError(OsmInfoWizardError):
+    """Raise an error when wizard search text cannot be parsed."""
+
+    def __init__(self, message: str, position: int) -> None:
+        self.position = position
+        # fmt: off
+        formatted_message = QgsApplication.translate(
+            "Exceptions", "{message} at position {position}"
+        ).format(message=message, position=position)
+        # fmt: on
+        super().__init__(
+            log_message=formatted_message,
+            user_message=formatted_message,
+        )
+
+
+class OsmInfoWizardNormalizationError(OsmInfoWizardError):
+    """Raise an error when wizard AST normalization fails."""
+
+    pass
+
+
+class OsmInfoWizardFreeFormError(OsmInfoWizardError):
+    """Raise an error when free-form preset resolution fails."""
+
+    pass
+
+
+class OsmInfoWizardRenderError(OsmInfoWizardError):
+    """Raise an error when resolved wizard queries cannot be rendered."""
+
+    pass
+
+
+class OsmInfoNominatimGeocodeError(OsmInfoQueryBuilderError):
+    """Raise an error when geocoding query placeholders fails."""
+
+    def __init__(
+        self,
+        log_message: Optional[str] = None,
+        *,
+        user_message: Optional[str] = None,
+        detail: Optional[str] = None,
+    ) -> None:
+        # fmt: off
+        default_message = QgsApplication.translate(
+            "Exceptions",
+            "Failed to geocode query placeholders."
+        )
+        # fmt: on
+        super().__init__(
+            log_message=log_message if log_message else default_message,
+            user_message=user_message if user_message else default_message,
+            detail=detail,
+        )

@@ -163,6 +163,7 @@ class OsmInfo:
         if self.iface.mapCanvas().mapTool() == self.mapTool:
             self.iface.mapCanvas().unsetMapTool(self.mapTool)
 
+        self.mapTool.cleanup()
         self.mapTool.deleteLater()
         del self.mapTool
 

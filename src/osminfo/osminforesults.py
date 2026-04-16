@@ -31,7 +31,7 @@
 from datetime import datetime, timezone
 from enum import IntEnum
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, cast
 
 from qgis.core import (
     Qgis,
@@ -43,11 +43,12 @@ from qgis.core import (
     QgsField,
     QgsGeometry,
     QgsMessageLog,
+    QgsPointXY,
     QgsProject,
     QgsRectangle,
     QgsVectorLayer,
 )
-from qgis.gui import QgisInterface, QgsDockWidget, QgsMessageBar
+from qgis.gui import QgisInterface, QgsDockWidget
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (
     QByteArray,
@@ -62,7 +63,6 @@ from qgis.PyQt.QtGui import QBrush, QDesktopServices
 from qgis.PyQt.QtWidgets import (
     QAction,
     QHeaderView,
-    QMainWindow,
     QMenu,
     QMessageBox,
     QToolButton,
@@ -75,9 +75,17 @@ from osminfo.compat import (
     GeometryType,
     addMapLayer,
 )
+from osminfo.core.exceptions import OsmInfoQueryBuilderError
 from osminfo.logging import logger
+from osminfo.nominatim.geocode_task import GeocodeTask
 from osminfo.openstreetmap.tag2link import TagLink, TagLinkResolver
 from osminfo.osmelements import OsmElement, parseOsmElement
+from osminfo.overpass.query_builder import (
+    QueryBuilder,
+    QueryContext,
+    QueryPostprocessor,
+)
+from osminfo.overpass.query_builder.wizard import PlaceholderBuilder
 from osminfo.overpass.query_task import OverpassQueryTask
 from osminfo.settings.osm_info_settings import OsmInfoSettings
 from osminfo.ui.icon import material_icon, plugin_icon, qgis_icon
@@ -124,10 +132,7 @@ class AttributeMismatchMessageBox(QMessageBox):
 
         Button = QMessageBox.StandardButton
         self.setStandardButtons(
-            QMessageBox.StandardButtons()
-            | Button.Yes
-            | Button.No
-            | Button.Cancel,
+            Button.Yes | Button.No | Button.Cancel,
         )
         self.setDefaultButton(Button.Yes)
 
@@ -135,17 +140,15 @@ class AttributeMismatchMessageBox(QMessageBox):
 class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
     loadingStateChanged = pyqtSignal(bool)
 
-    def __init__(self, title: str, result_render):
-        main_window = cast(QMainWindow, iface.mainWindow())
-        super().__init__(title, parent=main_window)
+    def __init__(self, title: str, result_render, parent=None):
+        super().__init__(title, parent=parent)
 
         self.setupUi(self)
         self.setWindowTitle(title)
         self.setObjectName("OsmInfoResultsDock")
 
         self.setAllowedAreas(
-            Qt.DockWidgetAreas()
-            | Qt.DockWidgetArea.LeftDockWidgetArea
+            Qt.DockWidgetArea.LeftDockWidgetArea
             | Qt.DockWidgetArea.RightDockWidgetArea
         )
 
@@ -154,14 +157,25 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         self.__selected_id = None
         self.__selected_geom = None
         self.__active_task: Optional[OverpassQueryTask] = None
+        self.__active_geocode_task: Optional[GeocodeTask] = None
         self.__active_task_kind: Optional[str] = None
         self.__active_endpoint = ""
         self.__pending_queries: List[Tuple[str, str, Optional[int]]] = []
+        self.__staged_queries: List[str] = []
+        self.__staged_query_kinds: List[str] = []
+        self.__staged_timeout_seconds: Optional[int] = None
+        self.__query_context: Optional[QueryContext] = None
         self.__query_results: Dict[str, List] = {
             "nearby": [],
             "enclosing": [],
+            "search": [],
         }
         self.__is_loading = False
+        self.__placeholder_builder = PlaceholderBuilder()
+
+        self.search_combobox.lineEdit().setPlaceholderText(
+            self.__placeholder_builder.build()
+        )
 
         self.__resultsTree = self.results_tree
         self.search_button = LoadingToolButton(
@@ -172,6 +186,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         )
         self.search_button.setObjectName("search_button")
         self.search_button.setToolTip(self.tr("Search OSM features"))
+        self.search_button.clicked.connect(self.__search_by_current_text)
         self.search_button.cancelRequested.connect(self.__cancel_search)
         self.search_button.setFixedSize(
             self.search_combobox.sizeHint().height(),
@@ -238,6 +253,12 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         self.__tag_link_font.setUnderline(True)
 
         self.__resultsTree.clear()
+
+        search_line_edit = self.search_combobox.lineEdit()
+        if search_line_edit is not None:
+            search_line_edit.returnPressed.connect(
+                self.__search_by_current_text
+            )
 
         overrideLocale = QSettings().value(
             "locale/overrideFlag", False, type=bool
@@ -465,7 +486,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
 
         geom_type = "Multi" * geom.isMultipart() + geom_type
 
-        vLayer = None
+        vLayer: Optional[QgsVectorLayer] = None
         if create_new:
             vLayer = QgsVectorLayer(
                 f"{geom_type}?crs=EPSG:4326",
@@ -476,17 +497,21 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
                 "memory",
             )
         else:
-            vLayer = iface.layerTreeView().selectedLayers()[0]
+            selected_layer = iface.layerTreeView().selectedLayers()[0]
+            if not isinstance(selected_layer, QgsVectorLayer):
+                return
+
+            vLayer = selected_layer
 
         if vLayer is None:
             return
 
-        dataProvider = vLayer.dataProvider()
-        assert dataProvider is not None
+        data_provider = cast(Any, vLayer.dataProvider())
+        assert data_provider is not None
 
         string_type = FieldType.QString
         if create_new:
-            dataProvider.addAttributes(
+            data_provider.addAttributes(
                 [QgsField(k, string_type) for k in osm_element.tags]
             )
         else:
@@ -502,7 +527,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
                     layer_fields = vLayer.fields().names()
                     new_fields = set(element_tags) - set(layer_fields)
 
-                    dataProvider.addAttributes(
+                    data_provider.addAttributes(
                         [
                             QgsField(key, string_type)
                             for key in element_tags
@@ -617,7 +642,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
             iface.messageBar().pushMessage(
                 "OSM Info",
                 "Cann't parse OSM Element.",
-                QgsMessageBar.WARNING,
+                Qgis.MessageLevel.Warning,
                 2,
             )
             return
@@ -665,7 +690,80 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         # Set the feature as the clipboard content
         iface.copySelectionToClipboard(vl)
 
-    def getInfo(self, xx, yy):
+    def getInfo(self, point: QgsPointXY) -> None:
+        settings = OsmInfoSettings()
+        query_builder = QueryBuilder(settings)
+
+        try:
+            queries = query_builder.build_for_coords(point)
+        except OsmInfoQueryBuilderError as error:
+            self.__cancel_active_task()
+            self.showError(error.user_message)
+            return
+
+        self.__run_queries(
+            settings.overpass_url,
+            self.__coordinate_query_kinds(settings),
+            queries,
+            self.__query_timeout_seconds(settings),
+        )
+
+    def set_search_text(self, search_text: str) -> None:
+        self.search_combobox.setCurrentText(search_text.strip())
+
+    @pyqtSlot()
+    def __search_by_current_text(self) -> None:
+        if self.__is_loading:
+            return
+
+        settings = OsmInfoSettings()
+        query_builder = QueryBuilder(settings)
+        search_text = self.search_combobox.currentText().strip()
+
+        try:
+            queries = query_builder.build_for_string(search_text)
+        except OsmInfoQueryBuilderError as error:
+            self.__cancel_active_task()
+            repaired_search = query_builder.repair_search(search_text)
+            if repaired_search is not None and repaired_search != search_text:
+                applied_repair = self.__offer_search_repair(
+                    search_text,
+                    repaired_search,
+                )
+                if applied_repair:
+                    return
+
+            self.showError(error.user_message)
+            return
+
+        if query_builder.last_strategy_name == "coords":
+            query_kinds = self.__coordinate_query_kinds(settings)
+            timeout_seconds = self.__query_timeout_seconds(settings)
+        else:
+            query_kinds = ["search"] * len(queries)
+            timeout_seconds = self.__query_timeout_seconds(settings)
+
+        self.__run_queries(
+            settings.overpass_url,
+            query_kinds,
+            queries,
+            timeout_seconds,
+        )
+
+    def __offer_search_repair(
+        self,
+        original_search: str,
+        repaired_search: str,
+    ) -> bool:
+        return True
+
+    def __run_queries(
+        self,
+        endpoint: str,
+        query_kinds: List[str],
+        queries: List[str],
+        timeout_seconds: Optional[int],
+    ) -> None:
         self.__cancel_active_task()
 
         self.__resultsTree.clear()
@@ -673,32 +771,103 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
             QTreeWidgetItem([self.tr("Loading...")])
         )
 
-        validation_error = self.__validate_coordinates(xx, yy)
-        if validation_error is not None:
-            self.__finish_loading()
-            self.showError(validation_error)
-            return
-
-        settings = OsmInfoSettings()
-        if not settings.fetch_nearby and not settings.fetch_enclosing:
-            self.__finish_loading()
-            self.showError(self.tr("No object category selected in settings"))
-            return
-
-        self.__active_endpoint = settings.overpass_url
-        if len(self.__active_endpoint) == 0:
-            self.__finish_loading()
+        if len(endpoint) == 0:
             self.showError(self.tr("Custom Overpass API URL is not set"))
             return
 
-        self.__pending_queries = self.__build_queries(settings, xx, yy)
+        map_canvas = iface.mapCanvas()
+        if map_canvas is None:
+            self.showError(self.tr("Failed to read current map extent."))
+            return
+
+        try:
+            query_context = QueryContext.from_map_canvas(map_canvas)
+            geocoding_data = QueryPostprocessor.extract_geocoding_data(queries)
+        except OsmInfoQueryBuilderError as error:
+            self.showError(error.user_message)
+            return
+
+        if geocoding_data.has_requests():
+            self.__active_endpoint = endpoint
+            self.__staged_queries = list(queries)
+            self.__staged_query_kinds = list(query_kinds)
+            self.__staged_timeout_seconds = timeout_seconds
+            self.__query_context = query_context
+            self.__query_results = {
+                "nearby": [],
+                "enclosing": [],
+                "search": [],
+            }
+            self.__start_loading()
+            self.__start_geocode_task(
+                geocoding_data.id_queries,
+                geocoding_data.area_queries,
+                geocoding_data.bbox_queries,
+                geocoding_data.coordinate_queries,
+            )
+            return
+
+        try:
+            queries = QueryPostprocessor().process(queries, query_context)
+        except OsmInfoQueryBuilderError as error:
+            self.showError(error.user_message)
+            return
+
+        if len(queries) == 0 or len(query_kinds) != len(queries):
+            self.showError(self.tr("Failed to build Overpass query"))
+            return
+
+        self.__active_endpoint = endpoint
+        self.__pending_queries = [
+            (query_kind, query, timeout_seconds)
+            for query_kind, query in zip(query_kinds, queries)
+        ]
         self.__query_results = {
             "nearby": [],
             "enclosing": [],
+            "search": [],
         }
 
         self.__start_loading()
         self.__start_next_query()
+
+    def __start_geocode_task(
+        self,
+        id_queries: Tuple[str, ...],
+        area_queries: Tuple[str, ...],
+        bbox_queries: Tuple[str, ...],
+        coordinate_queries: Tuple[str, ...],
+    ) -> None:
+        if self.__query_context is None:
+            self.showError(self.tr("Failed to read current map extent."))
+            self.__finish_loading()
+            self.__reset_query_state()
+            return
+
+        task = GeocodeTask(
+            self.__query_context,
+            id_queries,
+            area_queries,
+            bbox_queries,
+            coordinate_queries,
+        )
+        task.taskCompleted.connect(self.__on_geocode_task_completed)
+        task.taskTerminated.connect(self.__on_geocode_task_terminated)
+        self.__active_geocode_task = task
+        QgsApplication.taskManager().addTask(task)
+
+    def __coordinate_query_kinds(
+        self,
+        settings: OsmInfoSettings,
+    ) -> List[str]:
+        query_kinds: List[str] = []
+        if settings.fetch_nearby:
+            query_kinds.append("nearby")
+
+        if settings.fetch_enclosing:
+            query_kinds.append("enclosing")
+
+        return query_kinds
 
     def __start_loading(self) -> None:
         if self.__is_loading:
@@ -719,6 +888,8 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
     def __cancel_active_task(self) -> None:
         if self.__active_task is not None:
             self.__active_task.cancel()
+        if self.__active_geocode_task is not None:
+            self.__active_geocode_task.cancel()
 
         self.__finish_loading()
         self.__reset_query_state()
@@ -736,65 +907,19 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
 
     def __reset_query_state(self) -> None:
         self.__active_task = None
+        self.__active_geocode_task = None
         self.__active_task_kind = None
         self.__active_endpoint = ""
         self.__pending_queries = []
+        self.__staged_queries = []
+        self.__staged_query_kinds = []
+        self.__staged_timeout_seconds = None
+        self.__query_context = None
         self.__query_results = {
             "nearby": [],
             "enclosing": [],
+            "search": [],
         }
-
-    def __validate_coordinates(self, xx: str, yy: str) -> Optional[str]:
-        try:
-            longitude = float(xx)
-            latitude = float(yy)
-        except (TypeError, ValueError):
-            return self.tr("%s, %s are wrong coords!") % (xx, yy)
-
-        if abs(longitude) > 180 or abs(latitude) > 90:
-            return self.tr("%s, %s are wrong coords!") % (xx, yy)
-
-        return None
-
-    def __build_queries(
-        self,
-        settings: OsmInfoSettings,
-        xx: str,
-        yy: str,
-    ) -> List[Tuple[str, str, Optional[int]]]:
-        queries: List[Tuple[str, str, Optional[int]]] = []
-        timeout_seconds = self.__query_timeout_seconds(settings)
-
-        if settings.fetch_nearby:
-            queries.append(
-                (
-                    "nearby",
-                    self.__build_nearby_query(settings, xx, yy),
-                    timeout_seconds,
-                )
-            )
-
-        if settings.fetch_enclosing:
-            queries.append(
-                (
-                    "enclosing",
-                    self.__build_enclosing_query(settings, xx, yy),
-                    timeout_seconds,
-                )
-            )
-
-        return queries
-
-    def __build_query_header(self, settings: OsmInfoSettings) -> str:
-        query_settings = ["[out:json]"]
-        if settings.is_timeout_enabled:
-            query_settings.append(f"[timeout:{settings.timeout}]")
-
-        max_size_bytes = self.__query_max_size_bytes(settings)
-        if max_size_bytes is not None:
-            query_settings.append(f"[maxsize:{max_size_bytes}]")
-
-        return "".join(query_settings) + ";"
 
     def __query_timeout_seconds(
         self,
@@ -805,66 +930,22 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
 
         return settings.timeout
 
-    def __query_max_size_bytes(
-        self,
-        settings: OsmInfoSettings,
-    ) -> Optional[int]:
-        if not settings.is_max_size_enabled:
-            return None
-
-        max_size_megabytes = settings.max_size_megabytes
-        if max_size_megabytes <= 0:
-            return None
-
-        return max_size_megabytes * 1024 * 1024
-
-    def __build_nearby_query(
-        self,
-        settings: OsmInfoSettings,
-        xx: str,
-        yy: str,
-    ) -> str:
-        distance = settings.distance
-        query_header = self.__build_query_header(settings)
-        return f"""
-            {query_header}
-            (
-                node(around:{distance},{yy},{xx});
-                way(around:{distance},{yy},{xx});
-                relation(around:{distance},{yy},{xx});
-            );
-            out tags geom;
-        """
-
-    def __build_enclosing_query(
-        self,
-        settings: OsmInfoSettings,
-        xx: str,
-        yy: str,
-    ) -> str:
-        # TODO is .b really needed there? Probably this is a bug in overpass
-        query_header = self.__build_query_header(settings)
-        return f"""
-            {query_header}
-            is_in({yy},{xx})->.a;
-            way(pivot.a)->.b;
-            .b out tags geom;
-            .b <;
-            out geom;
-            relation(pivot.a);
-            out geom;
-        """
-
     def __start_next_query(self) -> None:
         if len(self.__pending_queries) == 0:
             nearby_elements = self.__query_results["nearby"]
             enclosing_elements = self.__query_results["enclosing"]
+            search_elements = self.__query_results["search"]
             self.__query_results = {
                 "nearby": [],
                 "enclosing": [],
+                "search": [],
             }
             self.__active_endpoint = ""
-            self.showData(nearby_elements, enclosing_elements)
+            self.showData(
+                nearby_elements,
+                enclosing_elements,
+                search_elements,
+            )
             self.__finish_loading()
             return
 
@@ -882,12 +963,72 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         QgsApplication.taskManager().addTask(task)
 
     @pyqtSlot()
+    def __on_geocode_task_completed(self) -> None:
+        sender = self.sender()
+        if sender is not self.__active_geocode_task:
+            return
+
+        query_context = self.__active_geocode_task.query_context
+        staged_queries = list(self.__staged_queries)
+        staged_query_kinds = list(self.__staged_query_kinds)
+        timeout_seconds = self.__staged_timeout_seconds
+        endpoint = self.__active_endpoint
+
+        self.__active_geocode_task = None
+        self.__staged_queries = []
+        self.__staged_query_kinds = []
+        self.__staged_timeout_seconds = None
+        self.__query_context = query_context
+
+        try:
+            processed_queries = QueryPostprocessor().process(
+                staged_queries,
+                query_context,
+            )
+        except OsmInfoQueryBuilderError as error:
+            self.__finish_loading()
+            self.__reset_query_state()
+            self.showError(error.user_message)
+            return
+
+        if len(processed_queries) == 0 or len(staged_query_kinds) != len(
+            processed_queries
+        ):
+            self.__finish_loading()
+            self.__reset_query_state()
+            self.showError(self.tr("Failed to build Overpass query"))
+            return
+
+        self.__active_endpoint = endpoint
+        self.__pending_queries = [
+            (query_kind, query, timeout_seconds)
+            for query_kind, query in zip(
+                staged_query_kinds,
+                processed_queries,
+            )
+        ]
+        self.__start_next_query()
+
+    @pyqtSlot()
+    def __on_geocode_task_terminated(self) -> None:
+        sender = self.sender()
+        if sender is not self.__active_geocode_task:
+            return
+
+        error = self.__active_geocode_task.error
+        self.__finish_loading()
+        self.__reset_query_state()
+
+        if error is not None:
+            self.showError(error.user_message)
+
+    @pyqtSlot()
     def __on_query_task_completed(self) -> None:
         sender = self.sender()
         if sender is not self.__active_task or self.__active_task_kind is None:
             return
 
-        self.__query_results[self.__active_task_kind] = (
+        self.__query_results[self.__active_task_kind].extend(
             self.__active_task.elements
         )
         self.__active_task = None
@@ -909,6 +1050,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         self.__query_results = {
             "nearby": [],
             "enclosing": [],
+            "search": [],
         }
         self.__finish_loading()
 
@@ -920,14 +1062,56 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         self.__resultsTree.clear()
         self.__resultsTree.addTopLevelItem(QTreeWidgetItem([msg]))
 
-    def showData(self, l1: List, l2: List):
+    def showData(
+        self,
+        l1: List,
+        l2: List,
+        search_results: Optional[List] = None,
+    ):
         self.__resultsTree.clear()
 
         settings = OsmInfoSettings()
-        if len(l1) + len(l2) == 0:
+        if search_results is None:
+            search_results = []
+
+        if len(l1) + len(l2) + len(search_results) == 0:
             self.__resultsTree.addTopLevelItem(
                 QTreeWidgetItem([self.tr("No features found")])
             )
+            return
+
+        if len(search_results) > 0:
+            search_root = QTreeWidgetItem([self.tr("Search results")])
+            self.__resultsTree.addTopLevelItem(search_root)
+            self.__resultsTree.expandItem(search_root)
+
+            for element in search_results:
+                try:
+                    osm_element = parseOsmElement(element)
+                    if osm_element is not None:
+                        elementItem = QTreeWidgetItem(
+                            search_root,
+                            [osm_element.title(self.qgisLocale)],
+                            ResultTreeItemType.FEATURE,
+                        )
+                        self.__set_osm_element_item_data(
+                            elementItem, osm_element
+                        )
+
+                        for tag in sorted(osm_element.tags.items()):
+                            elementItem.addChild(
+                                self.__create_tag_item(tag[0], tag[1])
+                            )
+
+                        self.__resultsTree.addTopLevelItem(elementItem)
+                except Exception as e:
+                    QgsMessageLog.logMessage(
+                        self.tr(
+                            f"Element process error: {e}. Element: {element}."
+                        ),
+                        self.tr("OSMInfo"),
+                        Qgis.MessageLevel.Critical,
+                    )
             return
 
         if settings.fetch_nearby:

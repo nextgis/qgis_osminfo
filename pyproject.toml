@@ -3,12 +3,14 @@ name = "osminfo"
 version = "1.2.2"
 readme = "README.md"
 license = { file = "LICENSE" }
+dependencies = ["pyparsing>=2.4.7"]
 
 
 [tool.qgspb.package-data]
 "osminfo.icons" = ["osminfo.svg"]
 "osminfo.icons.material" = ["*.svg"]
 "osminfo.resources.tag2link" = ["index.json", "LICENSE"]
+"osminfo.resources.id_tagging_schema" = ["**/*.json"]
 
 [tool.qgspb.forms]
 ui-files = ["src/osminfo/ui/*.ui"]
@@ -23,7 +25,11 @@ no-obsolete = true
 
 
 [project.optional-dependencies]
-dev = ["ruff", "pre-commit"]
+dev = ["pytest", "ruff", "pre-commit"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
 
 [tool.pyright]
 include = ["src"]
@@ -76,7 +82,7 @@ select = [
     # "D",  # pydocstyle
     # "FIX",  # flake8-fixme
 ]
-ignore = ["ANN101", "ANN102", "TD003", "FBT003", "ISC001", "COM812", "E501"]
+ignore = ["ANN101", "ANN102", "TD003", "FBT003", "ISC001", "COM812", "E501", "UP006", "UP007", "UP045"]
 exclude = ["resources.py"]
 
 [tool.ruff.lint.per-file-ignores]
