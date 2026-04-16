@@ -34,6 +34,7 @@ class LoadingToolButton(QToolButton):
         self._cancel_icon = (
             QIcon() if cancel_icon is None else QIcon(cancel_icon)
         )
+        self._default_tooltip = self.toolTip()
         self._is_hovered = False
         self._is_loading = False
         self._movie = QMovie(str(animation_path))
@@ -72,6 +73,7 @@ class LoadingToolButton(QToolButton):
             return
 
         self._default_icon = self.icon()
+        self._default_tooltip = self.toolTip()
         self._is_loading = True
 
         icon_size = self.iconSize()
@@ -80,6 +82,8 @@ class LoadingToolButton(QToolButton):
 
         if icon_size.isValid():
             self._movie.setScaledSize(icon_size)
+
+        self.setToolTip("Cancel")
 
         self._movie.start()
         self._update_icon()
@@ -94,6 +98,7 @@ class LoadingToolButton(QToolButton):
 
         self._is_loading = False
         self.setIcon(self._default_icon)
+        self.setToolTip(self._default_tooltip)
 
     def enterEvent(self, a0: Optional[QEnterEvent]) -> None:
         self._is_hovered = True
