@@ -1,5 +1,5 @@
 [general]
-name=OSMInfo
+name=NextGIS OSMInfo
 description=Get full information about a point from OpenStreetMap database.
 description[ru]=Получите полную информацию о точке из базы данных OpenStreetMap.
 about=For a selected point, extract all information abour nearby and enclosing features from OpenStreetMap database using Overpass API.
