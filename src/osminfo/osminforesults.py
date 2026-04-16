@@ -70,11 +70,13 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.utils import iface
 
+from osminfo.about_dialog import AboutDialog
 from osminfo.compat import (
     FieldType,
     GeometryType,
     addMapLayer,
 )
+from osminfo.core.constants import PACKAGE_NAME
 from osminfo.core.exceptions import OsmInfoQueryBuilderError
 from osminfo.logging import logger
 from osminfo.nominatim.geocode_task import GeocodeTask
@@ -217,7 +219,15 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
             self.menu_button,
         )
         settings_action.triggered.connect(self.__open_settings)
+        about_action = QAction(
+            qgis_icon("mActionPropertiesWidget.svg"),
+            self.tr("About plugin…"),
+            self,
+        )
+        about_action.triggered.connect(self.__show_about)
+
         search_menu.addAction(settings_action)
+        search_menu.addAction(about_action)
 
         self.menu_button.setMenu(search_menu)
         self.menu_button.setPopupMode(
@@ -1347,3 +1357,8 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
     @pyqtSlot()
     def __open_settings(self) -> None:
         iface.showOptionsDialog(iface.mainWindow(), "OSMInfo")
+
+    @pyqtSlot()
+    def __show_about(self) -> None:
+        dialog = AboutDialog(PACKAGE_NAME)
+        dialog.exec()
