@@ -29,7 +29,7 @@ from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
 from osminfo.core.exceptions import OsmInfoOverpassQueryError
 from osminfo.logging import logger
-from osminfo.utils import human_readable_size
+from osminfo.ui.utils import human_readable_size
 
 OVERPASS_TRANSFER_TIMEOUT_MARGIN_SECONDS = 5
 

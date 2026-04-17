@@ -28,11 +28,11 @@ from qgis.PyQt.QtCore import (
 from qgis.PyQt.QtGui import QDesktopServices, QKeyEvent
 from qgis.PyQt.QtWidgets import QComboBox, QLineEdit, QWidget
 
+from osminfo.core.utils import nextgis_domain, utm_tags
 from osminfo.overpass.query_builder.wizard import PlaceholderBuilder
 from osminfo.search.search_completer_model import OsmInfoSearchCompleter
 from osminfo.search.search_history import SearchHistory
 from osminfo.ui.icon import qgis_icon
-from osminfo.utils import nextgis_domain, utm_tags
 
 
 class OsmInfoSearchComboBox(QComboBox):

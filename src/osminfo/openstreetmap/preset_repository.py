@@ -22,7 +22,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 from qgis.core import QgsApplication
 
 from osminfo.core.exceptions import OsmInfoWizardFreeFormError
-from osminfo.utils import qgis_locale
+from osminfo.core.utils import qgis_locale
 
 
 @dataclass(frozen=True)
