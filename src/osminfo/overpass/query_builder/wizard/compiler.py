@@ -1,15 +1,29 @@
-# ruff: noqa: I001
+# NextGIS OSMInfo Plugin
+# Copyright (C) 2026  NextGIS
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or any
+# later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, see <https://www.gnu.org/licenses/>.
 
-import re
 from typing import Optional
 
 from osminfo.core.exceptions import OsmInfoWizardParserError
 
+from .free_form_syntax import contains_reserved_free_form_syntax
 from .models import RenderedWizardQuery
 from .normalizer import WizardAstNormalizer
 from .parser import WizardSyntaxParser
-from .repair import WizardSearchRepairer
 from .renderer import OverpassWizardRenderer
+from .repair import WizardSearchRepairer
 from .semantic import WizardSemanticResolver
 
 
@@ -19,12 +33,6 @@ class WizardQueryCompiler:
     Coordinate parsing, normalization, semantic resolution, rendering, and
     repair suggestions for wizard searches.
     """
-
-    _NON_FREE_FORM_MARKERS = re.compile(r"[()=:~&|*/<>!]")
-    _FREE_FORM_KEYWORDS = re.compile(
-        r"\b(and|or|in|around|global|like|not|is|type|user|uid|newer|id)\b",
-        re.IGNORECASE,
-    )
 
     def __init__(
         self,
@@ -85,10 +93,7 @@ class WizardQueryCompiler:
         if normalized_search[0] in ('"', "'"):
             return None
 
-        if self._NON_FREE_FORM_MARKERS.search(normalized_search) is not None:
-            return None
-
-        if self._FREE_FORM_KEYWORDS.search(normalized_search) is not None:
+        if contains_reserved_free_form_syntax(normalized_search):
             return None
 
         if " " not in normalized_search:

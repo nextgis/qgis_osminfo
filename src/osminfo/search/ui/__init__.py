@@ -14,9 +14,3 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
-PACKAGE_NAME = "osminfo"
-PLUGIN_NAME = "NextGIS OSMInfo"
-SHORT_PLUGIN_NAME = "OSMInfo"
-PLUGIN_SETTINGS_GROUP = "NextGIS/OSMInfo"
-
-NEXTGIS_COLOR = "#176fc1"

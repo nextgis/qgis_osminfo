@@ -1,3 +1,19 @@
+# NextGIS OSMInfo Plugin
+# Copyright (C) 2026  NextGIS
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or any
+# later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, see <https://www.gnu.org/licenses/>.
+
 import importlib
 import json
 import sys
@@ -43,6 +59,7 @@ def configure_wizard_imports() -> None:
     qgis_pyqt_module = types.ModuleType("qgis.PyQt")
     qgis_pyqt_qtcore_module = types.ModuleType("qgis.PyQt.QtCore")
     qgis_pyqt_qtgui_module = types.ModuleType("qgis.PyQt.QtGui")
+    qgis_pyqt_qtwidgets_module = types.ModuleType("qgis.PyQt.QtWidgets")
 
     class QgsApplication:
         @staticmethod
@@ -172,6 +189,34 @@ def configure_wizard_imports() -> None:
     class QByteArray(bytes):
         pass
 
+    class QModelIndex:
+        def __init__(self, row_index: int = -1) -> None:
+            self._row_index = row_index
+
+        def isValid(self) -> bool:
+            return self._row_index >= 0
+
+        def row(self) -> int:
+            return self._row_index
+
+    class QAbstractListModel:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
+        def beginResetModel(self) -> None:
+            pass
+
+        def endResetModel(self) -> None:
+            pass
+
+    class Qt:
+        class ItemDataRole:
+            DisplayRole = 0
+            EditRole = 2
+
+        class CaseSensitivity:
+            CaseInsensitive = 0
+
     class QMimeData:
         def setData(self, mime_type: str, data) -> None:
             self.mime_type = mime_type
@@ -185,6 +230,67 @@ def configure_wizard_imports() -> None:
             Selection = 1
             Clipboard = 2
 
+    class QCompleter:
+        class CompletionMode:
+            PopupCompletion = 0
+
+        def __init__(self, model=None, parent: Any = None) -> None:
+            self._model = model
+            self._parent = parent
+            self._widget = None
+            self._case_sensitivity = None
+            self._completion_mode = None
+
+        def setCaseSensitivity(self, value: Any) -> None:
+            self._case_sensitivity = value
+
+        def setCompletionMode(self, value: Any) -> None:
+            self._completion_mode = value
+
+        def widget(self):
+            return self._widget
+
+        def setWidget(self, widget: Any) -> None:
+            self._widget = widget
+
+    class QWidget:
+        def __init__(self, parent: Optional["QWidget"] = None) -> None:
+            self._parent = parent
+
+    class QLineEdit(QWidget):
+        def __init__(
+            self,
+            text: str = "",
+            parent: Optional[QWidget] = None,
+        ) -> None:
+            super().__init__(parent)
+            self._text = text
+            self._cursor_position = len(text)
+
+        def text(self) -> str:
+            return self._text
+
+        def setText(self, text: str) -> None:
+            self._text = text
+            self._cursor_position = len(text)
+
+        def cursorPosition(self) -> int:
+            return self._cursor_position
+
+        def setCursorPosition(self, position: int) -> None:
+            self._cursor_position = position
+
+    class QComboBox(QWidget):
+        def __init__(self, parent: Optional[QWidget] = None) -> None:
+            super().__init__(parent)
+            self._line_edit = QLineEdit(parent=self)
+
+        def lineEdit(self) -> QLineEdit:
+            return self._line_edit
+
+        def setLineEdit(self, line_edit: QLineEdit) -> None:
+            self._line_edit = line_edit
+
     class QgsMapCanvas:
         pass
 
@@ -194,6 +300,7 @@ def configure_wizard_imports() -> None:
     qgis_pyqt_module_any = cast(Any, qgis_pyqt_module)
     qgis_pyqt_qtcore_module_any = cast(Any, qgis_pyqt_qtcore_module)
     qgis_pyqt_qtgui_module_any = cast(Any, qgis_pyqt_qtgui_module)
+    qgis_pyqt_qtwidgets_module_any = cast(Any, qgis_pyqt_qtwidgets_module)
     qgis_core_module_any.QgsApplication = QgsApplication
     qgis_core_module_any.QgsPointXY = QgsPointXY
     qgis_core_module_any.QgsRectangle = QgsRectangle
@@ -207,13 +314,21 @@ def configure_wizard_imports() -> None:
     qgis_gui_module_any.QgsMapCanvas = QgsMapCanvas
     qgis_module_any.gui = qgis_gui_module
     qgis_pyqt_qtcore_module_any.QByteArray = QByteArray
+    qgis_pyqt_qtcore_module_any.QAbstractListModel = QAbstractListModel
+    qgis_pyqt_qtcore_module_any.QModelIndex = QModelIndex
     qgis_pyqt_qtcore_module_any.QSettings = QSettings
+    qgis_pyqt_qtcore_module_any.Qt = Qt
     qgis_pyqt_qtcore_module_any.QLocale = QLocale
     qgis_pyqt_qtcore_module_any.QMimeData = QMimeData
     qgis_pyqt_qtgui_module_any.QClipboard = QClipboard
+    qgis_pyqt_qtwidgets_module_any.QComboBox = QComboBox
+    qgis_pyqt_qtwidgets_module_any.QCompleter = QCompleter
+    qgis_pyqt_qtwidgets_module_any.QLineEdit = QLineEdit
+    qgis_pyqt_qtwidgets_module_any.QWidget = QWidget
     qgis_pyqt_qtcore_module_any.QLocale = QLocale
     qgis_pyqt_module_any.QtCore = qgis_pyqt_qtcore_module
     qgis_pyqt_module_any.QtGui = qgis_pyqt_qtgui_module
+    qgis_pyqt_module_any.QtWidgets = qgis_pyqt_qtwidgets_module
     qgis_module_any.PyQt = qgis_pyqt_module
     sys.modules["qgis"] = qgis_module
     sys.modules["qgis.core"] = qgis_core_module
@@ -221,6 +336,7 @@ def configure_wizard_imports() -> None:
     sys.modules["qgis.PyQt"] = qgis_pyqt_module
     sys.modules["qgis.PyQt.QtCore"] = qgis_pyqt_qtcore_module
     sys.modules["qgis.PyQt.QtGui"] = qgis_pyqt_qtgui_module
+    sys.modules["qgis.PyQt.QtWidgets"] = qgis_pyqt_qtwidgets_module
 
     _install_package_stub("osminfo", SOURCE_ROOT / "osminfo")
     _install_package_stub("osminfo.core", SOURCE_ROOT / "osminfo" / "core")

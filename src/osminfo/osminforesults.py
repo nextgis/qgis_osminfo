@@ -1,32 +1,18 @@
-# ******************************************************************************
+# NextGIS OSMInfo Plugin
+# Copyright (C) 2026  NextGIS
 #
-# OSMInfo
-# ---------------------------------------------------------
-# This plugin takes coordinates of a mouse click and gets information about all
-# objects from this point from OSM using Overpass API.
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or any
+# later version.
 #
-# Author:   Maxim Dubinin, sim@gis-lab.info
-# Author:   Alexander Lisovenko, alexander.lisovenko@nextgis.com
-# Author:   Artem Svetlov, artem.svetlov@nextgis.com
-# *****************************************************************************
-# Copyright (c) 2012-2023. NextGIS, info@nextgis.com
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-# This source is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free
-# Software Foundation, either version 2 of the License, or (at your option)
-# any later version.
-#
-# This code is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-# details.
-#
-# A copy of the GNU General Public License is available on the World Wide Web
-# at <http://www.gnu.org/licenses/>. You can also obtain it by writing
-# to the Free Software Foundation, 51 Franklin Street, Suite 500 Boston,
-# MA 02110-1335 USA.
-#
-# ******************************************************************************
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, see <https://www.gnu.org/licenses/>.
 
 from datetime import datetime, timezone
 from enum import IntEnum
@@ -52,8 +38,6 @@ from qgis.gui import QgisInterface, QgsDockWidget
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (
     QByteArray,
-    QLocale,
-    QSettings,
     Qt,
     QUrl,
     pyqtSignal,
@@ -87,12 +71,12 @@ from osminfo.overpass.query_builder import (
     QueryContext,
     QueryPostprocessor,
 )
-from osminfo.overpass.query_builder.wizard import PlaceholderBuilder
 from osminfo.overpass.query_task import OverpassQueryTask
+from osminfo.search.ui.search_combobox import OsmInfoSearchComboBox
 from osminfo.settings.osm_info_settings import OsmInfoSettings
 from osminfo.ui.icon import material_icon, plugin_icon, qgis_icon
 from osminfo.ui.loading_tool_button import LoadingToolButton
-from osminfo.utils import set_clipboard_data
+from osminfo.utils import qgis_locale, set_clipboard_data
 
 if TYPE_CHECKING:
     assert isinstance(iface, QgisInterface)
@@ -173,13 +157,16 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
             "search": [],
         }
         self.__is_loading = False
-        self.__placeholder_builder = PlaceholderBuilder()
-
-        self.search_combobox.lineEdit().setPlaceholderText(
-            self.__placeholder_builder.build()
-        )
 
         self.__resultsTree = self.results_tree
+
+        self.search_combobox = OsmInfoSearchComboBox(self)
+        self.search_combobox.search_requested.connect(
+            self.__search_by_current_text
+        )
+        self.search_combobox.clear_results.connect(self.__resultsTree.clear)
+        self.search_layout.addWidget(self.search_combobox)
+
         self.search_button = LoadingToolButton(
             ":images/themes/default/mIconLoading.gif",
             material_icon("map_search"),
@@ -264,21 +251,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
 
         self.__resultsTree.clear()
 
-        search_line_edit = self.search_combobox.lineEdit()
-        if search_line_edit is not None:
-            search_line_edit.returnPressed.connect(
-                self.__search_by_current_text
-            )
-
-        overrideLocale = QSettings().value(
-            "locale/overrideFlag", False, type=bool
-        )
-        if not overrideLocale:
-            self.qgisLocale = QLocale.system().name()[:2]
-        else:
-            self.qgisLocale = QSettings().value(
-                "locale/userLocale", "", type=str
-            )[:2]
+        self.qgisLocale = qgis_locale()
 
         self.show_info()
 
@@ -719,7 +692,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         )
 
     def set_search_text(self, search_text: str) -> None:
-        self.search_combobox.setCurrentText(search_text.strip())
+        self.search_combobox.search_text = search_text
 
     @pyqtSlot()
     def __search_by_current_text(self) -> None:
@@ -728,7 +701,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
 
         settings = OsmInfoSettings()
         query_builder = QueryBuilder(settings)
-        search_text = self.search_combobox.currentText().strip()
+        search_text = self.search_combobox.search_text
 
         try:
             queries = query_builder.build_for_string(search_text)
@@ -752,6 +725,7 @@ class OsmInfoResultsDock(QgsDockWidget, FORM_CLASS):
         else:
             query_kinds = ["search"] * len(queries)
             timeout_seconds = self.__query_timeout_seconds(settings)
+            self.search_combobox.save_current_search()
 
         self.__run_queries(
             settings.overpass_url,

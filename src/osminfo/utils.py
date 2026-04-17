@@ -1,9 +1,27 @@
+# NextGIS OSMInfo Plugin
+# Copyright (C) 2026  NextGIS
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or any
+# later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, see <https://www.gnu.org/licenses/>.
+
 import platform
-from typing import Union
+from typing import Optional, Union
 
 from qgis.core import QgsApplication, QgsSettings
 from qgis.PyQt.QtCore import QByteArray, QLocale, QMimeData
 from qgis.PyQt.QtGui import QClipboard
+
+from osminfo.core.constants import PACKAGE_NAME
 
 
 def set_clipboard_data(
@@ -62,3 +80,21 @@ def qgis_locale() -> str:
     locale = locale_full_name[0:2].lower()
 
     return locale if locale.lower() != "c" else "en"
+
+
+def nextgis_domain(subdomain: Optional[str] = None) -> str:
+    speaks_russian = qgis_locale() in ["be", "kk", "ky", "ru", "uk"]
+    if subdomain is None:
+        subdomain = ""
+    elif not subdomain.endswith("."):
+        subdomain += "."
+    return f"https://{subdomain}nextgis.{'ru' if speaks_russian else 'com'}"
+
+
+def utm_tags(utm_medium: str, *, utm_campaign: str = "constant") -> str:
+    utm = (
+        f"utm_source=qgis_plugin&utm_medium={utm_medium}"
+        f"&utm_campaign={utm_campaign}&utm_term={PACKAGE_NAME}"
+        f"&utm_content={qgis_locale()}"
+    )
+    return utm
