@@ -45,6 +45,22 @@ class OsmInfoSettings:
         self.__update_settings()
 
     @property
+    def did_last_launch_fail(self) -> bool:
+        value = self.__settings.value(
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/other/didLastLaunchFail",
+            defaultValue=False,
+            type=bool,
+        )
+        return value
+
+    @did_last_launch_fail.setter
+    def did_last_launch_fail(self, value: bool) -> None:
+        self.__settings.setValue(
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/other/didLastLaunchFail",
+            value,
+        )
+
+    @property
     def default_overpass_endpoint(self) -> str:
         return OverpassEndpoint.MAIN.value.service_id
 

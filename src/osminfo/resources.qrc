@@ -7,7 +7,7 @@
         <file>icons/mActionIdentify.svg</file>
         <file>icons/nextgis_logo.svg</file>
         <file>icons/osm_logo.svg</file>
-        <file>icons/osminfo.svg</file>
+        <file>icons/osminfo_logo.svg</file>
         <file>icons/zoom2feature.png</file>
     </qresource>
 </RCC>

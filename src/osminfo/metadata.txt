@@ -12,7 +12,7 @@ qgisMaximumVersion=4.99
 author=NextGIS
 email=info@nextgis.com
 
-icon=icons/osminfo.svg
+icon=icons/osminfo_logo.svg
 
 tags=osm,openstreetmap,overpass
 

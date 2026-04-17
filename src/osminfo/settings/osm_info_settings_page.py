@@ -516,10 +516,7 @@ class OsmInfoOptionsErrorPageWidget(QgsOptionsPageWidget):
 
 class OsmInfoOptionsWidgetFactory(QgsOptionsWidgetFactory):
     def __init__(self):
-        super().__init__(
-            "OSMInfo",
-            plugin_icon("osminfo.svg"),
-        )
+        super().__init__("OSMInfo", plugin_icon())
 
     def path(self) -> List[str]:
         return ["NextGIS"]
