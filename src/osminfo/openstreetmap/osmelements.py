@@ -18,7 +18,11 @@ from typing import List
 
 from qgis.core import QgsGeometry, QgsPointXY
 
-from .osmtags import title_rules
+title_rules = {
+    "building": "{addr:street}, {addr:housenumber}",
+    "highway": "highway: {highway}",
+    "amenity": "{amenity}",
+}
 
 
 class PolygonCreator:
