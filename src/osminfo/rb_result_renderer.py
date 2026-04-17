@@ -44,9 +44,7 @@ class RubberBandResultRenderer:
 
         self.featureColor = QColor("green")
 
-        self.rb = QgsRubberBand(
-            self.iface.mapCanvas(), GeometryType.Point
-        )
+        self.rb = QgsRubberBand(self.iface.mapCanvas(), GeometryType.Point)
         self.rb.setColor(QColor("magenta"))
         self.rb.setIconSize(12)
 

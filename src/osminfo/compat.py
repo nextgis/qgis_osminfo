@@ -1,3 +1,19 @@
+# NextGIS OSMInfo Plugin
+# Copyright (C) 2026  NextGIS
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or any
+# later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, see <https://www.gnu.org/licenses/>.
+
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 from qgis.core import (
@@ -105,17 +121,17 @@ if Qgis.versionInt() > QGIS_4_00:
     LayerFilters = Qgis.LayerFilter(0)
 elif Qgis.versionInt() >= QGIS_3_34:
     LayerFilter = Qgis.LayerFilter
-    LayerFilters = Qgis.LayerFilters # pyright: ignore[reportAttributeAccessIssue]
+    LayerFilters = Qgis.LayerFilters  # pyright: ignore[reportAttributeAccessIssue]
 else:
-    LayerFilter = QgsMapLayerProxyModel.Filter # pyright: ignore[reportAttributeAccessIssue]
-    LayerFilters = QgsMapLayerProxyModel.Filters # pyright: ignore[reportAttributeAccessIssue]
+    LayerFilter = QgsMapLayerProxyModel.Filter  # pyright: ignore[reportAttributeAccessIssue]
+    LayerFilters = QgsMapLayerProxyModel.Filters  # pyright: ignore[reportAttributeAccessIssue]
 
 if Qgis.versionInt() >= QGIS_4_00:
     FeatureRequestFlag = Qgis.FeatureRequestFlag
     FeatureRequestFlags = Qgis.FeatureRequestFlag(0)
 if Qgis.versionInt() >= QGIS_3_36 or TYPE_CHECKING:
     FeatureRequestFlag = Qgis.FeatureRequestFlag
-    FeatureRequestFlags = Qgis.FeatureRequestFlags # pyright: ignore[reportAttributeAccessIssue]
+    FeatureRequestFlags = Qgis.FeatureRequestFlags  # pyright: ignore[reportAttributeAccessIssue]
 else:
     FeatureRequestFlag = QgsFeatureRequest.Flag
     FeatureRequestFlags = QgsFeatureRequest.Flags
