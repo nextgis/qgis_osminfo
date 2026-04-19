@@ -407,6 +407,27 @@ class OsmInfoOverpassQueryError(OsmInfoError):
         )
 
 
+class OsmInfoOverpassParsingError(OsmInfoError):
+    def __init__(
+        self,
+        log_message: Optional[str] = None,
+        *,
+        user_message: Optional[str] = None,
+        detail: Optional[str] = None,
+    ) -> None:
+        # fmt: off
+        default_message = QgsApplication.translate(
+            "Exceptions",
+            "Failed to parse Overpass response."
+        )
+        # fmt: on
+        super().__init__(
+            log_message=log_message if log_message else default_message,
+            user_message=user_message if user_message else default_message,
+            detail=detail,
+        )
+
+
 class OsmInfoQueryBuilderError(OsmInfoError):
     """Raise an error when query builder strategies cannot produce a query."""
 
