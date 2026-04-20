@@ -18,7 +18,7 @@ from html import escape
 from pathlib import Path
 from typing import List, Optional
 
-from qgis.core import Qgis, QgsApplication
+from qgis.core import Qgis
 from qgis.gui import (
     QgsOptionsPageWidget,
     QgsOptionsWidgetFactory,
@@ -36,6 +36,7 @@ from qgis.PyQt.QtWidgets import (
 
 from osminfo.logging import logger, update_logging_level
 from osminfo.notifier.message_bar_notifier import MessageBarNotifier
+from osminfo.osminfo_interface import OsmInfoInterface
 from osminfo.overpass.endpoints import OverpassEndpoint, OverpassEndpointInfo
 from osminfo.overpass.healthcheck_task import (
     HealthCheckStatus,
@@ -233,7 +234,7 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
         self._task = HealthCheckTask(overpass_url)
         self._task.taskCompleted.connect(self._check_endpoint_finished)
         self._task.taskTerminated.connect(self._check_endpoint_finished)
-        QgsApplication.taskManager().addTask(self._task)
+        OsmInfoInterface.instance().task_manager.addTask(self._task)
 
     @pyqtSlot()
     def _check_endpoint_finished(self) -> None:
