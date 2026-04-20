@@ -22,6 +22,9 @@ from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtWidgets import QAction, QMenu, QWidget
 
 from osminfo.openstreetmap.tag2link import TagLink
+from osminfo.search.result_clipboard_exporter import (
+    OsmResultClipboardExporter,
+)
 from osminfo.search.result_layer_exporter import OsmResultLayerExporter
 from osminfo.search.result_selection import OsmResultSelection
 from osminfo.search.results_renderer import OsmResultsRenderer
@@ -34,10 +37,12 @@ class OsmResultsContextMenuBuilder(QObject):
         self,
         parent: Optional[QObject] = None,
         *,
+        clipboard_exporter: OsmResultClipboardExporter,
         layer_exporter: OsmResultLayerExporter,
         result_renderer: OsmResultsRenderer,
     ) -> None:
         super().__init__(parent)
+        self._clipboard_exporter = clipboard_exporter
         self._layer_exporter = layer_exporter
         self._result_renderer = result_renderer
 
@@ -52,6 +57,7 @@ class OsmResultsContextMenuBuilder(QObject):
         menu = QMenu(parent)
         self._add_tag_link_actions(menu, selection)
         self._add_zoom_action(menu, selection)
+        self._add_copy_action(menu, selection)
         self._add_save_actions(menu, selection)
         self._add_osm_actions(menu, selection)
 
@@ -80,6 +86,26 @@ class OsmResultsContextMenuBuilder(QObject):
         action.triggered.connect(
             lambda checked=False, bbox=bbox: (
                 self._result_renderer.zoom_to_bbox(QgsRectangle(bbox))
+            )
+        )
+        menu.addAction(action)
+
+    def _add_copy_action(
+        self,
+        menu: QMenu,
+        selection: OsmResultSelection,
+    ) -> None:
+        if not selection.has_elements:
+            return
+
+        action = QAction(
+            qgis_icon("mActionEditCopy.svg"),
+            self._copy_action_text(selection),
+            menu,
+        )
+        action.triggered.connect(
+            lambda checked=False, items=selection.items: (
+                self._clipboard_exporter.copy_to_clipboard(items)
             )
         )
         menu.addAction(action)
@@ -238,6 +264,12 @@ class OsmResultsContextMenuBuilder(QObject):
             return self.tr("Save features in new temporary layers")
 
         return self.tr("Save feature in new temporary layer")
+
+    def _copy_action_text(self, selection: OsmResultSelection) -> str:
+        if selection.has_multiple_elements:
+            return self.tr("Copy features to clipboard")
+
+        return self.tr("Copy feature to clipboard")
 
     def _save_selected_layer_text(
         self,
