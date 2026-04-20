@@ -516,7 +516,94 @@ class OsmInfoWizardNormalizationError(OsmInfoWizardError):
 class OsmInfoWizardFreeFormError(OsmInfoWizardError):
     """Raise an error when free-form preset resolution fails."""
 
-    pass
+    _search_term: Optional[str]
+    _suggestion: Optional[str]
+
+    def __init__(
+        self,
+        log_message: Optional[str] = None,
+        *,
+        user_message: Optional[str] = None,
+        detail: Optional[str] = None,
+        search_term: Optional[str] = None,
+        suggestion: Optional[str] = None,
+    ) -> None:
+        default_message = QgsApplication.translate(
+            "Exceptions",
+            "Unknown wizard preset.",
+        )
+        normalized_search_term = self._normalize_optional_text(search_term)
+        normalized_suggestion = self._normalize_optional_text(suggestion)
+        resolved_detail = detail
+        if resolved_detail is None:
+            resolved_detail = normalized_search_term
+
+        super().__init__(
+            log_message=(
+                log_message
+                if log_message
+                else self._format_log_message(
+                    normalized_search_term,
+                    normalized_suggestion,
+                )
+            ),
+            user_message=user_message if user_message else default_message,
+            detail=resolved_detail,
+        )
+        self._search_term = normalized_search_term
+        self._suggestion = normalized_suggestion
+
+    @property
+    def search_term(self) -> Optional[str]:
+        return self._search_term
+
+    @property
+    def suggestion(self) -> Optional[str]:
+        return self._suggestion
+
+    @classmethod
+    def _format_log_message(
+        cls,
+        search_term: Optional[str],
+        suggestion: Optional[str],
+    ) -> str:
+        if search_term is None:
+            # fmt: off
+            return QgsApplication.translate(
+                "Exceptions",
+                "Unknown wizard preset."
+            )
+            # fmt: on
+
+        if suggestion is None:
+            # fmt: off
+            return QgsApplication.translate(
+                "Exceptions",
+                "Unknown wizard preset: {search_term}."
+            ).format(search_term=search_term)
+            # fmt: on
+
+        # fmt: off
+        return QgsApplication.translate(
+            "Exceptions",
+            "Unknown wizard preset: {search_term}. Did you mean "
+            "'{suggestion}'?",
+        ).format(
+            search_term=search_term,
+            suggestion=suggestion,
+        )
+        # fmt: on
+
+    @staticmethod
+    def _normalize_optional_text(value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+
+        normalized_value = value.strip()
+        if len(normalized_value) == 0:
+            return None
+
+        return normalized_value
 
 
 class OsmInfoWizardRenderError(OsmInfoWizardError):

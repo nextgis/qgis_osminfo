@@ -50,22 +50,9 @@ class PresetFreeFormResolver:
         preset = self._find_preset(normalized_search)
         if preset is None:
             suggestion = self.fuzzy_search(search_term)
-            if suggestion is None:
-                message = self.tr(
-                    "Unknown wizard preset: {search_term}."
-                ).format(search_term=search_term)
-            else:
-                message = self.tr(
-                    "Unknown wizard preset: {search_term}. "
-                    "Did you mean '{suggestion}'?"
-                ).format(
-                    search_term=search_term,
-                    suggestion=suggestion,
-                )
-
             raise OsmInfoWizardFreeFormError(
-                log_message=message,
-                user_message=message,
+                search_term=search_term,
+                suggestion=suggestion,
             )
 
         element_types = self._geometry_to_types(preset.geometry)
