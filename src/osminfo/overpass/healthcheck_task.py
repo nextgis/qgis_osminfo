@@ -294,51 +294,28 @@ class HealthCheckTask(QgsTask):
             status_url=self._status_url,
             interpreter_url=self._interpreter_url,
         )
+        started_at = time.perf_counter()
+        status = "failed"
 
         logger.debug(f"Starting Overpass health check for {self._service_url}")
 
         try:
-            warnings: List[OsmInfoOverpassHealthCheckWarning] = []
+            self._run_health_check()
 
-            (
-                status_warning,
-                status_request_succeeded,
-            ) = self._update_status()
-            if status_warning is not None:
-                warnings.append(status_warning)
-                logger.debug(
-                    "Status warning: %s",
-                    status_warning.user_message,
-                )
-
-            (
-                metadata_warning,
-                metadata_request_succeeded,
-            ) = self._update_metadata()
-            if metadata_warning is not None:
-                warnings.append(metadata_warning)
-                logger.debug(
-                    "Metadata warning: %s",
-                    metadata_warning.user_message,
-                )
-
-            if not status_request_succeeded and not metadata_request_succeeded:
-                logger.debug("Both Overpass requests failed")
-                raise OsmInfoOverpassHealthCheckError(
-                    log_message=(
-                        "Overpass status and metadata requests both failed "
-                        f"for {self._service_url}"
-                    ),
-                    user_message=self.tr(
-                        "Failed to connect to Overpass API status and "
-                        "interpreter endpoints."
-                    ),
-                )
-
-            self._evaluate_result(warnings)
+            status = "completed"
+            logger.debug(
+                "Overpass health check finished with status %s in %.3f s\n%s",
+                self.check_status.value
+                if self.check_status is not None
+                else "unknown",
+                time.perf_counter() - started_at,
+                self._format_details_for_debug(),
+            )
+            return True
         except _OverpassHealthCheckCancelledError as error:
             self._status = HealthCheckStatus.FAILURE
             self._error = error
+            status = "cancelled"
             return False
         except OsmInfoOverpassHealthCheckError as error:
             self._status = HealthCheckStatus.FAILURE
@@ -359,15 +336,53 @@ class HealthCheckTask(QgsTask):
             )
             logger.exception("Unexpected Overpass health check error")
             return False
+        finally:
+            logger.debug(
+                "Finished Overpass health check task for %s with status %s in %.3f s",
+                self._service_url,
+                status,
+                time.perf_counter() - started_at,
+            )
 
-        logger.debug(
-            "Overpass health check finished with status %s\n%s",
-            self.check_status.value
-            if self.check_status is not None
-            else "unknown",
-            self._format_details_for_debug(),
-        )
-        return True
+    def _run_health_check(self) -> None:
+        warnings: List[OsmInfoOverpassHealthCheckWarning] = []
+
+        (
+            status_warning,
+            status_request_succeeded,
+        ) = self._update_status()
+        if status_warning is not None:
+            warnings.append(status_warning)
+            logger.debug(
+                "Status warning: %s",
+                status_warning.user_message,
+            )
+
+        (
+            metadata_warning,
+            metadata_request_succeeded,
+        ) = self._update_metadata()
+        if metadata_warning is not None:
+            warnings.append(metadata_warning)
+            logger.debug(
+                "Metadata warning: %s",
+                metadata_warning.user_message,
+            )
+
+        if not status_request_succeeded and not metadata_request_succeeded:
+            logger.debug("Both Overpass requests failed")
+            raise OsmInfoOverpassHealthCheckError(
+                log_message=(
+                    "Overpass status and metadata requests both failed "
+                    f"for {self._service_url}"
+                ),
+                user_message=self.tr(
+                    "Failed to connect to Overpass API status and "
+                    "interpreter endpoints."
+                ),
+            )
+
+        self._evaluate_result(warnings)
 
     def _update_status(
         self,

@@ -15,6 +15,7 @@
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
 import json
+from time import perf_counter
 from typing import ClassVar, Dict, List, Optional, Sequence
 from urllib.parse import urlencode
 
@@ -101,19 +102,24 @@ class GeocodeTask(QgsTask):
     def run(self) -> bool:
         self._error = None
         self._query_context = self._initial_query_context
+        started_at = perf_counter()
+        status = "failed"
+
+        logger.debug(
+            "Starting geocode task: ids=%d, areas=%d, bboxes=%d, coords=%d",
+            len(self._id_queries),
+            len(self._area_queries),
+            len(self._bbox_queries),
+            len(self._coordinate_queries),
+        )
 
         try:
-            geocode_ids = self._resolve_ids()
-            geocode_areas = self._resolve_areas()
-            geocode_bboxes = self._resolve_bboxes()
-            geocode_coords = self._resolve_coords()
-            self._query_context = self._initial_query_context.with_geocoding(
-                geocode_ids=geocode_ids,
-                geocode_areas=geocode_areas,
-                geocode_bboxes=geocode_bboxes,
-                geocode_coords=geocode_coords,
-            )
+            self._query_context = self._resolve_query_context()
+
+            status = "completed"
+            return True
         except _NominatimGeocodeCancelledError:
+            status = "cancelled"
             return False
         except OsmInfoNominatimGeocodeError as error:
             self._error = error
@@ -126,8 +132,24 @@ class GeocodeTask(QgsTask):
             )
             logger.exception("Unexpected geocoding error")
             return False
+        finally:
+            logger.debug(
+                "Finished geocode task with status %s in %.3f s",
+                status,
+                perf_counter() - started_at,
+            )
 
-        return True
+    def _resolve_query_context(self) -> QueryContext:
+        geocode_ids = self._resolve_ids()
+        geocode_areas = self._resolve_areas()
+        geocode_bboxes = self._resolve_bboxes()
+        geocode_coords = self._resolve_coords()
+        return self._initial_query_context.with_geocoding(
+            geocode_ids=geocode_ids,
+            geocode_areas=geocode_areas,
+            geocode_bboxes=geocode_bboxes,
+            geocode_coords=geocode_coords,
+        )
 
     def _resolve_ids(self) -> Dict[str, str]:
         resolved_ids: Dict[str, str] = {}

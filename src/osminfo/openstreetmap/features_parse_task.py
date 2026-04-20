@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
+from time import perf_counter
 from typing import Dict, Iterable, Optional
 
 from qgis.core import QgsTask
@@ -56,15 +57,21 @@ class OverpassFeaturesParseTask(QgsTask):
     def run(self) -> bool:
         self._error = None
         self._result_tree = OsmResultTree()
+        started_at = perf_counter()
+        status = "failed"
+
+        logger.debug(
+            "Starting Overpass features parse task: nearby=%d, enclosing=%d, search=%d",
+            len(self._nearby_elements),
+            len(self._enclosing_elements),
+            len(self._search_elements),
+        )
 
         try:
-            parser = OsmFeaturesParser(self._locale_name)
-            self._result_tree = parser.parse_result_tree(
-                nearby_elements=self._nearby_elements,
-                enclosing_elements=self._enclosing_elements,
-                search_elements=self._search_elements,
-                titles=self._titles,
-            )
+            self._result_tree = self._parse_result_tree()
+
+            status = "completed"
+            return True
         except Exception as error:
             self._error = OsmInfoOverpassParsingError(
                 log_message=f"Failed to parse Overpass features: {error}",
@@ -73,5 +80,18 @@ class OverpassFeaturesParseTask(QgsTask):
             )
             logger.exception("Failed to parse Overpass features")
             return False
+        finally:
+            logger.debug(
+                "Finished Overpass features parse task with status %s in %.3f s",
+                status,
+                perf_counter() - started_at,
+            )
 
-        return True
+    def _parse_result_tree(self) -> OsmResultTree:
+        parser = OsmFeaturesParser(self._locale_name)
+        return parser.parse_result_tree(
+            nearby_elements=self._nearby_elements,
+            enclosing_elements=self._enclosing_elements,
+            search_elements=self._search_elements,
+            titles=self._titles,
+        )

@@ -80,10 +80,18 @@ class OverpassQueryTask(QgsTask):
     def run(self) -> bool:
         self._elements = []
         self._error = None
+        started_at = perf_counter()
+        status = "failed"
+
+        logger.debug(
+            "Starting Overpass query task for %s",
+            self._endpoint or "unknown endpoint",
+        )
 
         try:
             self._elements = self._fetch_elements()
         except _OverpassQueryCancelledError:
+            status = "cancelled"
             return False
         except OsmInfoOverpassQueryError as error:
             self._error = error
@@ -96,8 +104,16 @@ class OverpassQueryTask(QgsTask):
             )
             logger.exception("Unexpected Overpass query error")
             return False
-
-        return True
+        else:
+            status = "completed"
+            return True
+        finally:
+            logger.debug(
+                "Finished Overpass query task for %s with status %s in %.3f s",
+                self._endpoint or "unknown endpoint",
+                status,
+                perf_counter() - started_at,
+            )
 
     def _fetch_elements(self) -> List[Any]:
         if len(self._endpoint) == 0:
