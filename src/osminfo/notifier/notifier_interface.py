@@ -15,6 +15,7 @@
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
 from abc import abstractmethod
+from typing import Optional
 
 from qgis.core import Qgis
 from qgis.PyQt.QtCore import QObject
@@ -34,6 +35,7 @@ class NotifierInterface(QObject, metaclass=QObjectMetaClass):
         self,
         message: str,
         *,
+        header: Optional[str] = None,
         level: Qgis.MessageLevel = Qgis.MessageLevel.Info,
         clear_previous: bool = False,
         **kwargs,  # noqa: ANN003

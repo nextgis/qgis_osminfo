@@ -78,6 +78,7 @@ class MessageBarNotifier(NotifierInterface):
         self,
         message: str,
         *,
+        header: Optional[str] = None,
         level: Qgis.MessageLevel = Qgis.MessageLevel.Info,
         clear_previous: bool = False,
         widgets: Optional[List[QWidget]] = None,
@@ -97,7 +98,7 @@ class MessageBarNotifier(NotifierInterface):
         custom_widgets = widgets if widgets else []
 
         message_bar = self._message_bar
-        widget = message_bar.createMessage(PLUGIN_NAME, message)
+        widget = message_bar.createMessage(header or PLUGIN_NAME, message)
         if widget is None:
             raise RuntimeError("Failed to create QGIS message bar item")
 

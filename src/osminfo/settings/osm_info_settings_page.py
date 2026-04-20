@@ -35,6 +35,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from osminfo.logging import logger, update_logging_level
+from osminfo.notifier.message_bar_notifier import MessageBarNotifier
 from osminfo.overpass.endpoints import OverpassEndpoint, OverpassEndpointInfo
 from osminfo.overpass.healthcheck_task import (
     HealthCheckStatus,
@@ -53,6 +54,7 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
         self.__init__ui()
         self.__init__settings()
         self._task = None
+        self._notifier = MessageBarNotifier(self, self._widget.message_bar)
 
     def __del__(self):
         self._finish_task()
@@ -218,9 +220,9 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
 
         overpass_url = self._selected_overpass_url()
         if len(overpass_url) == 0:
-            self._widget.message_bar.pushMessage(
-                self.tr("Connection failed"),
+            self._notifier.display_message(
                 self.tr("Please enter a custom Overpass API URL."),
+                header=self.tr("Connection failed"),
                 level=Qgis.MessageLevel.Critical,
             )
             return
@@ -241,28 +243,27 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
         if self._task is None:
             return
 
-        if self._task.check_status == HealthCheckStatus.SUCCESS:
-            self._widget.message_bar.pushMessage(
-                self.tr("Connection successful"),
+        if self._task.check_status in (
+            HealthCheckStatus.SUCCESS,
+            HealthCheckStatus.WARNING,
+        ):
+            self._notifier.display_message(
                 self.tr(
                     "Successfully connected to the Overpass API instance."
                 ),
+                header=self.tr("Connection successful"),
                 level=Qgis.MessageLevel.Success,
             )
-        elif self._task.check_status == HealthCheckStatus.WARNING:
-            self._widget.message_bar.pushMessage(
-                self.tr("Connection check completed with warnings"),
-                self.tr(
-                    "Connected to the Overpass API instance, but some issues were detected. Please check the log for details."
-                ),
-                level=Qgis.MessageLevel.Warning,
-            )
+        # elif self._task.check_status == HealthCheckStatus.WARNING:
+        #     self._notifier.display_message(
+        #         self.tr("Connection check completed with warnings"),
+        #         header=self.tr("Connection check completed with warnings"),
+        #         level=Qgis.MessageLevel.Warning,
+        #     )
         elif self._task.check_status == HealthCheckStatus.FAILURE:
-            self._widget.message_bar.pushMessage(
-                self.tr("Connection failed"),
-                self.tr(
-                    "Failed to connect to the Overpass API instance. Please check the log for details."
-                ),
+            self._notifier.display_message(
+                self.tr("Failed to connect to the Overpass API instance."),
+                header=self.tr("Connection failed"),
                 level=Qgis.MessageLevel.Critical,
             )
 
