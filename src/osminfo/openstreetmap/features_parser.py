@@ -151,11 +151,20 @@ class OsmFeaturesParser:
             relation_refs,
         )
         is_incomplete = parser.is_incomplete_element(raw_element)
+        preset_geometry_type = self._preset_geometry_type(
+            raw_element,
+            feature,
+            element_type,
+        )
 
         element = OsmElement(
             osm_id=osm_id,
             element_type=element_type,
-            title=self._title_builder.build(tags, osm_id),
+            title=self._title_builder.build(
+                tags,
+                osm_id,
+                geometry_type=preset_geometry_type,
+            ),
             geometry=geometry,
             tag_items=self._build_tag_items(tags),
             tags=tags,
@@ -176,6 +185,42 @@ class OsmFeaturesParser:
             bbox=element.bounding_box(),
         )
         return element
+
+    def _preset_geometry_type(
+        self,
+        raw_element: Dict[str, Any],
+        feature: Optional[Dict[str, Any]],
+        element_type: OsmElementType,
+    ) -> Optional[str]:
+        if element_type == OsmElementType.NODE:
+            return "point"
+
+        geometry = feature.get("geometry") if feature is not None else None
+        geometry_name = None
+        if isinstance(geometry, dict):
+            geometry_name = geometry.get("type")
+
+        if element_type == OsmElementType.WAY:
+            if geometry_name in ("Polygon", "MultiPolygon"):
+                return "area"
+
+            return "line"
+
+        if element_type != OsmElementType.RELATION:
+            return None
+
+        tags = raw_element.get("tags")
+        relation_type = None
+        if isinstance(tags, dict):
+            relation_type = tags.get("type")
+
+        if relation_type in ("multipolygon", "boundary"):
+            return "area"
+
+        if geometry_name in ("Polygon", "MultiPolygon"):
+            return "area"
+
+        return "relation"
 
     def _parse_element_type(self, value: Any) -> Optional[OsmElementType]:
         if value is None:
