@@ -30,6 +30,7 @@ from qgis.core import (
     Qgis,
     QgsCentroidFillSymbolLayer,
     QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
     QgsFeature,
     QgsFillSymbol,
     QgsGeometry,
@@ -38,6 +39,8 @@ from qgis.core import (
     QgsMapLayer,
     QgsMapLayerStore,
     QgsMarkerSymbol,
+    QgsPointXY,
+    QgsProject,
     QgsRectangle,
     QgsReferencedRectangle,
     QgsRuleBasedRenderer,
@@ -146,9 +149,26 @@ class OsmResultsRenderer(QObject):
         self._update_active_features(previous_active_keys)
 
     def zoom_to_bbox(self, bbox: QgsRectangle) -> None:
+        if bbox.width() <= 0 and bbox.height() <= 0:
+            self._center_to_point(bbox.center())
+            return
+
         map_canvas = iface.mapCanvas()
         srs_wgs84 = QgsCoordinateReferenceSystem.fromEpsgId(4326)
         map_canvas.setReferencedExtent(QgsReferencedRectangle(bbox, srs_wgs84))
+        map_canvas.refresh()
+
+    def _center_to_point(self, point: QgsPointXY) -> None:
+        map_canvas = iface.mapCanvas()
+        transform = QgsCoordinateTransform(
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
+            map_canvas.mapSettings().destinationCrs(),
+            QgsProject.instance(),
+        )
+        canvas_point = transform.transform(point)
+        new_extent = QgsRectangle(map_canvas.extent())
+        new_extent.scale(1, canvas_point)
+        map_canvas.setExtent(new_extent)
         map_canvas.refresh()
 
     @pyqtSlot()
