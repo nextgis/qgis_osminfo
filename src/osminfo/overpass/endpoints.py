@@ -26,6 +26,7 @@ class OverpassEndpointInfo:
     service_id: str
     name: str
     data_coverage: str
+    is_global: bool
     url: str
     project_url: Optional[str] = None
     overpass_turbo_url: Optional[str] = None
@@ -47,6 +48,7 @@ class OverpassEndpoint(Enum):
             "OverpassEndpoint",
             "Global"
         ),
+        is_global=True,
         url="https://overpass-api.de/api/interpreter",
         project_url="https://overpass-api.de/",
         usage_policy=QgsApplication.translate(
@@ -66,6 +68,7 @@ class OverpassEndpoint(Enum):
             "OverpassEndpoint",
             "Global"
         ),
+        is_global=True,
         url="https://maps.mail.ru/osm/tools/overpass/api/interpreter",
         overpass_turbo_url="https://maps.mail.ru/osm/tools/overpass/",
         usage_policy=QgsApplication.translate(
@@ -89,6 +92,7 @@ class OverpassEndpoint(Enum):
             "OverpassEndpoint",
             "Global"
         ),
+        is_global=True,
         url="https://overpass.private.coffee/api/interpreter",
         project_url="https://overpass.private.coffee/",
         overpass_turbo_url="https://turbo.overpass.private.coffee/",
@@ -115,6 +119,7 @@ class OverpassEndpoint(Enum):
             "OverpassEndpoint",
             "Switzerland"
         ),
+        is_global=False,
         url="https://overpass.osm.ch/api/interpreter",
         project_url="https://overpass.osm.ch/",
         usage_policy=QgsApplication.translate(
@@ -135,6 +140,7 @@ class OverpassEndpoint(Enum):
             "OverpassEndpoint",
             "Britain and Ireland"
         ),
+        is_global=False,
         project_url="https://overpass.atownsend.org.uk/",
         contact="SomeoneElse",
         contact_url="https://www.openstreetmap.org/user/SomeoneElse",
@@ -158,6 +164,7 @@ class OverpassEndpoint(Enum):
             "OverpassEndpoint",
             "Virginia, USA"
         ),
+        is_global=False,
         project_url="https://ultra.maprva.org/",
         contact="Jacobwhall",
         contact_url="https://wiki.openstreetmap.org/wiki/User:Jacobwhall",
@@ -177,6 +184,7 @@ class OverpassEndpoint(Enum):
             "OverpassEndpoint",
             "Ethiopia"
         ),
+        is_global=False,
         project_url="https://openplaceguide.org/",
         contact="Alexm",
         contact_url="https://wiki.openstreetmap.org/wiki/User:Alexm",
@@ -191,6 +199,7 @@ class OverpassEndpoint(Enum):
             "OverpassEndpoint",
             "Custom Overpass API instance"
         ),
+        is_global=False,
         url="",
         data_coverage=QgsApplication.translate(
             "OverpassEndpoint",
