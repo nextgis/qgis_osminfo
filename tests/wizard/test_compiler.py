@@ -646,6 +646,10 @@ def test_compile_free_form_presets_with_stub_repository(
         ("uid:12345", "nwr(uid:12345)({{bbox}});"),
         ("type:relation", "relation({{bbox}});"),
         (
+            "type:closed_way and leisure=fitness_station",
+            'way["leisure"="fitness_station"](if:is_closed())({{bbox}});',
+        ),
+        (
             'amenity=drinking_water and newer:"4 weeks"',
             'nwr["amenity"="drinking_water"](newer:"{{date:4 weeks}}")({{bbox}});',
         ),

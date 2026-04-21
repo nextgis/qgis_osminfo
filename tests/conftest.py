@@ -63,6 +63,10 @@ def configure_wizard_imports() -> None:
         "osminfo.overpass.query_builder",
         SOURCE_ROOT / "osminfo" / "overpass" / "query_builder",
     )
+    _install_package_stub(
+        "osminfo.search",
+        SOURCE_ROOT / "osminfo" / "search",
+    )
 
 
 @pytest.fixture(scope="session")

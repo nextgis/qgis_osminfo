@@ -103,3 +103,34 @@ def test_renderer_uses_nwr_for_all_types(renderer, wizard_modules) -> None:
     )
 
     assert 'nwr["amenity"="restaurant"]({{bbox}});' in rendered_query.query
+
+
+def test_renderer_renders_closed_way_filter(
+    renderer,
+    wizard_modules,
+) -> None:
+    models = wizard_modules.models
+    rendered_query = renderer.render(
+        models.ResolvedWizardSearch(
+            bounds=models.WizardBounds.GLOBAL,
+            conjunctions=[
+                models.ResolvedConjunction(
+                    types=[models.OsmElementType.WAY],
+                    conditions=[
+                        models.ConditionNode(
+                            query=models.ConditionQueryType.EQ,
+                            key="leisure",
+                            val="fitness_station",
+                        )
+                    ],
+                    closed_way_only=True,
+                )
+            ],
+        ),
+        original_search="type:closed_way and leisure=fitness_station",
+    )
+
+    assert (
+        'way["leisure"="fitness_station"](if:is_closed());'
+        in rendered_query.query
+    )

@@ -71,7 +71,7 @@ def test_unknown_preset_raises_with_suggestion(
 ) -> None:
     with pytest.raises(
         wizard_modules.exceptions.OsmInfoError,
-        match=r"Did you mean 'Restaurant'\?",
+        match=r"Unknown wizard preset: restarant\. Did you mean 'Restaurant'\?",
     ):
         preset_resolver.resolve("restarant")
 
@@ -81,9 +81,9 @@ def test_unknown_preset_exposes_user_message(preset_resolver) -> None:
         preset_resolver.resolve("restarant")
 
     error = exc_info.value
-    assert getattr(error, "user_message", "").endswith(
-        "Did you mean 'Restaurant'?"
-    )
+    assert getattr(error, "user_message", "") == "Unknown wizard preset."
+    assert getattr(error, "search_term", None) == "restarant"
+    assert getattr(error, "suggestion", None) == "Restaurant"
 
 
 def test_repository_applies_english_translations_like_upstream(

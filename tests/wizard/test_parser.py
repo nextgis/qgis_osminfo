@@ -72,6 +72,21 @@ def test_parse_invalid_type_raises_parser_error(
         parser.parse("type:restaurant global")
 
 
+def test_parse_closed_way_type(parser, wizard_modules) -> None:
+    models = wizard_modules.models
+
+    wizard_search = parser.parse("type:closed_way global")
+
+    assert wizard_search == models.WizardSearch(
+        bounds=models.WizardBounds.GLOBAL,
+        query=models.ConditionNode(
+            query=models.ConditionQueryType.TYPE,
+            type=models.OsmElementType.CLOSED_WAY,
+        ),
+        area=None,
+    )
+
+
 @pytest.mark.parametrize(
     ("search_string", "expected_query"),
     [
