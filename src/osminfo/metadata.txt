@@ -1,9 +1,19 @@
 [general]
 name=NextGIS OSMInfo
-description=Get full information about a point from OpenStreetMap database.
-description[ru]=Получите полную информацию о точке из базы данных OpenStreetMap.
-about=For a selected point, extract all information abour nearby and enclosing features from OpenStreetMap database using Overpass API.
-about[ru]=Для выбранной точки извлеките всю информацию о близлежащих и окружающих объектах из базы данных OpenStreetMap, используя Overpass API.
+description=Explore OpenStreetMap data in QGIS without leaving your map.
+description[ru]=Изучайте данные OpenStreetMap в QGIS прямо на карте.
+description[es]=Explore los datos de OpenStreetMap en QGIS sin salir del mapa.
+description[fr]=Explorez les données OpenStreetMap dans QGIS sans quitter votre carte.
+description[pt]=Explore dados do OpenStreetMap no QGIS sem sair do mapa.
+description[de]=Erkunden Sie OpenStreetMap-Daten in QGIS, ohne Ihre Karte zu verlassen.
+description[it]=Esplora i dati OpenStreetMap in QGIS senza uscire dalla mappa.
+about=OSMInfo turns a point on the map into useful context. Find OpenStreetMap objects by place, coordinates, category, or free-form Overpass-style queries, inspect geometry and tags, and see nearby and enclosing features in one place. When you need the results in work, copy them or save them straight to layers.
+about[ru]=OSMInfo превращает точку на карте в полезный контекст. Находите объекты OpenStreetMap по месту, координатам, категории или свободным запросам в стиле Overpass Turbo, изучайте геометрию и теги и смотрите ближайшие и окружающие объекты в одном месте. Когда результаты нужны в работе, их можно сразу скопировать или сохранить в слои.
+about[es]=OSMInfo convierte un punto del mapa en contexto útil. Encuentre objetos de OpenStreetMap por lugar, coordenadas, categoría o consultas libres al estilo Overpass Turbo, inspeccione su geometría y etiquetas y vea elementos cercanos y envolventes en un solo lugar. Cuando necesite usar los resultados en su trabajo, puede copiarlos o guardarlos directamente en capas.
+about[fr]=OSMInfo transforme un point sur la carte en contexte utile. Recherchez des objets OpenStreetMap par lieu, coordonnées, catégorie ou requêtes libres de type Overpass Turbo, inspectez leur géométrie et leurs tags, et visualisez les objets proches et englobants au même endroit. Lorsque vous devez utiliser les résultats dans votre travail, vous pouvez les copier ou les enregistrer directement dans des couches.
+about[pt]=OSMInfo transforma um ponto no mapa em contexto útil. Encontre objetos do OpenStreetMap por local, coordenadas, categoria ou consultas livres no estilo Overpass Turbo, inspecione a geometria e as etiquetas e veja objetos próximos e envolventes num só lugar. Quando precisar dos resultados no trabalho, pode copiá-los ou guardá-los diretamente em camadas.
+about[de]=OSMInfo macht aus einem Punkt auf der Karte einen nutzbaren Kontext. Finden Sie OpenStreetMap-Objekte nach Ort, Koordinaten, Kategorie oder freien Abfragen im Overpass-Turbo-Stil, prüfen Sie Geometrie und Tags und sehen Sie nahegelegene sowie umschließende Objekte an einem Ort. Wenn Sie die Ergebnisse weiterverwenden möchten, können Sie sie direkt kopieren oder in Layer speichern.
+about[it]=OSMInfo trasforma un punto sulla mappa in contesto utile. Trova oggetti OpenStreetMap per luogo, coordinate, categoria o query libere in stile Overpass Turbo, ispeziona geometria e tag e visualizza in un solo posto gli oggetti vicini e contenenti. Quando ti servono i risultati nel lavoro, puoi copiarli o salvarli direttamente nei layer.
 category=Vector
 version=1.2.2
 qgisMinimumVersion=3.22

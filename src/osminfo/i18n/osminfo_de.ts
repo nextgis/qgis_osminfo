@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.1" language="ru_RU">
+<TS version="2.1" language="de">
 <context>
     <name>AboutDialog</name>
     <message>
         <location filename="../ui/about_dialog.py" line="183"/>
         <source> by NextGIS</source>
-        <translation> от NextGIS</translation>
+        <translation> von NextGIS</translation>
     </message>
     <message>
         <location filename="../ui/about_dialog.py" line="481"/>
@@ -16,52 +16,52 @@
     <message>
         <location filename="../ui/about_dialog.py" line="486"/>
         <source>Developers</source>
-        <translation>Разработчики</translation>
+        <translation>Entwickler</translation>
     </message>
     <message>
         <location filename="../ui/about_dialog.py" line="487"/>
         <source>Homepage</source>
-        <translation>Домашняя страница</translation>
+        <translation>Homepage</translation>
     </message>
     <message>
         <location filename="../ui/about_dialog.py" line="490"/>
         <source>Please report bugs at</source>
-        <translation>Пожалуйста, сообщайте об ошибках в</translation>
+        <translation>Bitte melden Sie Fehler unter</translation>
     </message>
     <message>
         <location filename="../ui/about_dialog.py" line="492"/>
         <source>bugtracker</source>
-        <translation>багтрекер</translation>
+        <translation>Bugtracker</translation>
     </message>
     <message>
         <location filename="../ui/about_dialog.py" line="493"/>
         <source>Video with an overview of the plugin</source>
-        <translation>Видео с обзором плагина</translation>
+        <translation>Video mit einem Überblick über das Plugin</translation>
     </message>
     <message>
         <location filename="../ui/about_dialog.py" line="494"/>
         <source>Other helpful services by NextGIS</source>
-        <translation>Другие полезные сервисы от NextGIS</translation>
+        <translation>Weitere hilfreiche Dienste von NextGIS</translation>
     </message>
     <message>
         <location filename="../ui/about_dialog.py" line="495"/>
         <source>Convenient up-to-date data extracts for any place in the world</source>
-        <translation>Удобная выборка актуальных данных из любой точки мира</translation>
+        <translation>Bequeme aktuelle Datenauszüge für jeden Ort der Welt</translation>
     </message>
     <message>
         <location filename="../ui/about_dialog.py" line="498"/>
         <source>Fully featured Web GIS service</source>
-        <translation>Полнофункциональный Веб ГИС-сервис</translation>
+        <translation>Vollwertiger Web-GIS-Dienst</translation>
     </message>
     <message>
         <location filename="../ui/about_dialog.py" line="489"/>
         <source>User Guide</source>
-        <translation>Руководство пользователя</translation>
+        <translation>Benutzerhandbuch</translation>
     </message>
     <message>
         <location filename="../ui/about_dialog.py" line="488"/>
         <source>Join the community</source>
-        <translation>Присоединяйтесь к сообществу</translation>
+        <translation>Der Community beitreten</translation>
     </message>
 </context>
 <context>
@@ -69,12 +69,12 @@
     <message>
         <location filename="../ui/about_dialog_base.ui" line="14"/>
         <source>About {plugin_name}</source>
-        <translation>О модуле {plugin_name}</translation>
+        <translation>Über {plugin_name}</translation>
     </message>
     <message>
         <location filename="../ui/about_dialog_base.ui" line="33"/>
         <source>Information</source>
-        <translation>Информация</translation>
+        <translation>Informationen</translation>
     </message>
     <message>
         <location filename="../ui/about_dialog_base.ui" line="54"/>
@@ -88,17 +88,17 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../ui/about_dialog_base.ui" line="72"/>
         <source>License</source>
-        <translation>Лицензия</translation>
+        <translation>Lizenz</translation>
     </message>
     <message>
         <location filename="../ui/about_dialog_base.ui" line="94"/>
         <source>Components</source>
-        <translation>Компоненты</translation>
+        <translation>Komponenten</translation>
     </message>
     <message>
         <location filename="../ui/about_dialog_base.ui" line="123"/>
         <source>Contributors</source>
-        <translation>Участники</translation>
+        <translation>Mitwirkende</translation>
     </message>
     <message>
         <location filename="../ui/about_dialog_base.ui" line="165"/>
@@ -108,12 +108,12 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../ui/about_dialog_base.ui" line="175"/>
         <source>Version {version}</source>
-        <translation>Версия {version}</translation>
+        <translation>Version {version}</translation>
     </message>
     <message>
         <location filename="../ui/about_dialog_base.ui" line="210"/>
         <source>Get involved</source>
-        <translation>Присоединяйтесь</translation>
+        <translation>Mitmachen</translation>
     </message>
 </context>
 <context>
@@ -121,17 +121,17 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../search/result_layer_exporter.py" line="58"/>
         <source>Attribute mismatch</source>
-        <translation>Несоответствие атрибутов</translation>
+        <translation>Attributkonflikt</translation>
     </message>
     <message>
         <location filename="../search/result_layer_exporter.py" line="59"/>
         <source>Add missing attributes?</source>
-        <translation>Добавить отсутствующие атрибуты?</translation>
+        <translation>Fehlende Attribute hinzufügen?</translation>
     </message>
     <message>
         <location filename="../search/result_layer_exporter.py" line="60"/>
         <source>The feature you are trying to add has attributes that are not present in the target layer.</source>
-        <translation>Объект, который вы пытаетесь добавить, содержит атрибуты, отсутствующие в целевом слое.</translation>
+        <translation>Das Objekt, das Sie hinzufügen möchten, enthält Attribute, die in der Zielebene nicht vorhanden sind.</translation>
     </message>
 </context>
 <context>
@@ -139,127 +139,127 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../nominatim/geocode_task.py" line="48"/>
         <source>Geocoding task was cancelled.</source>
-        <translation>Задача геокодирования была отменена.</translation>
+        <translation>Geokodierungsaufgabe wurde abgebrochen.</translation>
     </message>
     <message>
         <location filename="../core/exceptions.py" line="52"/>
         <source>An error occurred while running the plugin</source>
-        <translation>При работе плагина произошла ошибка</translation>
+        <translation>Beim Ausführen des Plugins ist ein Fehler aufgetreten</translation>
     </message>
     <message>
         <location filename="../core/exceptions.py" line="238"/>
         <source>The plugin has been successfully updated. To continue working, please restart QGIS.</source>
-        <translation>Плагин успешно обновлён. Чтобы продолжить работу, перезапустите QGIS.</translation>
+        <translation>Das Plugin wurde erfolgreich aktualisiert. Bitte starten Sie QGIS neu, um weiterzuarbeiten.</translation>
     </message>
     <message>
         <location filename="../core/exceptions.py" line="276"/>
         <source>Failed to load the user interface.</source>
-        <translation>Не удалось загрузить пользовательский интерфейс.</translation>
+        <translation>Die Benutzeroberfläche konnte nicht geladen werden.</translation>
     </message>
     <message>
         <location filename="../core/exceptions.py" line="297"/>
         <source>Failed to check Overpass service health</source>
-        <translation>Не удалось проверить доступность сервиса Overpass</translation>
+        <translation>Der Status des Overpass-Dienstes konnte nicht geprüft werden</translation>
     </message>
     <message>
         <location filename="../core/exceptions.py" line="338"/>
         <source>Network request failed.</source>
-        <translation>Сетевой запрос завершился ошибкой.</translation>
+        <translation>Netzwerkanfrage fehlgeschlagen.</translation>
     </message>
     <message>
         <location filename="../core/exceptions.py" line="343"/>
         <source>Network request failed with HTTP {status_code}.</source>
-        <translation>Сетевой запрос завершился ошибкой HTTP {status_code}.</translation>
+        <translation>Netzwerkanfrage mit HTTP {status_code} fehlgeschlagen.</translation>
     </message>
     <message>
         <location filename="../core/exceptions.py" line="377"/>
         <source>Overpass service health check completed with warnings.</source>
-        <translation>Проверка доступности сервиса Overpass завершилась с предупреждениями.</translation>
+        <translation>Die Überprüfung des Overpass-Dienstes wurde mit Warnungen abgeschlossen.</translation>
     </message>
     <message>
         <location filename="../core/exceptions.py" line="398"/>
         <source>Failed to execute Overpass query</source>
-        <translation>Не удалось выполнить запрос Overpass</translation>
+        <translation>Overpass-Abfrage konnte nicht ausgeführt werden</translation>
     </message>
     <message>
         <location filename="../core/exceptions.py" line="419"/>
         <source>Failed to parse Overpass response.</source>
-        <translation>Не удалось разобрать ответ Overpass.</translation>
+        <translation>Overpass-Antwort konnte nicht verarbeitet werden.</translation>
     </message>
     <message>
         <location filename="../core/exceptions.py" line="442"/>
         <source>Failed to build Overpass query.</source>
-        <translation>Не удалось построить запрос Overpass.</translation>
+        <translation>Overpass-Abfrage konnte nicht erstellt werden.</translation>
     </message>
     <message>
         <location filename="../core/exceptions.py" line="465"/>
         <source>Failed to build wizard query.</source>
-        <translation>Не удалось построить запрос мастера.</translation>
+        <translation>Assistentenabfrage konnte nicht erstellt werden.</translation>
     </message>
     <message>
         <location filename="../core/exceptions.py" line="482"/>
         <source>Wizard dependency &apos;{dependency_name}&apos; is not installed.</source>
-        <translation>Зависимость мастера '{dependency_name}' не установлена.</translation>
+        <translation>Die Abhängigkeit des Assistenten '{dependency_name}' ist nicht installiert.</translation>
     </message>
     <message>
         <location filename="../core/exceptions.py" line="500"/>
         <source>{message} at position {position}</source>
-        <translation>{message} в позиции {position}</translation>
+        <translation>{message} an Position {position}</translation>
     </message>
     <message>
         <location filename="../core/exceptions.py" line="531"/>
         <source>Unknown wizard preset</source>
-        <translation>Неизвестный шаблон мастера</translation>
+        <translation>Unbekannte Assistentenvorlage</translation>
     </message>
     <message>
         <location filename="../core/exceptions.py" line="571"/>
         <source>Unknown wizard preset.</source>
-        <translation>Неизвестный шаблон мастера.</translation>
+        <translation>Unbekannte Assistentenvorlage.</translation>
     </message>
     <message>
         <location filename="../core/exceptions.py" line="579"/>
         <source>Unknown wizard preset: {search_term}.</source>
-        <translation>Неизвестный шаблон мастера: {search_term}.</translation>
+        <translation>Unbekannte Assistentenvorlage: {search_term}.</translation>
     </message>
     <message>
         <location filename="../core/exceptions.py" line="586"/>
         <source>Unknown wizard preset: {search_term}. Did you mean &apos;{suggestion}&apos;?</source>
-        <translation>Неизвестный шаблон мастера: {search_term}. Возможно, вы имели в виду '{suggestion}'?</translation>
+        <translation>Unbekannte Assistentenvorlage: {search_term}. Meinten Sie '{suggestion}'?</translation>
     </message>
     <message>
         <location filename="../core/exceptions.py" line="625"/>
         <source>Failed to geocode query placeholders.</source>
-        <translation>Не удалось выполнить геокодирование заполнителей запроса.</translation>
+        <translation>Platzhalter in der Abfrage konnten nicht geokodiert werden.</translation>
     </message>
     <message>
         <location filename="../overpass/query_task.py" line="40"/>
         <source>Overpass query was cancelled</source>
-        <translation>Запрос Overpass был отменён</translation>
+        <translation>Overpass-Abfrage wurde abgebrochen</translation>
     </message>
     <message>
         <location filename="../overpass/healthcheck_task.py" line="77"/>
         <source>Overpass health check was cancelled</source>
-        <translation>Проверка Overpass была отменена</translation>
+        <translation>Overpass-Statusprüfung wurde abgebrochen</translation>
     </message>
     <message>
         <location filename="../overpass/query_builder/query_builder.py" line="67"/>
         <source>Search string is empty</source>
-        <translation>Поисковая строка пуста</translation>
+        <translation>Suchtext ist leer</translation>
     </message>
     <message>
         <location filename="../overpass/query_builder/query_builder.py" line="90"/>
         <source>Unsupported search string. Provide coordinates or Overpass QL</source>
-        <translation>Неподдерживаемая поисковая строка. Укажите координаты или Overpass QL</translation>
+        <translation>Nicht unterstützter Suchtext. Geben Sie Koordinaten oder Overpass QL an</translation>
     </message>
     <message>
         <location filename="../overpass/query_builder/coordinates_query_strategy.py" line="57"/>
         <source>No object categories are selected in settings</source>
-        <translation>В настройках не выбраны категории объектов</translation>
+        <translation>In den Einstellungen sind keine Objektkategorien ausgewählt</translation>
     </message>
     <message>
         <location filename="../overpass/query_builder/coordinates_query_strategy.py" line="95"/>
         <source>Coordinates {longitude}, {latitude} are out of range</source>
-        <translation>Координаты {longitude}, {latitude} вне допустимого диапазона</translation>
+        <translation>Koordinaten {longitude}, {latitude} liegen außerhalb des gültigen Bereichs</translation>
     </message>
 </context>
 <context>
@@ -267,42 +267,42 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../nominatim/geocode_task.py" line="129"/>
         <source>Unexpected geocoding error.</source>
-        <translation>Непредвиденная ошибка геокодирования.</translation>
+        <translation>Unerwarteter Geokodierungsfehler.</translation>
     </message>
     <message>
         <location filename="../nominatim/geocode_task.py" line="255"/>
         <source>Failed to geocode &apos;{search_text}&apos;.</source>
-        <translation>Не удалось выполнить геокодирование '{search_text}'.</translation>
+        <translation>'{search_text}' konnte nicht geokodiert werden.</translation>
     </message>
     <message>
         <location filename="../nominatim/geocode_task.py" line="269"/>
         <source>Failed to parse geocoder response.</source>
-        <translation>Не удалось разобрать ответ геокодера.</translation>
+        <translation>Antwort des Geokodierers konnte nicht verarbeitet werden.</translation>
     </message>
     <message>
         <location filename="../nominatim/geocode_task.py" line="275"/>
         <source>No geocoding result for &apos;{search_text}&apos;.</source>
-        <translation>Для '{search_text}' не найден результат геокодирования.</translation>
+        <translation>Kein Geokodierungsergebnis für '{search_text}'.</translation>
     </message>
     <message>
         <location filename="../nominatim/geocode_task.py" line="294"/>
         <source>No supported area result found for &apos;{search_text}&apos;.</source>
-        <translation>Для '{search_text}' не найден поддерживаемый результат с областью.</translation>
+        <translation>Kein unterstütztes Flächenergebnis für '{search_text}' gefunden.</translation>
     </message>
     <message>
         <location filename="../nominatim/geocode_task.py" line="309"/>
         <source>No supported id result found for &apos;{search_text}&apos;.</source>
-        <translation>Для '{search_text}' не найден поддерживаемый результат с идентификатором.</translation>
+        <translation>Kein unterstütztes Ergebnis mit ID für '{search_text}' gefunden.</translation>
     </message>
     <message>
         <location filename="../nominatim/geocode_task.py" line="324"/>
         <source>No supported bounding box result found for &apos;{search_text}&apos;.</source>
-        <translation>Для '{search_text}' не найден поддерживаемый результат с ограничивающим прямоугольником.</translation>
+        <translation>Kein unterstütztes Ergebnis mit Bounding-Box für '{search_text}' gefunden.</translation>
     </message>
     <message>
         <location filename="../nominatim/geocode_task.py" line="343"/>
         <source>Invalid geocoder result for &apos;{search_text}&apos;.</source>
-        <translation>Некорректный результат геокодера для '{search_text}'.</translation>
+        <translation>Ungültiges Ergebnis des Geokodierers für '{search_text}'.</translation>
     </message>
 </context>
 <context>
@@ -310,7 +310,7 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../overpass/healthcheck_task.py" line="376"/>
         <source>Failed to connect to Overpass API status and interpreter endpoints</source>
-        <translation>Не удалось подключиться к конечным точкам status и interpreter API Overpass</translation>
+        <translation>Verbindung zu den Endpunkten status und interpreter der Overpass API konnte nicht hergestellt werden</translation>
     </message>
 </context>
 <context>
@@ -318,7 +318,7 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../ui/loading_tool_button.py" line="102"/>
         <source>Cancel</source>
-        <translation>Отменить</translation>
+        <translation>Abbrechen</translation>
     </message>
 </context>
 <context>
@@ -326,22 +326,22 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../notifier/message_bar_notifier.py" line="204"/>
         <source>Try again</source>
-        <translation>Повторить</translation>
+        <translation>Erneut versuchen</translation>
     </message>
     <message>
         <location filename="../notifier/message_bar_notifier.py" line="214"/>
         <source>Details</source>
-        <translation>Подробнее</translation>
+        <translation>Details</translation>
     </message>
     <message>
         <location filename="../notifier/message_bar_notifier.py" line="218"/>
         <source>Open logs</source>
-        <translation>Открыть логи</translation>
+        <translation>Protokolle öffnen</translation>
     </message>
     <message>
         <location filename="../notifier/message_bar_notifier.py" line="223"/>
         <source>Let us know</source>
-        <translation>Сообщить нам</translation>
+        <translation>Geben Sie uns Bescheid</translation>
     </message>
 </context>
 <context>
@@ -349,12 +349,12 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../search/ui/nextgis_banner.py" line="103"/>
         <source>&lt;a href=&quot;https://data.nextgis.com/?{utm}&quot;&gt;Fresh geodata&lt;/a&gt; for your project &lt;b&gt;(50% off!)&lt;/b&gt;</source>
-        <translation>&lt;a href=&quot;https://data.nextgis.com/?{utm}&quot;&gt;Свежие геоданные&lt;/a&gt; для вашего проекта &lt;b&gt;(скидка 50%)&lt;/b&gt;</translation>
+        <translation>&lt;a href=&quot;https://data.nextgis.com/?{utm}&quot;&gt;Frische Geodaten&lt;/a&gt; für Ihr Projekt &lt;b&gt;(50 % Rabatt!)&lt;/b&gt;</translation>
     </message>
     <message>
         <location filename="../search/ui/nextgis_banner.py" line="111"/>
         <source>&lt;a href=&quot;https://data.nextgis.com/?{utm}&quot;&gt;Download geodata&lt;/a&gt; for your project</source>
-        <translation>&lt;a href=&quot;https://data.nextgis.com/?{utm}&quot;&gt;Скачайте геоданные&lt;/a&gt; для вашего проекта</translation>
+        <translation>&lt;a href=&quot;https://data.nextgis.com/?{utm}&quot;&gt;Geodaten herunterladen&lt;/a&gt; für Ihr Projekt</translation>
     </message>
 </context>
 <context>
@@ -362,7 +362,7 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../openstreetmap/title_builder.py" line="270"/>
         <source>country</source>
-        <translation>страна</translation>
+        <translation>Land</translation>
     </message>
 </context>
 <context>
@@ -370,22 +370,22 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../openstreetmap/features_tree_model.py" line="192"/>
         <source>Feature/Key</source>
-        <translation>Объект/ключ</translation>
+        <translation>Objekt/Schlüssel</translation>
     </message>
     <message>
         <location filename="../openstreetmap/features_tree_model.py" line="195"/>
         <source>Value</source>
-        <translation>Значение</translation>
+        <translation>Wert</translation>
     </message>
     <message>
         <location filename="../openstreetmap/features_tree_model.py" line="265"/>
         <source>Attention</source>
-        <translation>Внимание</translation>
+        <translation>Achtung</translation>
     </message>
     <message>
         <location filename="../openstreetmap/features_tree_model.py" line="265"/>
         <source>incomplete geometry (e.g. some nodes missing)</source>
-        <translation>неполная геометрия (например, отсутствуют некоторые точки)</translation>
+        <translation>unvollständige Geometrie (z. B. einige Knoten fehlen)</translation>
     </message>
 </context>
 <context>
@@ -393,7 +393,7 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../settings/osm_info_settings_page.py" line="516"/>
         <source>Settings dialog crashed</source>
-        <translation>Диалог настроек завершился с ошибкой</translation>
+        <translation>Einstellungsdialog ist abgestürzt</translation>
     </message>
 </context>
 <context>
@@ -401,62 +401,62 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../settings/osm_info_settings_page.py" line="95"/>
         <source>Check connection to the selected Overpass API instance</source>
-        <translation>Проверить подключение к выбранному серверу Overpass API</translation>
+        <translation>Verbindung zur ausgewählten Overpass-API-Instanz prüfen</translation>
     </message>
     <message>
         <location filename="../settings/osm_info_settings_page.py" line="107"/>
         <source>Open OSM Wiki page with Overpass API instances list</source>
-        <translation>Открыть страницу OSM Wiki со списком серверов Overpass API</translation>
+        <translation>OSM-Wiki-Seite mit der Liste der Overpass-API-Instanzen öffnen</translation>
     </message>
     <message>
         <location filename="../settings/osm_info_settings_page.py" line="159"/>
         <source>Failed to load settings UI</source>
-        <translation>Не удалось загрузить интерфейс настроек</translation>
+        <translation>Einstellungsoberfläche konnte nicht geladen werden</translation>
     </message>
     <message>
         <location filename="../settings/osm_info_settings_page.py" line="237"/>
         <source>Please enter a custom Overpass API URL</source>
-        <translation>Укажите пользовательский URL Overpass API</translation>
+        <translation>Bitte geben Sie eine benutzerdefinierte Overpass-API-URL ein</translation>
     </message>
     <message>
         <location filename="../settings/osm_info_settings_page.py" line="276"/>
         <source>Connection failed</source>
-        <translation>Подключение не удалось</translation>
+        <translation>Verbindung fehlgeschlagen</translation>
     </message>
     <message>
         <location filename="../settings/osm_info_settings_page.py" line="264"/>
         <source>Successfully connected to the Overpass API instance</source>
-        <translation>Подключение к серверу Overpass API выполнено успешно</translation>
+        <translation>Verbindung zur Overpass-API-Instanz erfolgreich hergestellt</translation>
     </message>
     <message>
         <location filename="../settings/osm_info_settings_page.py" line="264"/>
         <source>Connection successful</source>
-        <translation>Подключение успешно</translation>
+        <translation>Verbindung erfolgreich</translation>
     </message>
     <message>
         <location filename="../settings/osm_info_settings_page.py" line="276"/>
         <source>Failed to connect to the Overpass API instance</source>
-        <translation>Не удалось подключиться к серверу Overpass API</translation>
+        <translation>Verbindung zur Overpass-API-Instanz konnte nicht hergestellt werden</translation>
     </message>
     <message>
         <location filename="../settings/osm_info_settings_page.py" line="290"/>
         <source>Enable a custom Overpass query timeout. When disabled, the server default timeout is used.</source>
-        <translation>Включить пользовательский таймаут запроса Overpass. Если параметр отключён, используется таймаут сервера по умолчанию.</translation>
+        <translation>Einen benutzerdefinierten Timeout für Overpass-Abfragen aktivieren. Wenn deaktiviert, wird der Standard-Timeout des Servers verwendet.</translation>
     </message>
     <message>
         <location filename="../settings/osm_info_settings_page.py" line="294"/>
         <source>Enable a custom maxsize value for Overpass queries. This parameter limits the memory that the server may use to process the query. When disabled, the server default limit is used.</source>
-        <translation>Включить пользовательское значение maxsize для запросов Overpass. Этот параметр ограничивает объём памяти, который сервер может использовать для обработки запроса. Если параметр отключён, используется ограничение сервера по умолчанию.</translation>
+        <translation>Einen benutzerdefinierten maxsize-Wert für Overpass-Abfragen aktivieren. Dieser Parameter begrenzt den Arbeitsspeicher, den der Server für die Verarbeitung der Abfrage verwenden darf. Wenn deaktiviert, wird das Standardlimit des Servers verwendet.</translation>
     </message>
     <message>
         <location filename="../settings/osm_info_settings_page.py" line="374"/>
         <source>Project</source>
-        <translation>Проект</translation>
+        <translation>Projekt</translation>
     </message>
     <message>
         <location filename="../settings/osm_info_settings_page.py" line="384"/>
         <source>Coverage</source>
-        <translation>Охват</translation>
+        <translation>Abdeckung</translation>
     </message>
     <message>
         <location filename="../settings/osm_info_settings_page.py" line="392"/>
@@ -466,27 +466,27 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../settings/osm_info_settings_page.py" line="402"/>
         <source>Endpoint</source>
-        <translation>Конечная точка</translation>
+        <translation>Endpunkt</translation>
     </message>
     <message>
         <location filename="../settings/osm_info_settings_page.py" line="413"/>
         <source>Note</source>
-        <translation>Примечание</translation>
+        <translation>Hinweis</translation>
     </message>
     <message>
         <location filename="../settings/osm_info_settings_page.py" line="421"/>
         <source>Usage policy</source>
-        <translation>Правила использования</translation>
+        <translation>Nutzungsrichtlinie</translation>
     </message>
     <message>
         <location filename="../settings/osm_info_settings_page.py" line="429"/>
         <source>Contact</source>
-        <translation>Контакты</translation>
+        <translation>Kontakt</translation>
     </message>
     <message>
         <location filename="../settings/osm_info_settings_page.py" line="439"/>
         <source>For more details, check the &lt;a href=&apos;{wiki_url}&apos;&gt;OSM Wiki&lt;/a&gt; page with the list of Overpass API instances.</source>
-        <translation>Подробнее см. на странице &lt;a href='{wiki_url}'&gt;OSM Wiki&lt;/a&gt; со списком серверов Overpass API.</translation>
+        <translation>Weitere Informationen finden Sie auf der &lt;a href='{wiki_url}'&gt;OSM-Wiki&lt;/a&gt;-Seite mit der Liste der Overpass-API-Instanzen.</translation>
     </message>
 </context>
 <context>
@@ -494,37 +494,37 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../osminfo_plugin.py" line="162"/>
         <source>About plugin…</source>
-        <translation>О плагине…</translation>
+        <translation>Über das Plugin…</translation>
     </message>
     <message>
         <location filename="../osminfo_plugin.py" line="179"/>
         <source>Settings</source>
-        <translation>Настройки</translation>
+        <translation>Einstellungen</translation>
     </message>
     <message>
         <location filename="../osminfo_plugin.py" line="257"/>
         <source>Open Changelog</source>
-        <translation>Открыть список изменений</translation>
+        <translation>Änderungsprotokoll öffnen</translation>
     </message>
     <message>
         <location filename="../osminfo_plugin.py" line="260"/>
         <source>Open User Guide</source>
-        <translation>Открыть руководство пользователя</translation>
+        <translation>Benutzerhandbuch öffnen</translation>
     </message>
     <message>
         <location filename="../osminfo_plugin.py" line="263"/>
         <source>About Plugin…</source>
-        <translation>О плагине…</translation>
+        <translation>Über das Plugin…</translation>
     </message>
     <message>
         <location filename="../osminfo_plugin.py" line="267"/>
         <source>Plugin was successfully installed</source>
-        <translation>Плагин успешно установлен</translation>
+        <translation>Plugin wurde erfolgreich installiert</translation>
     </message>
     <message>
         <location filename="../osminfo_plugin.py" line="270"/>
         <source>Plugin was successfully updated</source>
-        <translation>Плагин успешно обновлён</translation>
+        <translation>Plugin wurde erfolgreich aktualisiert</translation>
     </message>
 </context>
 <context>
@@ -532,37 +532,37 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../search/ui/results_view.py" line="116"/>
         <source>Fetching data</source>
-        <translation>Получение данных</translation>
+        <translation>Daten werden abgerufen</translation>
     </message>
     <message>
         <location filename="../search/ui/results_view.py" line="110"/>
         <source>Enter a search query to find OSM features</source>
-        <translation>Введите поисковый запрос, чтобы найти объекты OSM</translation>
+        <translation>Geben Sie eine Suchanfrage ein, um OSM-Objekte zu finden</translation>
     </message>
     <message>
         <location filename="../search/ui/results_view.py" line="122"/>
         <source>Reading response</source>
-        <translation>Чтение ответа</translation>
+        <translation>Antwort wird gelesen</translation>
     </message>
     <message>
         <location filename="../search/ui/results_view.py" line="152"/>
         <source>No features found</source>
-        <translation>Объекты не найдены</translation>
+        <translation>Keine Objekte gefunden</translation>
     </message>
     <message>
         <location filename="../search/ui/results_view.py" line="152"/>
         <source>&lt;a href=&apos;{settings_link}&apos;&gt;Check&lt;/a&gt; whether the selected Overpass server contains data for the requested region.</source>
-        <translation>&lt;a href='{settings_link}'&gt;Проверьте&lt;/a&gt;, содержит ли выбранный сервер Overpass данные для запрошенного региона.</translation>
+        <translation>&lt;a href='{settings_link}'&gt;Prüfen Sie&lt;/a&gt;, ob der ausgewählte Overpass-Server Daten für die angeforderte Region enthält.</translation>
     </message>
     <message>
         <location filename="../search/ui/results_view.py" line="175"/>
         <source>Try changing the Overpass server in &lt;a href=&apos;{settings_link}&apos;&gt;plugin settings&lt;/a&gt;.</source>
-        <translation>Попробуйте сменить сервер Overpass в &lt;a href='{settings_link}'&gt;настройках плагина&lt;/a&gt;.</translation>
+        <translation>Versuchen Sie, den Overpass-Server in den &lt;a href='{settings_link}'&gt;Plugin-Einstellungen&lt;/a&gt; zu ändern.</translation>
     </message>
     <message>
         <location filename="../search/ui/results_view.py" line="192"/>
         <source>Did you mean &quot;&lt;a href=&apos;{fix_link}&apos;&gt;{repaired_search}&lt;/a&gt;&quot;?</source>
-        <translation>Возможно, вы имели в виду &quot;&lt;a href='{fix_link}'&gt;{repaired_search}&lt;/a&gt;&quot;?</translation>
+        <translation>Meinten Sie vielleicht &quot;&lt;a href='{fix_link}'&gt;{repaired_search}&lt;/a&gt;&quot;?</translation>
     </message>
 </context>
 <context>
@@ -575,17 +575,17 @@ p, li { white-space: pre-wrap; }
 - tourism=artwork around &quot;Sydney Opera House&quot;
 - (amenity=charging_station or amenity=fuel) and type:node
 Use the dropdown to see recent searches.</source>
-        <translation>Введите поисковый запрос. Примеры:
+        <translation>Geben Sie eine Suchanfrage ein. Beispiele:
 - Library in Cape Town
 - amenity=marketplace in Mexico City
 - tourism=artwork around &quot;Sydney Opera House&quot;
 - (amenity=charging_station or amenity=fuel) and type:node
-Откройте выпадающий список, чтобы увидеть недавние запросы.</translation>
+Verwenden Sie die Auswahlliste, um kürzlich verwendete Suchanfragen anzuzeigen.</translation>
     </message>
     <message>
         <location filename="../search/ui/search_combobox.py" line="204"/>
         <source>Open help in the browser</source>
-        <translation>Открыть справку в браузере</translation>
+        <translation>Hilfe im Browser öffnen</translation>
     </message>
 </context>
 <context>
@@ -593,52 +593,52 @@ Use the dropdown to see recent searches.</source>
     <message>
         <location filename="../search/search_manager.py" line="170"/>
         <source>Show/Hide {} Panel</source>
-        <translation>Показать/скрыть панель {}</translation>
+        <translation>{}-Panel ein-/ausblenden</translation>
     </message>
     <message>
         <location filename="../search/search_manager.py" line="216"/>
         <source>Identify OpenStreetMap Features</source>
-        <translation>Определить объекты OpenStreetMap</translation>
+        <translation>OpenStreetMap-Objekte identifizieren</translation>
     </message>
     <message>
         <location filename="../search/search_manager.py" line="357"/>
         <source>Custom Overpass API URL is not set</source>
-        <translation>Пользовательский URL Overpass API не задан</translation>
+        <translation>Benutzerdefinierte Overpass-API-URL ist nicht festgelegt</translation>
     </message>
     <message>
         <location filename="../search/search_manager.py" line="428"/>
         <source>Failed to read current map extent.</source>
-        <translation>Не удалось получить текущий охват карты.</translation>
+        <translation>Aktueller Kartenausschnitt konnte nicht gelesen werden.</translation>
     </message>
     <message>
         <location filename="../search/search_manager.py" line="587"/>
         <source>Failed to build Overpass query</source>
-        <translation>Не удалось построить запрос Overpass</translation>
+        <translation>Overpass-Abfrage konnte nicht erstellt werden</translation>
     </message>
     <message>
         <location filename="../search/search_manager.py" line="541"/>
         <source>Search results</source>
-        <translation>Результаты поиска</translation>
+        <translation>Suchergebnisse</translation>
     </message>
     <message>
         <location filename="../search/search_manager.py" line="542"/>
         <source>Nearby features</source>
-        <translation>Ближайшие объекты</translation>
+        <translation>Nahegelegene Objekte</translation>
     </message>
     <message>
         <location filename="../search/search_manager.py" line="543"/>
         <source>Is inside</source>
-        <translation>Находится в</translation>
+        <translation>Liegt in</translation>
     </message>
     <message>
         <location filename="../search/search_manager.py" line="896"/>
         <source>Unknown preset</source>
-        <translation>Неизвестный шаблон</translation>
+        <translation>Unbekannte Vorlage</translation>
     </message>
     <message>
         <location filename="../search/search_manager.py" line="910"/>
         <source>The term &quot;{search_term}&quot; was not recognized.</source>
-        <translation>Термин &quot;{search_term}&quot; не распознан.</translation>
+        <translation>Der Begriff &quot;{search_term}&quot; wurde nicht erkannt.</translation>
     </message>
 </context>
 <context>
@@ -646,22 +646,22 @@ Use the dropdown to see recent searches.</source>
     <message>
         <location filename="../search/ui/search_panel.py" line="80"/>
         <source>Search OSM features</source>
-        <translation>Поиск объектов OSM</translation>
+        <translation>OSM-Objekte suchen</translation>
     </message>
     <message>
         <location filename="../search/ui/search_panel.py" line="91"/>
         <source>Open OSMInfo menu</source>
-        <translation>Открыть меню OSMInfo</translation>
+        <translation>OSMInfo-Menü öffnen</translation>
     </message>
     <message>
         <location filename="../search/ui/search_panel.py" line="104"/>
         <source>Settings</source>
-        <translation>Настройки</translation>
+        <translation>Einstellungen</translation>
     </message>
     <message>
         <location filename="../search/ui/search_panel.py" line="110"/>
         <source>About plugin…</source>
-        <translation>О плагине…</translation>
+        <translation>Über das Plugin…</translation>
     </message>
 </context>
 <context>
@@ -669,42 +669,42 @@ Use the dropdown to see recent searches.</source>
     <message>
         <location filename="../ui/osm_info_settings_page_base.ui" line="77"/>
         <source>Query settings</source>
-        <translation>Настройки запроса</translation>
+        <translation>Abfrageeinstellungen</translation>
     </message>
     <message>
         <location filename="../ui/osm_info_settings_page_base.ui" line="96"/>
         <source>Fetch nearby features</source>
-        <translation>Получать ближайшие объекты</translation>
+        <translation>Nahegelegene Objekte abrufen</translation>
     </message>
     <message>
         <location filename="../ui/osm_info_settings_page_base.ui" line="83"/>
         <source>Fetch enclosing features</source>
-        <translation>Получать окружающие объекты</translation>
+        <translation>Umschließende Objekte abrufen</translation>
     </message>
     <message>
         <location filename="../ui/osm_info_settings_page_base.ui" line="125"/>
         <source>Timeout</source>
-        <translation>Таймаут</translation>
+        <translation>Timeout</translation>
     </message>
     <message>
         <location filename="../ui/osm_info_settings_page_base.ui" line="111"/>
         <source>Distance</source>
-        <translation>Расстояние</translation>
+        <translation>Entfernung</translation>
     </message>
     <message>
         <location filename="../ui/osm_info_settings_page_base.ui" line="201"/>
         <source>Other</source>
-        <translation>Прочие</translation>
+        <translation>Sonstiges</translation>
     </message>
     <message>
         <location filename="../ui/osm_info_settings_page_base.ui" line="207"/>
         <source>Enable debug messages</source>
-        <translation>Включить отладочные сообщения</translation>
+        <translation>Debug-Meldungen aktivieren</translation>
     </message>
     <message>
         <location filename="../ui/osm_info_settings_page_base.ui" line="23"/>
         <source>Overpass server</source>
-        <translation>Сервер Overpass</translation>
+        <translation>Overpass-Server</translation>
     </message>
     <message>
         <location filename="../ui/osm_info_settings_page_base.ui" line="61"/>
@@ -714,17 +714,17 @@ Use the dropdown to see recent searches.</source>
     <message>
         <location filename="../ui/osm_info_settings_page_base.ui" line="118"/>
         <source> m</source>
-        <translation> м</translation>
+        <translation> m</translation>
     </message>
     <message>
         <location filename="../ui/osm_info_settings_page_base.ui" line="147"/>
         <source> s</source>
-        <translation> с</translation>
+        <translation> s</translation>
     </message>
     <message>
         <location filename="../ui/osm_info_settings_page_base.ui" line="159"/>
         <source>Memory limit</source>
-        <translation>Лимит памяти</translation>
+        <translation>Speicherlimit</translation>
     </message>
     <message>
         <location filename="../ui/osm_info_settings_page_base.ui" line="181"/>
@@ -737,7 +737,7 @@ Use the dropdown to see recent searches.</source>
     <message>
         <location filename="../search/result_clipboard_exporter.py" line="51"/>
         <source>Selected features have no attributes to copy.</source>
-        <translation>У выбранных объектов нет атрибутов для копирования.</translation>
+        <translation>Ausgewählte Objekte haben keine Attribute zum Kopieren.</translation>
     </message>
 </context>
 <context>
@@ -745,42 +745,42 @@ Use the dropdown to see recent searches.</source>
     <message>
         <location filename="../search/result_layer_exporter.py" line="94"/>
         <source>Failed to create a temporary layer</source>
-        <translation>Не удалось создать временный слой</translation>
+        <translation>Temporäre Ebene konnte nicht erstellt werden</translation>
     </message>
     <message>
         <location filename="../search/result_layer_exporter.py" line="117"/>
         <source>Selected layer cannot store the selected features</source>
-        <translation>Выбранный слой не может хранить выбранные объекты</translation>
+        <translation>Ausgewählte Ebene kann die ausgewählten Objekte nicht speichern</translation>
     </message>
     <message>
         <location filename="../search/result_layer_exporter.py" line="200"/>
         <source>Selected features have no geometry</source>
-        <translation>У выбранных объектов нет геометрии</translation>
+        <translation>Ausgewählte Objekte haben keine Geometrie</translation>
     </message>
     <message>
         <location filename="../search/result_layer_exporter.py" line="205"/>
         <source>Failed to start editing the selected layer</source>
-        <translation>Не удалось начать редактирование выбранного слоя</translation>
+        <translation>Bearbeitung der ausgewählten Ebene konnte nicht gestartet werden</translation>
     </message>
     <message>
         <location filename="../search/result_layer_exporter.py" line="211"/>
         <source>Add OSM features</source>
-        <translation>Добавить объекты OSM</translation>
+        <translation>OSM-Objekte hinzufügen</translation>
     </message>
     <message>
         <location filename="../search/result_layer_exporter.py" line="252"/>
         <source>Failed to add features to the selected layer</source>
-        <translation>Не удалось добавить объекты в выбранный слой</translation>
+        <translation>Objekte konnten nicht zur ausgewählten Ebene hinzugefügt werden</translation>
     </message>
     <message>
         <location filename="../search/result_layer_exporter.py" line="240"/>
         <source>Failed to save changes to the selected layer</source>
-        <translation>Не удалось сохранить изменения в выбранном слое</translation>
+        <translation>Änderungen an der ausgewählten Ebene konnten nicht gespeichert werden</translation>
     </message>
     <message>
         <location filename="../search/result_layer_exporter.py" line="392"/>
         <source>OpenStreetMap Features</source>
-        <translation>Объекты OpenStreetMap</translation>
+        <translation>OpenStreetMap-Objekte</translation>
     </message>
 </context>
 <context>
@@ -788,72 +788,72 @@ Use the dropdown to see recent searches.</source>
     <message>
         <location filename="../search/results_context_menu.py" line="178"/>
         <source>Open in OpenStreetMap</source>
-        <translation>Открыть в OpenStreetMap</translation>
+        <translation>In OpenStreetMap öffnen</translation>
     </message>
     <message>
         <location filename="../search/results_context_menu.py" line="190"/>
         <source>Copy OpenStreetMap URL</source>
-        <translation>Копировать OpenStreetMap URL</translation>
+        <translation>OpenStreetMap-URL kopieren</translation>
     </message>
     <message>
         <location filename="../search/results_context_menu.py" line="223"/>
         <source>Open tag link</source>
-        <translation>Открыть ссылку тега</translation>
+        <translation>Tag-Link öffnen</translation>
     </message>
     <message>
         <location filename="../search/results_context_menu.py" line="230"/>
         <source>Copy tag link</source>
-        <translation>Копировать ссылку тега</translation>
+        <translation>Tag-Link kopieren</translation>
     </message>
     <message>
         <location filename="../search/results_context_menu.py" line="238"/>
         <source>Open tag links</source>
-        <translation>Открыть ссылки тегов</translation>
+        <translation>Tag-Links öffnen</translation>
     </message>
     <message>
         <location filename="../search/results_context_menu.py" line="239"/>
         <source>Copy tag links</source>
-        <translation>Копировать ссылки тегов</translation>
+        <translation>Tag-Links kopieren</translation>
     </message>
     <message>
         <location filename="../search/results_context_menu.py" line="258"/>
         <source>Zoom to selected features</source>
-        <translation>Приблизить к выбранным объектам</translation>
+        <translation>Auf ausgewählte Objekte zoomen</translation>
     </message>
     <message>
         <location filename="../search/results_context_menu.py" line="260"/>
         <source>Zoom to feature</source>
-        <translation>Приблизить к объекту</translation>
+        <translation>Auf Objekt zoomen</translation>
     </message>
     <message>
         <location filename="../search/results_context_menu.py" line="264"/>
         <source>Save features in new temporary layers</source>
-        <translation>Сохранить объекты в новые временные слои</translation>
+        <translation>Objekte in neuen temporären Ebenen speichern</translation>
     </message>
     <message>
         <location filename="../search/results_context_menu.py" line="266"/>
         <source>Save feature in new temporary layer</source>
-        <translation>Сохранить объект в новый временный слой</translation>
+        <translation>Objekt in neuer temporärer Ebene speichern</translation>
     </message>
     <message>
         <location filename="../search/results_context_menu.py" line="270"/>
         <source>Copy features to clipboard</source>
-        <translation>Копировать объекты в буфер обмена</translation>
+        <translation>Objekte in die Zwischenablage kopieren</translation>
     </message>
     <message>
         <location filename="../search/results_context_menu.py" line="272"/>
         <source>Copy feature to clipboard</source>
-        <translation>Копировать объект в буфер обмена</translation>
+        <translation>Objekt in die Zwischenablage kopieren</translation>
     </message>
     <message>
         <location filename="../search/results_context_menu.py" line="279"/>
         <source>Save features in selected layer</source>
-        <translation>Сохранить объекты в выбранный слой</translation>
+        <translation>Objekte in ausgewählter Ebene speichern</translation>
     </message>
     <message>
         <location filename="../search/results_context_menu.py" line="281"/>
         <source>Save feature in selected layer</source>
-        <translation>Сохранить объект в выбранный слой</translation>
+        <translation>Objekt in ausgewählter Ebene speichern</translation>
     </message>
 </context>
 <context>
@@ -861,122 +861,122 @@ Use the dropdown to see recent searches.</source>
     <message>
         <location filename="../overpass/endpoints.py" line="65"/>
         <source>Main Overpass API instance</source>
-        <translation>Основной сервер Overpass API</translation>
+        <translation>Hauptinstanz der Overpass API</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="109"/>
         <source>Global</source>
-        <translation>Весь мир</translation>
+        <translation>Global</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="65"/>
         <source>You can safely assume that you don&apos;t disturb other users when you do less than 10,000 queries per day and download less than 1 GB data per day</source>
-        <translation>Можно считать, что вы не мешаете другим пользователям, если выполняете менее 10 000 запросов в день и загружаете менее 1 ГБ данных в день</translation>
+        <translation>Sie können davon ausgehen, dass Sie andere Nutzer nicht stören, wenn Sie weniger als 10.000 Abfragen pro Tag ausführen und weniger als 1 GB Daten pro Tag herunterladen</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="85"/>
         <source>VK Maps Overpass API instance (Russia)</source>
-        <translation>Сервер Overpass API VK Maps (Россия)</translation>
+        <translation>VK Maps Overpass-API-Instanz (Russland)</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="85"/>
         <source>Feel free to use our services in any project. There are currently no requests limitations and we will try to keep this approach in the future.</source>
-        <translation>Вы можете свободно использовать наш сервис в любых проектах. Сейчас ограничений на количество запросов нет, и мы постараемся сохранить этот подход в будущем.</translation>
+        <translation>Nutzen Sie unseren Dienst gern in jedem Projekt. Derzeit gibt es keine Beschränkung der Anzahl von Anfragen, und wir werden versuchen, das auch künftig so beizubehalten.</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="85"/>
         <source>Temporarily suspended from March 16, 2026</source>
-        <translation>Временно недоступен с 16 марта 2026 года</translation>
+        <translation>Vorübergehend ausgesetzt seit dem 16. März 2026</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="109"/>
         <source>Private.coffee Overpass Instance</source>
-        <translation>Сервер Overpass Private.coffee</translation>
+        <translation>Private.coffee Overpass-Instanz</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="109"/>
         <source>Feel free to use our service in any project, there is no rate limit in place. Please notify us in advance if you intend to use our service in a large scale project.</source>
-        <translation>Вы можете свободно использовать наш сервис в любых проектах, ограничение по количеству запросов отсутствует. Пожалуйста, сообщите нам заранее, если планируете использовать сервис в крупном проекте.</translation>
+        <translation>Nutzen Sie unseren Dienst gern in jedem Projekt, es gibt derzeit kein Rate-Limit. Bitte informieren Sie uns im Voraus, wenn Sie unseren Dienst in einem groß angelegten Projekt einsetzen möchten.</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="109"/>
         <source>Previously known as overpass.kumi.systems.</source>
-        <translation>Ранее был известен как overpass.kumi.systems.</translation>
+        <translation>Früher bekannt als overpass.kumi.systems.</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="136"/>
         <source>Swiss Overpass API instance</source>
-        <translation>Швейцарский сервер Overpass API</translation>
+        <translation>Schweizer Overpass-API-Instanz</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="136"/>
         <source>Switzerland</source>
-        <translation>Швейцария</translation>
+        <translation>Schweiz</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="136"/>
         <source>Ask Datendelphin</source>
-        <translation>Уточняйте у Datendelphin</translation>
+        <translation>Bei Datendelphin nachfragen</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="156"/>
         <source>Britain and Ireland Overpass Instance</source>
-        <translation>Сервер Overpass для Британии и Ирландии</translation>
+        <translation>Overpass-Instanz für Großbritannien und Irland</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="156"/>
         <source>Britain and Ireland</source>
-        <translation>Британия и Ирландия</translation>
+        <translation>Großbritannien und Irland</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="156"/>
         <source>See the project page for usage policy and privacy policy.</source>
-        <translation>Правила использования и политику конфиденциальности смотрите на странице проекта.</translation>
+        <translation>Nutzungs- und Datenschutzrichtlinie finden Sie auf der Projektseite.</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="156"/>
         <source>IPv6 only. No metadata, no attic data.</source>
-        <translation>Только IPv6. Без метаданных и исторических данных.</translation>
+        <translation>Nur IPv6. Keine Metadaten, keine historischen Daten.</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="180"/>
         <source>MapRVA Overpass server</source>
-        <translation>Сервер Overpass MapRVA</translation>
+        <translation>MapRVA-Overpass-Server</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="180"/>
         <source>Virginia, USA</source>
-        <translation>Вирджиния, США</translation>
+        <translation>Virginia, USA</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="180"/>
         <source>Run by Jacobwhall for MapRVA.</source>
-        <translation>Поддерживается Jacobwhall для MapRVA.</translation>
+        <translation>Betrieben von Jacobwhall für MapRVA.</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="200"/>
         <source>Ethiopia Overpass Server</source>
-        <translation>Сервер Overpass Ethiopia</translation>
+        <translation>Overpass-Server Äthiopien</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="200"/>
         <source>Ethiopia</source>
-        <translation>Эфиопия</translation>
+        <translation>Äthiopien</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="200"/>
         <source>Run by Alexm for Bandira_Addis_Map / OpenPlaceGuide.</source>
-        <translation>Поддерживается Alexm для Bandira_Addis_Map / OpenPlaceGuide.</translation>
+        <translation>Betrieben von Alexm für Bandira_Addis_Map / OpenPlaceGuide.</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="220"/>
         <source>Custom Overpass API instance</source>
-        <translation>Пользовательский сервер Overpass API</translation>
+        <translation>Benutzerdefinierte Overpass-API-Instanz</translation>
     </message>
     <message>
         <location filename="../overpass/endpoints.py" line="220"/>
         <source>Unknown</source>
-        <translation>Неизвестно</translation>
+        <translation>Unbekannt</translation>
     </message>
 </context>
 <context>
@@ -984,7 +984,7 @@ Use the dropdown to see recent searches.</source>
     <message>
         <location filename="../openstreetmap/features_parse_task.py" line="76"/>
         <source>Failed to parse Overpass features.</source>
-        <translation>Не удалось разобрать объекты Overpass.</translation>
+        <translation>Overpass-Objekte konnten nicht verarbeitet werden.</translation>
     </message>
 </context>
 <context>
@@ -992,22 +992,22 @@ Use the dropdown to see recent searches.</source>
     <message>
         <location filename="../overpass/query_task.py" line="103"/>
         <source>Unexpected Overpass query error</source>
-        <translation>Непредвиденная ошибка запроса Overpass</translation>
+        <translation>Unerwarteter Fehler bei der Overpass-Abfrage</translation>
     </message>
     <message>
         <location filename="../overpass/query_task.py" line="122"/>
         <source>Custom Overpass API URL is not set</source>
-        <translation>Пользовательский URL Overpass API не задан</translation>
+        <translation>Benutzerdefinierte Overpass-API-URL ist nicht festgelegt</translation>
     </message>
     <message>
         <location filename="../overpass/query_task.py" line="170"/>
         <source>Failed to fetch data from the server</source>
-        <translation>Не удалось получить данные с сервера</translation>
+        <translation>Daten konnten nicht vom Server abgerufen werden</translation>
     </message>
     <message>
         <location filename="../overpass/query_task.py" line="184"/>
         <source>Failed to parse server response</source>
-        <translation>Не удалось разобрать ответ сервера</translation>
+        <translation>Serverantwort konnte nicht verarbeitet werden</translation>
     </message>
 </context>
 <context>
@@ -1015,27 +1015,27 @@ Use the dropdown to see recent searches.</source>
     <message>
         <location filename="../overpass/query_builder/wizard/renderer.py" line="113"/>
         <source>Area bounds require an area name.</source>
-        <translation>Для границ area требуется имя области.</translation>
+        <translation>Grenzen vom Typ area erfordern einen Flächennamen.</translation>
     </message>
     <message>
         <location filename="../overpass/query_builder/wizard/renderer.py" line="123"/>
         <source>Around bounds require an area name.</source>
-        <translation>Для границ around требуется имя области.</translation>
+        <translation>Grenzen vom Typ around erfordern einen Flächennamen.</translation>
     </message>
     <message>
         <location filename="../overpass/query_builder/wizard/renderer.py" line="139"/>
         <source>Unknown wizard bounds.</source>
-        <translation>Неизвестные границы мастера.</translation>
+        <translation>Unbekannte Assistentengrenzen.</translation>
     </message>
     <message>
         <location filename="../overpass/query_builder/wizard/renderer.py" line="253"/>
         <source>Unknown wizard query type: {query_type}.</source>
-        <translation>Неизвестный тип запроса мастера: {query_type}.</translation>
+        <translation>Unbekannter Abfragetyp des Assistenten: {query_type}.</translation>
     </message>
     <message>
         <location filename="../overpass/query_builder/wizard/renderer.py" line="279"/>
         <source>Unknown wizard meta query.</source>
-        <translation>Неизвестный метазапрос мастера.</translation>
+        <translation>Unbekannte Meta-Abfrage des Assistenten.</translation>
     </message>
 </context>
 <context>
@@ -1043,17 +1043,17 @@ Use the dropdown to see recent searches.</source>
     <message>
         <location filename="../openstreetmap/preset_repository.py" line="254"/>
         <source>Failed to load presets file.</source>
-        <translation>Не удалось загрузить файл шаблонов.</translation>
+        <translation>Datei mit Vorlagen konnte nicht geladen werden.</translation>
     </message>
     <message>
         <location filename="../openstreetmap/preset_repository.py" line="267"/>
         <source>Failed to parse presets file.</source>
-        <translation>Не удалось разобрать файл шаблонов.</translation>
+        <translation>Datei mit Vorlagen konnte nicht verarbeitet werden.</translation>
     </message>
     <message>
         <location filename="../openstreetmap/preset_repository.py" line="333"/>
         <source>Failed to load preset translations file.</source>
-        <translation>Не удалось загрузить файл переводов шаблонов.</translation>
+        <translation>Datei mit Vorlagenübersetzungen konnte nicht geladen werden.</translation>
     </message>
 </context>
 <context>
@@ -1061,22 +1061,22 @@ Use the dropdown to see recent searches.</source>
     <message>
         <location filename="../ui/utils.py" line="55"/>
         <source>KiB</source>
-        <translation>КиБ</translation>
+        <translation>KiB</translation>
     </message>
     <message>
         <location filename="../ui/utils.py" line="56"/>
         <source>MiB</source>
-        <translation>МиБ</translation>
+        <translation>MiB</translation>
     </message>
     <message>
         <location filename="../ui/utils.py" line="57"/>
         <source>GiB</source>
-        <translation>ГиБ</translation>
+        <translation>GiB</translation>
     </message>
     <message>
         <location filename="../ui/utils.py" line="58"/>
         <source>TiB</source>
-        <translation>ТиБ</translation>
+        <translation>TiB</translation>
     </message>
 </context>
 <context>
@@ -1084,12 +1084,12 @@ Use the dropdown to see recent searches.</source>
     <message>
         <location filename="../overpass/query_builder/wizard/normalizer.py" line="60"/>
         <source>Unknown wizard expression.</source>
-        <translation>Неизвестное выражение мастера.</translation>
+        <translation>Unbekannter Assistentenausdruck.</translation>
     </message>
     <message>
         <location filename="../overpass/query_builder/wizard/normalizer.py" line="83"/>
         <source>Unsupported boolean operator: {operator}.</source>
-        <translation>Неподдерживаемый логический оператор: {operator}.</translation>
+        <translation>Nicht unterstützter boolescher Operator: {operator}.</translation>
     </message>
 </context>
 <context>
@@ -1097,12 +1097,12 @@ Use the dropdown to see recent searches.</source>
     <message>
         <location filename="../overpass/query_builder/wizard/semantic.py" line="103"/>
         <source>Free-form query is empty.</source>
-        <translation>Свободный запрос пуст.</translation>
+        <translation>Freie Abfrage ist leer.</translation>
     </message>
     <message>
         <location filename="../overpass/query_builder/wizard/semantic.py" line="120"/>
         <source>Type condition is empty.</source>
-        <translation>Условие типа пусто.</translation>
+        <translation>Typbedingung ist leer.</translation>
     </message>
 </context>
 </TS>

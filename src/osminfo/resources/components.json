@@ -3,7 +3,7 @@
     "title": "osmtogeojson",
     "description": {
       "en": "Its geometry reading algorithms were used as the basis for the plugin geometry parsing pipeline.",
-      "ru": "Алгоритмы чтения геометрии из этого проекта взяты за основу для пайплайна разбора геометрии в плагине.",
+      "ru": "Алгоритмы чтения геометрии из этого проекта взяты за основу для разбора геометрии в плагине.",
       "es": "Sus algoritmos de lectura de geometria se tomaron como base para la cadena de analisis de geometrias del plugin.",
       "fr": "Ses algorithmes de lecture de geometrie ont servi de base au pipeline d'analyse geometrique du plugin.",
       "pt": "Seus algoritmos de leitura de geometria serviram de base para o pipeline de analise geometrica do plugin.",

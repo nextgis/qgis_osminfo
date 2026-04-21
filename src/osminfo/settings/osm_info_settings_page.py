@@ -292,8 +292,9 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
             "server default timeout is used."
         )
         max_size_tooltip = self.tr(
-            "Enable a custom maximum Overpass response size. When disabled, "
-            "the server default limit is used."
+            "Enable a custom maxsize value for Overpass queries. This "
+            "parameter limits the memory that the server may use to process "
+            "the query. When disabled, the server default limit is used."
         )
 
         self._set_tooltip_for_widgets(
