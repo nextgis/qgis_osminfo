@@ -48,10 +48,10 @@ class OsmInfoSearchComboBox(QComboBox):
 
         self.setToolTip(
             self.tr("Enter a search query. Examples:\n")
-            + "- amenity=restaurant\n"
-            "- park in Berlin\n"
-            "- cafe around 'Eiffel Tower'\n"
-            "- highway=bus_stop in Bern\n"
+            + "- Library in Cape Town\n"
+            "- amenity=marketplace in Mexico City\n"
+            '- tourism=artwork around "Sydney Opera House"\n'
+            "- (amenity=charging_station or amenity=fuel) and type:node\n"
             + self.tr("Use the dropdown to see recent searches.")
         )
 

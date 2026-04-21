@@ -30,38 +30,33 @@ class PlaceholderBuilder:
     """
 
     _CITY_NAMES: Tuple[str, ...] = (
-        "Vienna",
         "London",
-        "Berlin",
-        "Prague",
         "Paris",
-        "Rome",
-        "Madrid",
-        "Lisbon",
-        "Warsaw",
-        "Budapest",
-        "Munich",
-        "Hamburg",
-        "Zurich",
-        "Amsterdam",
-        "Brussels",
+        "New York",
+        "Mexico City",
+        "Rio de Janeiro",
+        "Buenos Aires",
+        "Cairo",
+        "Cape Town",
+        "Tokyo",
+        "Singapore",
+        "Sydney",
+        "Auckland",
     )
     _PLACE_NAMES: Tuple[str, ...] = (
         "Eiffel Tower",
         "Statue of Liberty",
-        "Great Wall of China",
         "Taj Mahal",
-        "Machu Picchu",
         "Christ the Redeemer",
         "Colosseum",
         "Pyramids of Giza",
         "Sydney Opera House",
-        "Golden Gate Bridge",
-        "Big Ben",
-        "Mount Fuji",
         "Burj Khalifa",
-        "Acropolis of Athens",
-        "Angkor Wat",
+        "Times Square",
+        "Marina Bay Sands",
+        "CN Tower",
+        "Plaza de Mayo",
+        "Auckland Sky Tower",
     )
     _OSM_IDS: Tuple[str, ...] = (
         "5013364",
@@ -69,31 +64,33 @@ class PlaceholderBuilder:
         "5305957",
     )
     _PRESET_IDENTIFIERS: Tuple[str, ...] = (
-        "amenity/cafe",
-        "amenity/drinking_water",
-        "amenity/pharmacy",
-        "amenity/restaurant",
+        "amenity/library",
+        "amenity/marketplace",
         "tourism/hotel",
         "tourism/museum",
+        "tourism/artwork",
+        "tourism/viewpoint",
     )
     _FALLBACK_PRESET_NAMES: Tuple[str, ...] = (
-        "Cafe",
-        "Drinking Water",
-        "Pharmacy",
-        "Restaurant",
+        "Library",
+        "Marketplace",
         "Hotel",
         "Museum",
+        "Artwork",
+        "Viewpoint",
     )
     _KEY_VALUE_PAIRS: Tuple[Tuple[str, str], ...] = (
-        ("amenity", "drinking_water"),
-        ("amenity", "pharmacy"),
-        ("shop", "bakery"),
-        ("tourism", "hotel"),
+        ("amenity", "library"),
+        ("amenity", "marketplace"),
+        ("amenity", "bus_station"),
+        ("amenity", "charging_station"),
+        ("tourism", "artwork"),
         ("tourism", "museum"),
     )
     _READY_EXPRESSIONS: Tuple[str, ...] = (
-        "amenity=drinking_water and type:node",
-        "(highway=primary or highway=secondary) and type:way",
+        "(amenity=library or tourism=museum) and type:node",
+        "(amenity=charging_station or amenity=fuel) and type:node",
+        "(tourism=artwork or tourism=viewpoint) and type:node",
     )
 
     def __init__(
@@ -121,15 +118,15 @@ class PlaceholderBuilder:
         return builder()
 
     def _build_preset(self) -> str:
-        return self._choose(self._preset_names())
+        return self._quote_if_needed(self._choose_preset_name())
 
     def _build_preset_in(self) -> str:
-        preset_name = self._quote_if_needed(self._build_preset())
+        preset_name = self._quote_if_needed(self._choose_preset_name())
         city_name = self._quote_if_needed(self._choose(self._CITY_NAMES))
         return f"{preset_name} in {city_name}"
 
     def _build_preset_around(self) -> str:
-        preset_name = self._quote_if_needed(self._build_preset())
+        preset_name = self._quote_if_needed(self._choose_preset_name())
         place_name = self._quote_if_needed(self._choose(self._PLACE_NAMES))
         return f"{preset_name} around {place_name}"
 
@@ -166,6 +163,9 @@ class PlaceholderBuilder:
             return self._FALLBACK_PRESET_NAMES
 
         return tuple(preset_names)
+
+    def _choose_preset_name(self) -> str:
+        return self._choose(self._preset_names())
 
     def _choose(
         self,
