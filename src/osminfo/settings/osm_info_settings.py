@@ -61,6 +61,29 @@ class OsmInfoSettings:
         )
 
     @property
+    def last_used_version(self) -> str:
+        value = self.__settings.value(
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/other/lastUsedVersion",
+            defaultValue=None,
+        )
+        if value is not None:
+            return str(value)
+
+        if self.__settings.contains(
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/distance"
+        ):
+            return "1.0.0"
+
+        return "0.0.0"
+
+    @last_used_version.setter
+    def last_used_version(self, version: str) -> None:
+        self.__settings.setValue(
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/other/lastUsedVersion",
+            version,
+        )
+
+    @property
     def default_overpass_endpoint(self) -> str:
         return OverpassEndpoint.MAIN.value.service_id
 

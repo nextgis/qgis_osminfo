@@ -23,19 +23,24 @@ from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import (
     QT_VERSION_STR,
     QSysInfo,
+    QUrl,
     pyqtSlot,
 )
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtGui import QDesktopServices
+from qgis.PyQt.QtWidgets import QAction, QPushButton
 from qgis.utils import iface
 
 from osminfo import resources_rc  # noqa: F401
 from osminfo.about_dialog import AboutDialog
+from osminfo.compat import parse_version
+from osminfo.core import utils
 from osminfo.core.constants import PACKAGE_NAME, PLUGIN_NAME, SHORT_PLUGIN_NAME
 from osminfo.logging import logger
 from osminfo.notifier.message_bar_notifier import MessageBarNotifier
 from osminfo.notifier.notifier_interface import NotifierInterface
 from osminfo.osminfo_interface import OsmInfoInterface
 from osminfo.search.search_manager import OsmInfoSearchManager
+from osminfo.settings.osm_info_settings import OsmInfoSettings
 from osminfo.settings.osm_info_settings_page import OsmInfoOptionsWidgetFactory
 from osminfo.ui.icon import plugin_icon, qgis_icon
 
@@ -112,6 +117,7 @@ class OsmInfoPlugin(OsmInfoInterface):
         self._load_help_action()
         self._patch_menu_icon()
         self._load_task_manager()
+        self._check_last_version()
 
         logger.debug("<b>End plugin initialization</b>")
 
@@ -224,3 +230,48 @@ class OsmInfoPlugin(OsmInfoInterface):
 
             action.setIcon(plugin_icon())
             break
+
+    def _check_last_version(self) -> None:
+        """Check if the plugin version has changed and notify the user.
+
+        Show message with buttons for user guide, about dialog, and changelog.
+        """
+        settings = OsmInfoSettings()
+        last_version = parse_version(settings.last_used_version)
+        current_version = parse_version(self.version)
+        if last_version == current_version:
+            return
+
+        settings.last_used_version = self.version
+
+        def open_docs() -> None:
+            url = self.metadata.get("general", "user_guide")
+            url += f"?{utils.utm_tags('start')}"
+            QDesktopServices.openUrl(QUrl(url))
+
+        def open_changelog() -> None:
+            repository = self.metadata.get("general", "repository")
+            url = f"{repository}/releases/tag/v{self.version}"
+            QDesktopServices.openUrl(QUrl(url))
+
+        changelog_button = QPushButton(self.tr("Open Changelog"))
+        changelog_button.clicked.connect(open_changelog)
+
+        guide_button = QPushButton(self.tr("Open User Guide"))
+        guide_button.clicked.connect(open_docs)
+
+        about_button = QPushButton(self.tr("About Plugin…"))
+        about_button.clicked.connect(self.open_about_dialog)
+
+        if last_version == parse_version("0.0.0"):
+            message = self.tr("Plugin was successfully installed")
+            buttons = [guide_button, about_button]
+        else:
+            message = self.tr("Plugin was successfully updated")
+            buttons = [changelog_button, guide_button, about_button]
+
+        self.notifier.display_message(
+            message,
+            level=Qgis.MessageLevel.Success,
+            widgets=buttons,
+        )
