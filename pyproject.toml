@@ -7,6 +7,7 @@ dependencies = ["pyparsing>=2.4.7"]
 
 
 [tool.qgspb.package-data]
+"osminfo.resources" = ["components.json"]
 "osminfo.resources.icons" = ["osminfo_logo.svg"]
 "osminfo.resources.icons.material" = ["*.svg"]
 "osminfo.resources.tag2link" = ["index.json", "LICENSE"]

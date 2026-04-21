@@ -1,0 +1,86 @@
+[
+  {
+    "title": "osmtogeojson",
+    "description": {
+      "en": "Its geometry reading algorithms were used as the basis for the plugin geometry parsing pipeline.",
+      "ru": "Алгоритмы чтения геометрии из этого проекта взяты за основу для пайплайна разбора геометрии в плагине.",
+      "es": "Sus algoritmos de lectura de geometria se tomaron como base para la cadena de analisis de geometrias del plugin.",
+      "fr": "Ses algorithmes de lecture de geometrie ont servi de base au pipeline d'analyse geometrique du plugin.",
+      "pt": "Seus algoritmos de leitura de geometria serviram de base para o pipeline de analise geometrica do plugin.",
+      "de": "Seine Algorithmen zum Einlesen von Geometrien dienten als Grundlage fuer die Geometrie-Verarbeitungspipeline des Plugins.",
+      "it": "I suoi algoritmi di lettura della geometria sono stati usati come base per la pipeline di parsing geometrico del plugin."
+    },
+    "license_url": "https://opensource.org/license/mit",
+    "project_url": "https://github.com/tyrasd/osmtogeojson"
+  },
+  {
+    "title": "overpass-turbo",
+    "description": {
+      "en": "The plugin wizard was developed on top of the wizard ideas and query language approach from this project.",
+      "ru": "Wizard плагина разработан на основе идей и языка запросов wizard из этого проекта.",
+      "es": "El wizard del plugin se desarrollo a partir de las ideas y del enfoque del lenguaje de consultas del wizard de este proyecto.",
+      "fr": "Le wizard du plugin a ete developpe a partir des idees et de l'approche du langage de requete du wizard de ce projet.",
+      "pt": "O wizard do plugin foi desenvolvido a partir das ideias e da abordagem de linguagem de consulta do wizard deste projeto.",
+      "de": "Der Plugin-Wizard wurde auf Basis der Ideen und des Abfragesprachen-Ansatzes des Wizards dieses Projekts entwickelt.",
+      "it": "Il wizard del plugin e stato sviluppato a partire dalle idee e dall'approccio al linguaggio di interrogazione del wizard di questo progetto."
+    },
+    "license_url": "https://opensource.org/license/mit",
+    "project_url": "https://github.com/tyrasd/overpass-turbo"
+  },
+  {
+    "title": "pyparsing",
+    "description": {
+      "en": "Parser combinator library used by the Overpass Turbo wizard parser.",
+      "ru": "Библиотека парсинга, которая используется мастером запросов Overpass Turbo.",
+      "es": "Biblioteca de analizadores combinatorios utilizada por el asistente de consultas basado en Overpass Turbo.",
+      "fr": "Bibliotheque d'analyse combinatoire utilisee par l'assistant de requetes base sur Overpass Turbo.",
+      "pt": "Biblioteca de combinadores de parser usada pelo assistente de consultas baseado no Overpass Turbo.",
+      "de": "Parser-Kombinatorbibliothek, die vom auf Overpass Turbo basierenden Abfrageassistenten verwendet wird.",
+      "it": "Libreria di parser combinatori usata dal wizard di interrogazione basato su Overpass Turbo."
+    },
+    "license_url": "https://opensource.org/license/mit",
+    "project_url": "https://github.com/pyparsing/pyparsing"
+  },
+  {
+    "title": "tag2link",
+    "description": {
+      "en": "Tag-to-URL mapping dataset used to build external reference links from OSM tags.",
+      "ru": "Набор правил сопоставления тегов и ссылок, который используется для построения внешних ссылок из тегов OSM.",
+      "es": "Conjunto de reglas de correspondencia entre etiquetas y URL utilizado para crear enlaces externos a partir de etiquetas OSM.",
+      "fr": "Jeu de regles d'association entre etiquettes et URL utilise pour creer des liens externes a partir des etiquettes OSM.",
+      "pt": "Conjunto de regras de mapeamento entre tags e URL usado para montar links externos a partir de tags OSM.",
+      "de": "Zuordnungsschema von Tags zu URLs, das zum Erzeugen externer Referenzlinks aus OSM-Tags verwendet wird.",
+      "it": "Insieme di regole di associazione tra tag e URL usato per creare link esterni a partire dai tag OSM."
+    },
+    "license_url": "https://opensource.org/licenses/ISC",
+    "project_url": "https://github.com/tyrasd/tag2link"
+  },
+  {
+    "title": "iD Tagging Schema",
+    "description": {
+      "en": "Preset and translation dataset used to humanize OSM tags and values.",
+      "ru": "Набор пресетов и переводов, который используется для понятного отображения тегов и значений OSM.",
+      "es": "Conjunto de presets y traducciones utilizado para mostrar de forma comprensible las etiquetas y los valores de OSM.",
+      "fr": "Jeu de preconfigurations et de traductions utilise pour rendre les etiquettes et les valeurs OSM plus lisibles.",
+      "pt": "Conjunto de presets e traducoes usado para apresentar tags e valores do OSM de forma mais compreensivel.",
+      "de": "Preset- und Uebersetzungsdaten, die fuer eine besser lesbare Darstellung von OSM-Tags und -Werten verwendet werden.",
+      "it": "Insieme di preset e traduzioni usato per mostrare in modo piu comprensibile i tag e i valori OSM."
+    },
+    "license_url": "https://opensource.org/licenses/ISC",
+    "project_url": "https://github.com/openstreetmap/id-tagging-schema"
+  },
+  {
+    "title": "Material Symbols",
+    "description": {
+      "en": "Icon set used by plugin buttons, menus, and state indicators.",
+      "ru": "Набор иконок, который используется в кнопках, меню и индикаторах состояния плагина.",
+      "es": "Conjunto de iconos utilizado en los botones, menus e indicadores de estado del plugin.",
+      "fr": "Jeu d'icones utilise dans les boutons, les menus et les indicateurs d'etat du plugin.",
+      "pt": "Conjunto de icones usado nos botoes, menus e indicadores de estado do plugin.",
+      "de": "Icon-Set, das in Schaltflaechen, Menues und Statusindikatoren des Plugins verwendet wird.",
+      "it": "Set di icone usato nei pulsanti, nei menu e negli indicatori di stato del plugin."
+    },
+    "license_url": "https://www.apache.org/licenses/LICENSE-2.0",
+    "project_url": "https://fonts.google.com/icons"
+  }
+]
