@@ -95,6 +95,7 @@ class WizardSemanticResolver:
         ]
         conditions = []
         used_free_form = False
+        closed_way_only = False
 
         for condition in conjunction.queries:
             if condition.query == ConditionQueryType.FREE_FORM:
@@ -121,10 +122,17 @@ class WizardSemanticResolver:
                         user_message=self.tr("Type condition is empty."),
                     )
 
-                if condition.type in element_types:
-                    element_types = [condition.type]
+                if condition.type == OsmElementType.CLOSED_WAY:
+                    closed_way_only = True
+                    if OsmElementType.WAY in element_types:
+                        element_types = [OsmElementType.WAY]
+                    else:
+                        element_types = []
                 else:
-                    element_types = []
+                    if condition.type in element_types:
+                        element_types = [condition.type]
+                    else:
+                        element_types = []
                 continue
 
             conditions.append(condition)
@@ -133,6 +141,7 @@ class WizardSemanticResolver:
             ResolvedConjunction(
                 types=element_types,
                 conditions=conditions,
+                closed_way_only=closed_way_only,
             ),
             used_free_form,
         )

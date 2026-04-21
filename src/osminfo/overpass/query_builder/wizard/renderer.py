@@ -155,7 +155,7 @@ class OverpassWizardRenderer:
             return []
 
         type_names: List[str]
-        if len(conjunction.types) == 3:
+        if not conjunction.closed_way_only and len(conjunction.types) == 3:
             type_names = ["nwr"]
         else:
             type_names = [
@@ -167,6 +167,8 @@ class OverpassWizardRenderer:
             buffer = f"  {type_name}"
             for clause in clauses:
                 buffer += clause
+            if conjunction.closed_way_only:
+                buffer += "(if:is_closed())"
             if bounds_part is not None:
                 buffer += bounds_part
             buffer += ";"

@@ -376,6 +376,7 @@ class WizardSyntaxParser:
                 self._exact_keyword(OsmElementType.NODE.value),
                 self._exact_keyword(OsmElementType.WAY.value),
                 self._exact_keyword(OsmElementType.RELATION.value),
+                self._exact_keyword(OsmElementType.CLOSED_WAY.value),
             ]
         )
 

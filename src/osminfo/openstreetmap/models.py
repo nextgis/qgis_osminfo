@@ -28,6 +28,7 @@ class OsmElementType(str, Enum):
     NODE = "node"
     WAY = "way"
     RELATION = "relation"
+    CLOSED_WAY = "closed_way"
 
 
 class OsmGeometryType(Enum):

@@ -191,10 +191,12 @@ class ResolvedConjunction:
 
     :ivar types: Allowed OSM element types for the branch.
     :ivar conditions: Resolved conditions for rendering.
+    :ivar closed_way_only: Whether only closed ways should be rendered.
     """
 
     types: List[OsmElementType] = field(default_factory=list)
     conditions: List[ConditionNode] = field(default_factory=list)
+    closed_way_only: bool = False
 
 
 @dataclass(frozen=True)
