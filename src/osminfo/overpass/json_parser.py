@@ -21,7 +21,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 from qgis.core import QgsGeometry, QgsPointXY
 
-from osminfo.compat import GeometryType
+from osminfo.core.compat import GeometryType
 from osminfo.openstreetmap.models import (
     OsmBounds,
     OsmElementType,

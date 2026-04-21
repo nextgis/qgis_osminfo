@@ -20,7 +20,7 @@ from typing import Dict, Optional, Tuple, Union
 
 from qgis.core import QgsGeometry, QgsRectangle
 
-from osminfo.compat import GeometryType
+from osminfo.core.compat import GeometryType
 from osminfo.openstreetmap.tag2link import TagLink
 
 

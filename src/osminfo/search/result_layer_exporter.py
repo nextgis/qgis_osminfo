@@ -39,8 +39,8 @@ from qgis.PyQt.QtCore import QObject
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.utils import iface
 
-from osminfo.compat import FieldType, GeometryType, addMapLayer
-from osminfo.logging import logger
+from osminfo.core.compat import FieldType, GeometryType, addMapLayer
+from osminfo.core.logging import logger
 from osminfo.osminfo_interface import OsmInfoInterface
 from osminfo.search.result_selection import OsmResultSelectionItem
 

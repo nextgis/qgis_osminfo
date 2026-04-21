@@ -32,7 +32,7 @@ from qgis.PyQt.QtSvg import QSvgRenderer
 from qgis.PyQt.QtWidgets import QLabel
 
 from osminfo.core.constants import PACKAGE_NAME
-from osminfo.logging import logger
+from osminfo.core.logging import logger
 
 _plugin_path = Path(__file__).parents[1]
 

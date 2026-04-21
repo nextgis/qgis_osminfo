@@ -24,8 +24,8 @@ from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QObject, QTranslator, pyqtSignal, pyqtSlot
 
 from osminfo.core.constants import PACKAGE_NAME
+from osminfo.core.logging import logger, unload_logger
 from osminfo.core.utils import qgis_locale
-from osminfo.logging import logger, unload_logger
 from osminfo.shared.base.qobject_metaclass import QObjectMetaClass
 
 if TYPE_CHECKING:

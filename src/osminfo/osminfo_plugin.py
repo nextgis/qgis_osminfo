@@ -31,17 +31,17 @@ from qgis.PyQt.QtWidgets import QAction, QPushButton
 from qgis.utils import iface
 
 from osminfo import resources_rc  # noqa: F401
-from osminfo.about_dialog import AboutDialog
-from osminfo.compat import parse_version
 from osminfo.core import utils
+from osminfo.core.compat import parse_version
 from osminfo.core.constants import PACKAGE_NAME, PLUGIN_NAME, SHORT_PLUGIN_NAME
-from osminfo.logging import logger
+from osminfo.core.logging import logger
 from osminfo.notifier.message_bar_notifier import MessageBarNotifier
 from osminfo.notifier.notifier_interface import NotifierInterface
 from osminfo.osminfo_interface import OsmInfoInterface
 from osminfo.search.search_manager import OsmInfoSearchManager
 from osminfo.settings.osm_info_settings import OsmInfoSettings
 from osminfo.settings.osm_info_settings_page import OsmInfoOptionsWidgetFactory
+from osminfo.ui.about_dialog import AboutDialog
 from osminfo.ui.icon import plugin_icon, qgis_icon
 
 if TYPE_CHECKING:

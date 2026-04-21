@@ -27,8 +27,8 @@ from qgis.utils import iface
 
 from osminfo.core.constants import PLUGIN_NAME
 from osminfo.core.exceptions import OsmInfoError, OsmInfoWarning
+from osminfo.core.logging import logger, open_plugin_logs
 from osminfo.core.utils import utm_tags
-from osminfo.logging import logger, open_plugin_logs
 from osminfo.notifier.notifier_interface import NotifierInterface
 from osminfo.osminfo_interface import (
     OsmInfoInterface,

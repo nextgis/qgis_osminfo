@@ -20,7 +20,7 @@ from typing import Dict, Iterable, Optional
 from qgis.core import QgsTask
 
 from osminfo.core.exceptions import OsmInfoOverpassParsingError
-from osminfo.logging import logger
+from osminfo.core.logging import logger
 from osminfo.openstreetmap.features_parser import OsmFeaturesParser
 from osminfo.openstreetmap.models import OsmResultGroupType, OsmResultTree
 

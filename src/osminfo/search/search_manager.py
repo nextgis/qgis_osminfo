@@ -34,8 +34,8 @@ from osminfo.core.exceptions import (
     OsmInfoQueryBuilderError,
     OsmInfoWizardFreeFormError,
 )
+from osminfo.core.logging import logger
 from osminfo.core.utils import qgis_locale
-from osminfo.logging import logger
 from osminfo.nominatim.geocode_task import GeocodeTask
 from osminfo.openstreetmap.features_parse_task import OverpassFeaturesParseTask
 from osminfo.openstreetmap.features_tree_model import OsmFeaturesTreeModel

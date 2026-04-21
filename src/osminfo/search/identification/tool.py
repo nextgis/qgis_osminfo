@@ -27,7 +27,7 @@ from qgis.PyQt.QtCore import QPoint, Qt, pyqtSignal, pyqtSlot
 from qgis.PyQt.QtGui import QCursor
 
 from osminfo.core.constants import POINT_PRECISION
-from osminfo.logging import logger
+from osminfo.core.logging import logger
 from osminfo.search.identification.click_renderer import OsmInfoClickRenderer
 from osminfo.ui.cursor import OsmInfoCursor, create_cursor
 

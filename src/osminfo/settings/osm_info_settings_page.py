@@ -35,7 +35,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from osminfo.core.exceptions import OsmInfoUiLoadError
-from osminfo.logging import logger, update_logging_level
+from osminfo.core.logging import logger, update_logging_level
 from osminfo.notifier.message_bar_notifier import MessageBarNotifier
 from osminfo.osminfo_interface import OsmInfoInterface
 from osminfo.overpass.endpoints import OverpassEndpoint, OverpassEndpointInfo

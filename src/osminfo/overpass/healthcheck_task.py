@@ -37,7 +37,7 @@ from osminfo.core.exceptions import (
     OsmInfoOverpassHealthCheckNetworkError,
     OsmInfoOverpassHealthCheckWarning,
 )
-from osminfo.logging import logger
+from osminfo.core.logging import logger
 
 OVERPASS_STATUS_REQUEST_TIMEOUT_SECONDS = 10
 OVERPASS_METADATA_REQUEST_TIMEOUT_SECONDS = 10

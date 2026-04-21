@@ -27,7 +27,7 @@ from qgis.PyQt.QtCore import (
 )
 from qgis.utils import iface
 
-from osminfo.logging import logger
+from osminfo.core.logging import logger
 from osminfo.notifier.message_bar_notifier import MessageBarNotifier
 from osminfo.notifier.notifier_interface import NotifierInterface
 from osminfo.osminfo_interface import OsmInfoInterface

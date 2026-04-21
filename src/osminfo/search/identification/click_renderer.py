@@ -21,7 +21,7 @@ from qgis.gui import QgsMapCanvas, QgsRubberBand
 from qgis.PyQt.QtCore import QObject, QVariantAnimation
 from qgis.PyQt.QtGui import QColor
 
-from osminfo.compat import GeometryType
+from osminfo.core.compat import GeometryType
 from osminfo.core.constants import OSM_COLOR
 
 

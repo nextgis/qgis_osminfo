@@ -30,7 +30,7 @@ from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
 from osminfo.core.constants import PLUGIN_NAME
 from osminfo.core.exceptions import OsmInfoNominatimGeocodeError
-from osminfo.logging import logger
+from osminfo.core.logging import logger
 from osminfo.overpass.query_builder.query_context import QueryContext
 
 NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search"

@@ -16,7 +16,7 @@
 
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from osminfo.logging import logger
+from osminfo.core.logging import logger
 from osminfo.openstreetmap.max_scale_calculator import (
     OsmElementMaxScaleCalculator,
 )
