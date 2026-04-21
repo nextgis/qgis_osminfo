@@ -71,7 +71,7 @@ class OsmInfoResultsView(QTreeView):
         self._loading_timer.timeout.connect(self._advance_loading_message)
 
         self._init_styles()
-        self._overlay = QWidget(self)
+        self._overlay = QWidget(self.viewport())
         self._overlay.setObjectName("resultsOverlay")
         self._overlay.setStyleSheet(self._overlay_style)
 
@@ -262,7 +262,7 @@ class OsmInfoResultsView(QTreeView):
 
     def resizeEvent(self, event) -> None:  # type: ignore[override]
         super().resizeEvent(event)
-        self._overlay.resize(self.size())
+        self._overlay.resize(self.viewport().size())
         self._overlay.move(0, 0)
         self._layout_overlay_contents()
 
