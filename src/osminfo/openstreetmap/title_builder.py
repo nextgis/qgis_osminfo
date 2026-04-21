@@ -17,6 +17,8 @@
 from dataclasses import dataclass
 from typing import Dict, Iterable, Optional, Tuple
 
+from qgis.core import QgsApplication
+
 from osminfo.openstreetmap.preset_repository import (
     PresetDefinition,
     PresetRepository,
@@ -260,13 +262,29 @@ class OsmElementTitleBuilder:
         tags: Dict[str, str],
         preset_type: _TypeInfo,
     ) -> Optional[_TypeInfo]:
+        boundary_value = self._clean_text(tags.get("boundary"))
+        if boundary_value == "administrative":
+            boundary_level = self._clean_text(tags.get("admin_level"))
+
+            if boundary_level == "2":
+                label = self.tr("country")
+            elif preset_type.label is not None:
+                label = preset_type.label
+            else:
+                label = self._normalize_type_label(boundary_value)
+
+            return _TypeInfo(
+                label=label,
+                tag_key="boundary",
+                tag_value=boundary_value,
+            )
+
         if (
             preset_type.tag_key != "type"
             or preset_type.tag_value != "boundary"
         ):
             return None
 
-        boundary_value = self._clean_text(tags.get("boundary"))
         if boundary_value is None:
             return None
 
@@ -532,7 +550,7 @@ class OsmElementTitleBuilder:
         geometry_aliases = {
             "point": ("point", "vertex"),
             "line": ("line",),
-            "area": ("area",),
+            "area": ("area", "relation"),
             "relation": ("relation",),
         }
         allowed_geometries = geometry_aliases.get(
@@ -567,3 +585,6 @@ class OsmElementTitleBuilder:
             return None
 
         return stripped_value
+
+    def tr(self, text: str) -> str:
+        return QgsApplication.translate(self.__class__.__name__, text)
