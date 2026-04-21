@@ -219,6 +219,7 @@ compile_commands.json
 # PyQt
 ui_*.py
 resources.py
+*_rc.py
 
 # QGIS
 *.db

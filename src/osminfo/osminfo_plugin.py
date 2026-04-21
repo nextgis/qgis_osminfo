@@ -28,7 +28,7 @@ from qgis.PyQt.QtCore import (
 from qgis.PyQt.QtWidgets import QAction
 from qgis.utils import iface
 
-from osminfo import resources  # noqa: F401
+from osminfo import resources_rc  # noqa: F401
 from osminfo.about_dialog import AboutDialog
 from osminfo.core.constants import PACKAGE_NAME, PLUGIN_NAME, SHORT_PLUGIN_NAME
 from osminfo.logging import logger

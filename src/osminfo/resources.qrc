@@ -1,14 +1,14 @@
 <RCC>
-    <qresource prefix="/plugins/osminfo/">
-        <file>icons/about.png</file>
-        <file>icons/fire.png</file>
-        <file>icons/news.png</file>
-        <file>icons/cursor.svg</file>
-        <file>icons/mActionIdentify.svg</file>
-        <file>icons/nextgis_logo.svg</file>
-        <file>icons/osm_logo.svg</file>
-        <file>icons/osminfo_logo.svg</file>
-        <file>icons/osminfo_logo_white.svg</file>
-        <file>icons/zoom2feature.png</file>
+    <qresource prefix="/plugins/osminfo">
+        <file alias="icons/about.png">resources/icons/about.png</file>
+        <file alias="icons/fire.png">resources/icons/fire.png</file>
+        <file alias="icons/news.png">resources/icons/news.png</file>
+        <file alias="icons/cursor.svg">resources/icons/cursor.svg</file>
+        <file alias="icons/mActionIdentify.svg">resources/icons/mActionIdentify.svg</file>
+        <file alias="icons/nextgis_logo.svg">resources/icons/nextgis_logo.svg</file>
+        <file alias="icons/osm_logo.svg">resources/icons/osm_logo.svg</file>
+        <file alias="icons/osminfo_logo.svg">resources/icons/osminfo_logo.svg</file>
+        <file alias="icons/osminfo_logo_white.svg">resources/icons/osminfo_logo_white.svg</file>
+        <file alias="icons/zoom2feature.png">resources/icons/zoom2feature.png</file>
     </qresource>
 </RCC>
