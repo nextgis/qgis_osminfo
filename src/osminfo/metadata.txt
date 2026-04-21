@@ -15,7 +15,7 @@ about[pt]=OSMInfo transforma um ponto no mapa em contexto útil. Encontre objeto
 about[de]=OSMInfo macht aus einem Punkt auf der Karte einen nutzbaren Kontext. Finden Sie OpenStreetMap-Objekte nach Ort, Koordinaten, Kategorie oder freien Abfragen im Overpass-Turbo-Stil, prüfen Sie Geometrie und Tags und sehen Sie nahegelegene sowie umschließende Objekte an einem Ort. Wenn Sie die Ergebnisse weiterverwenden möchten, können Sie sie direkt kopieren oder in Layer speichern.
 about[it]=OSMInfo trasforma un punto sulla mappa in contesto utile. Trova oggetti OpenStreetMap per luogo, coordinate, categoria o query libere in stile Overpass Turbo, ispeziona geometria e tag e visualizza in un solo posto gli oggetti vicini e contenenti. Quando ti servono i risultati nel lavoro, puoi copiarli o salvarli direttamente nei layer.
 category=Vector
-version=1.2.2
+version=2.0.0
 qgisMinimumVersion=3.22
 qgisMaximumVersion=4.99
 
@@ -38,6 +38,26 @@ deprecated=False
 supportsQt6=True
 
 changelog=
+    2.0.0
+        * Added support for free-form queries similar to Overpass Turbo
+        * Added a geometry parser based on osmtogeojson to support complex objects
+        * Added Overpass server health checks
+        * Added the ability to cancel a running query
+        * Added the ability to use a custom Overpass server URL
+        * Added support for the maxsize parameter in Overpass API queries
+        * Added the ability to work with multiple found objects at once
+        * Added plugin installation and update notifications
+        * Added a message suggesting switching the server after repeated failed attempts
+        * Added Spanish, French, Portuguese, German, and Italian translations
+        * Tags containing links or object identifiers are now displayed as clickable links (for example, wikidata)
+        * Updated the plugin interface
+        * Updated the object title selection algorithm to account for object type and tag data
+        * Updated found-object visualization on the map
+        * Updated the Overpass server list and added endpoint details to settings
+        * Updated the map point selection tool
+        * Updated the plugin icons
+        * Copying objects now respects the format selected in settings (GeoJSON, WKT, ...)
+        * Fixed the maximum timeout value for Overpass API queries
     1.2.2
         * Updated plugin info
     1.2.1
