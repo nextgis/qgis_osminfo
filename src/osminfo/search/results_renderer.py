@@ -78,6 +78,7 @@ FIELD_RELATION = "relation_related"
 FIELD_TAINTED = "is_tainted"
 FIELD_ACTIVE = "is_active"
 FIELD_MAX_SCALE = "max_scale"
+MARKER_SIZE = 16.0
 
 
 class OsmResultsRenderer(QObject):
@@ -692,7 +693,7 @@ class OsmResultsRenderer(QObject):
         return self._marker_symbol(
             outline_color,
             self._fill_color(active, False),
-            size=12,
+            size=MARKER_SIZE,
             outline_width=2,
         )
 
@@ -795,7 +796,7 @@ class OsmResultsRenderer(QObject):
                     relation_related,
                 ),
                 self._fill_color(active, True),
-                size=16.0,
+                size=MARKER_SIZE,
                 outline_width=2.0,
             )
         )
@@ -827,7 +828,7 @@ class OsmResultsRenderer(QObject):
                     relation_related,
                 ),
                 self._fill_color(active, True),
-                size=16.0,
+                size=MARKER_SIZE,
                 outline_width=2.0,
             )
         )
