@@ -53,10 +53,12 @@ class CoordinatesQueryStrategy:
             )
 
         if len(queries) == 0:
+            # fmt: off
             message = QgsApplication.translate(
                 "Exceptions",
-                "No object category selected in settings.",
+                "No object categories are selected in settings"
             )
+            # fmt: on
             raise OsmInfoQueryBuilderError(
                 log_message="No coordinate query kinds are enabled",
                 user_message=message,
@@ -89,13 +91,15 @@ class CoordinatesQueryStrategy:
         point: QgsPointXY,
         detail: Optional[str] = None,
     ) -> OsmInfoQueryBuilderError:
+        # fmt: off
         message = QgsApplication.translate(
             "Exceptions",
-            "{longitude}, {latitude} are wrong coords!",
+            "Coordinates {longitude}, {latitude} are out of range"
         ).format(
             longitude=self._format_coordinate(point.x()),
             latitude=self._format_coordinate(point.y()),
         )
+        # fmt: on
         return OsmInfoQueryBuilderError(
             log_message="Coordinates are out of range",
             user_message=message,

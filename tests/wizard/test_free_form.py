@@ -81,7 +81,7 @@ def test_unknown_preset_exposes_user_message(preset_resolver) -> None:
         preset_resolver.resolve("restarant")
 
     error = exc_info.value
-    assert getattr(error, "user_message", "") == "Unknown wizard preset."
+    assert getattr(error, "user_message", "") == "Unknown wizard preset"
     assert getattr(error, "search_term", None) == "restarant"
     assert getattr(error, "suggestion", None) == "Restaurant"
 

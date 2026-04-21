@@ -92,7 +92,7 @@ class OsmResultLayerExporter(QObject):
             )
             if not layer.isValid():
                 self._show_message(
-                    self.tr("Failed to create a temporary layer."),
+                    self.tr("Failed to create a temporary layer"),
                 )
                 continue
 
@@ -115,7 +115,7 @@ class OsmResultLayerExporter(QObject):
 
         if not self._can_store_items(layer, geometry_items):
             self._show_message(
-                self.tr("Selected layer cannot store chosen features."),
+                self.tr("Selected layer cannot store the selected features"),
             )
             return
 
@@ -179,7 +179,7 @@ class OsmResultLayerExporter(QObject):
 
         features = self._build_features(layer, items)
         if len(features) == 0:
-            self._show_message(self.tr("Chosen features have no geometry."))
+            self._show_message(self.tr("Selected features have no geometry"))
             return False
 
         provider.addFeatures(features)
@@ -197,13 +197,13 @@ class OsmResultLayerExporter(QObject):
 
         features = self._build_features(layer, items)
         if len(features) == 0:
-            self._show_message(self.tr("Chosen features have no geometry."))
+            self._show_message(self.tr("Selected features have no geometry"))
             return False
 
         was_editable = layer.isEditable()
         if not was_editable and not layer.startEditing():
             self._show_message(
-                self.tr("Failed to start editing the selected layer."),
+                self.tr("Failed to start editing the selected layer"),
             )
             return False
 
@@ -213,21 +213,35 @@ class OsmResultLayerExporter(QObject):
         try:
             for feature in features:
                 if not layer.addFeature(feature):
-                    raise RuntimeError(
-                        self.tr(
-                            "Failed to add features to the selected layer."
-                        )
+                    logger.error(
+                        "Failed to add a feature to the selected layer"
                     )
+                    self._show_message(
+                        self.tr("Failed to add features to the selected layer")
+                    )
+                    return False
 
             layer.endEditCommand()
             command_started = False
             layer.updateExtents()
             layer.triggerRepaint()
 
-            if not was_editable and not layer.commitChanges(stopEditing=True):
+            if was_editable:
+                return True
+
+            if not layer.commitChanges(stopEditing=True):
                 commit_errors = "; ".join(layer.commitErrors())
-                raise RuntimeError(commit_errors)
-        except Exception as error:
+                logger.error(
+                    "Failed to commit features to the selected layer: %s",
+                    commit_errors or "unknown error",
+                )
+                if layer.isEditable():
+                    layer.rollBack()
+                self._show_message(
+                    self.tr("Failed to save changes to the selected layer")
+                )
+                return False
+        except Exception:
             logger.exception("Failed to add features to the existing layer.")
             if command_started:
                 cast(Any, layer).destroyEditCommand()
@@ -235,7 +249,9 @@ class OsmResultLayerExporter(QObject):
             if not was_editable and layer.isEditable():
                 layer.rollBack()
 
-            self._show_message(str(error))
+            self._show_message(
+                self.tr("Failed to add features to the selected layer")
+            )
             return False
 
         return True

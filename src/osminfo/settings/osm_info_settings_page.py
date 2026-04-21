@@ -34,6 +34,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from osminfo.core.exceptions import OsmInfoUiLoadError
 from osminfo.logging import logger, update_logging_level
 from osminfo.notifier.message_bar_notifier import MessageBarNotifier
 from osminfo.osminfo_interface import OsmInfoInterface
@@ -45,6 +46,11 @@ from osminfo.overpass.healthcheck_task import (
 from osminfo.settings.osm_info_settings import OsmInfoSettings
 from osminfo.ui.icon import material_icon, plugin_icon
 from osminfo.ui.loading_tool_button import LoadingToolButton
+
+OVERPASS_INSTANCES_WIKI_URL = (
+    "https://wiki.openstreetmap.org/wiki/Overpass_API"
+    "#Public_Overpass_API_instances"
+)
 
 
 class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
@@ -142,13 +148,20 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
                 str(plugin_path / "ui" / "osm_info_settings_page_base.ui")
             )  # type: ignore
         except FileNotFoundError as error:
-            message = self.tr("An error occured while settings UI loading")
+            message = self.tr("Failed to load settings UI")
             logger.exception(message)
-            raise RuntimeError(message) from error
+            raise OsmInfoUiLoadError(
+                log_message=message,
+                user_message=message,
+            ) from error
         if widget is None:
-            message = self.tr("An error occured in settings UI")
-            logger.error(message)
-            raise RuntimeError(message)
+            log_message = "Settings UI loading returned no widget"
+            user_message = self.tr("Failed to load settings UI")
+            logger.error(log_message)
+            raise OsmInfoUiLoadError(
+                log_message=log_message,
+                user_message=user_message,
+            )
 
         self._widget = widget
         self._widget.setParent(self)
@@ -222,7 +235,7 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
         overpass_url = self._selected_overpass_url()
         if len(overpass_url) == 0:
             self._notifier.display_message(
-                self.tr("Please enter a custom Overpass API URL."),
+                self.tr("Please enter a custom Overpass API URL"),
                 header=self.tr("Connection failed"),
                 level=Qgis.MessageLevel.Critical,
             )
@@ -249,9 +262,7 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
             HealthCheckStatus.WARNING,
         ):
             self._notifier.display_message(
-                self.tr(
-                    "Successfully connected to the Overpass API instance."
-                ),
+                self.tr("Successfully connected to the Overpass API instance"),
                 header=self.tr("Connection successful"),
                 level=Qgis.MessageLevel.Success,
             )
@@ -263,7 +274,7 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
         #     )
         elif self._task.check_status == HealthCheckStatus.FAILURE:
             self._notifier.display_message(
-                self.tr("Failed to connect to the Overpass API instance."),
+                self.tr("Failed to connect to the Overpass API instance"),
                 header=self.tr("Connection failed"),
                 level=Qgis.MessageLevel.Critical,
             )
@@ -425,7 +436,10 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
         lines.append("<br><br>")
 
         lines.append(
-            'For more details please check the <a href="https://wiki.openstreetmap.org/wiki/Overpass_API#Public_Overpass_API_instances">OSM Wiki</a> page with the list of Overpass API instances.'
+            self.tr(
+                "For more details, check the <a href='{wiki_url}'>OSM Wiki</a> "
+                "page with the list of Overpass API instances."
+            ).format(wiki_url=OVERPASS_INSTANCES_WIKI_URL)
         )
 
         return "".join(lines)
@@ -481,11 +495,7 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
 
     @pyqtSlot()
     def _open_osm_wiki(self) -> None:
-        QDesktopServices.openUrl(
-            QUrl(
-                "https://wiki.openstreetmap.org/wiki/Overpass_API#Public_Overpass_API_instances"
-            )
-        )
+        QDesktopServices.openUrl(QUrl(OVERPASS_INSTANCES_WIKI_URL))
 
     def _finish_task(self) -> None:
         if self._task is not None and self._task.status() not in (
@@ -502,7 +512,7 @@ class OsmInfoOptionsErrorPageWidget(QgsOptionsPageWidget):
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self.widget = QLabel(self.tr("Settings dialog was crashed"), self)
+        self.widget = QLabel(self.tr("Settings dialog crashed"), self)
         self.widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         layout = QVBoxLayout()
@@ -529,5 +539,5 @@ class OsmInfoOptionsWidgetFactory(QgsOptionsWidgetFactory):
         try:
             return OsmInfoOptionsPageWidget(parent)
         except Exception:
-            # logger.exception("Settings dialog was crashed")
+            logger.exception("Settings dialog crashed")
             return OsmInfoOptionsErrorPageWidget(parent)

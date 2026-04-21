@@ -40,6 +40,10 @@ if TYPE_CHECKING:
     assert isinstance(iface, QgisInterface)
 
 
+MESSAGE_BAR_ITEM_OBJECT_NAME = "OsmInfoMessageBarItem"
+MESSAGE_BAR_MESSAGE_ID_PROPERTY = "OsmInfoMessageId"
+
+
 def let_us_know() -> None:
     plugin = OsmInfoInterface.instance()
     tracker_url = plugin.metadata.get("general", "tracker")
@@ -99,17 +103,16 @@ class MessageBarNotifier(NotifierInterface):
 
         message_bar = self._message_bar
         widget = message_bar.createMessage(header or PLUGIN_NAME, message)
-        if widget is None:
-            raise RuntimeError("Failed to create QGIS message bar item")
+        assert widget is not None, "Failed to create QGIS message bar item"
 
         for custom_widget in custom_widgets:
             custom_widget.setParent(widget)
             widget.layout().addWidget(custom_widget)
 
         item = message_bar.pushWidget(widget, level)
-        item.setObjectName("OsmInfoMessageBarItem")
+        item.setObjectName(MESSAGE_BAR_ITEM_OBJECT_NAME)
         message_id = str(uuid.uuid4())
-        item.setProperty("OsmInfoMessageId", message_id)
+        item.setProperty(MESSAGE_BAR_MESSAGE_ID_PROPERTY, message_id)
 
         logger.log(level, message)
 
@@ -135,8 +138,7 @@ class MessageBarNotifier(NotifierInterface):
 
         message_bar = self._message_bar
         widget = message_bar.createMessage(PLUGIN_NAME, message)
-        if widget is None:
-            raise RuntimeError("Failed to create QGIS message bar item")
+        assert widget is not None, "Failed to create QGIS message bar item"
 
         if not isinstance(error, Warning):
             self._add_error_buttons(error, widget)
@@ -148,8 +150,8 @@ class MessageBarNotifier(NotifierInterface):
         )
 
         item = message_bar.pushWidget(widget, level)
-        item.setObjectName("OsmInfoMessageBarItem")
-        item.setProperty("OsmInfoMessageId", error.error_id)
+        item.setObjectName(MESSAGE_BAR_ITEM_OBJECT_NAME)
+        item.setProperty(MESSAGE_BAR_MESSAGE_ID_PROPERTY, error.error_id)
 
         if level == Qgis.MessageLevel.Critical:
             logger.exception(error.log_message, exc_info=error)
@@ -165,8 +167,9 @@ class MessageBarNotifier(NotifierInterface):
         """
         for notification in self._message_bar.items():
             if (
-                notification.objectName() != "OsmInfoMessageBarItem"
-                or notification.property("OsmInfoMessageId") != message_id
+                notification.objectName() != MESSAGE_BAR_ITEM_OBJECT_NAME
+                or notification.property(MESSAGE_BAR_MESSAGE_ID_PROPERTY)
+                != message_id
             ):
                 continue
             self._message_bar.popWidget(notification)
@@ -174,7 +177,7 @@ class MessageBarNotifier(NotifierInterface):
     def dismiss_all(self) -> None:
         """Dismiss all currently displayed messages."""
         for notification in self._message_bar.items():
-            if notification.objectName() != "OsmInfoMessageBarItem":
+            if notification.objectName() != MESSAGE_BAR_ITEM_OBJECT_NAME:
                 continue
             self._message_bar.popWidget(notification)
 

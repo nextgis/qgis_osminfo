@@ -296,7 +296,7 @@ class OsmInfoOverpassHealthCheckError(OsmInfoError):
         # fmt: off
         default_message = QgsApplication.translate(
             "Exceptions",
-            "Failed to check Overpass service health.",
+            "Failed to check Overpass service health"
         )
         # fmt: on
         super().__init__(
@@ -397,7 +397,7 @@ class OsmInfoOverpassQueryError(OsmInfoError):
         # fmt: off
         default_message = QgsApplication.translate(
             "Exceptions",
-            "Failed to execute Overpass query.",
+            "Failed to execute Overpass query"
         )
         # fmt: on
         super().__init__(
@@ -529,8 +529,7 @@ class OsmInfoWizardFreeFormError(OsmInfoWizardError):
         suggestion: Optional[str] = None,
     ) -> None:
         default_message = QgsApplication.translate(
-            "Exceptions",
-            "Unknown wizard preset.",
+            "Exceptions", "Unknown wizard preset"
         )
         normalized_search_term = self._normalize_optional_text(search_term)
         normalized_suggestion = self._normalize_optional_text(suggestion)
@@ -587,7 +586,7 @@ class OsmInfoWizardFreeFormError(OsmInfoWizardError):
         return QgsApplication.translate(
             "Exceptions",
             "Unknown wizard preset: {search_term}. Did you mean "
-            "'{suggestion}'?",
+            "'{suggestion}'?"
         ).format(
             search_term=search_term,
             suggestion=suggestion,

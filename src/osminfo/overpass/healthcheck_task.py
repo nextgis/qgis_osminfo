@@ -73,10 +73,12 @@ OVERPASS_NEXT_SLOT_PATTERN = re.compile(r"Slot available after: ([^,]+)")
 
 class _OverpassHealthCheckCancelledError(OsmInfoOverpassHealthCheckError):
     def __init__(self) -> None:
+        # fmt: off
         message = QgsApplication.translate(
             "Exceptions",
-            "Overpass health check was cancelled.",
+            "Overpass health check was cancelled"
         )
+        # fmt: on
         super().__init__(
             log_message=message,
             user_message=message,
@@ -378,7 +380,7 @@ class HealthCheckTask(QgsTask):
                 ),
                 user_message=self.tr(
                     "Failed to connect to Overpass API status and "
-                    "interpreter endpoints."
+                    "interpreter endpoints"
                 ),
             )
 

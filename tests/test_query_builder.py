@@ -98,7 +98,7 @@ def test_build_for_string_rejects_out_of_range_coordinates(
 
     with pytest.raises(
         query_builder_module.OsmInfoQueryBuilderError,
-        match=r"181, 55 are wrong coords!",
+        match=r"Coordinates 181, 55 are out of range",
     ):
         builder.build_for_string("181, 55")
 

@@ -14,7 +14,9 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
+from enum import Enum
 from typing import Optional
 
 from qgis.PyQt.QtCore import Qt
@@ -23,7 +25,35 @@ from qgis.PyQt.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
 from osminfo.core.utils import utm_tags
 
 
+@dataclass(frozen=True)
+class _BannerCampaignContent:
+    icon_path: str
+    message_html: str
+
+
+class _BannerCampaign(str, Enum):
+    CONSTANT = "constant"
+    BLACK_FRIDAY_2025 = "black-friday25"
+
+
 class NextGisBannerWidget(QFrame):
+    BLACK_FRIDAY_2025_START = datetime(
+        year=2025,
+        month=12,
+        day=1,
+        hour=6,
+        minute=1,
+        tzinfo=timezone.utc,
+    )
+    BLACK_FRIDAY_2025_FINISH = datetime(
+        year=2025,
+        month=12,
+        day=6,
+        hour=5,
+        minute=59,
+        tzinfo=timezone.utc,
+    )
+
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
 
@@ -44,22 +74,8 @@ class NextGisBannerWidget(QFrame):
 
     def refresh_content(self) -> None:
         campaign = self._campaign_name()
-        utm = utm_tags("banner", utm_campaign=campaign)
-
-        info = {
-            "constant": self.tr(
-                '<a href="https://data.nextgis.com/?{utm}">'
-                "Download geodata</a> for your project"
-            ).format(utm=utm),
-            "black-friday25": self.tr(
-                '<a href="https://data.nextgis.com/?{utm}">'
-                "Fresh geodata</a> for your project <b>(50% off!)</b>"
-            ).format(utm=utm),
-        }
-        icon = {
-            "constant": ":/plugins/osminfo/icons/news.png",
-            "black-friday25": ":/plugins/osminfo/icons/fire.png",
-        }
+        utm = utm_tags("banner", utm_campaign=campaign.value)
+        content = self._campaign_content(campaign, utm)
 
         html = f"""
             <html>
@@ -68,8 +84,8 @@ class NextGisBannerWidget(QFrame):
                 <center>
                     <table>
                         <tr>
-                            <td><img src=\"{icon[campaign]}\"></td>
-                            <td>&nbsp;{info[campaign]}</td>
+                            <td><img src=\"{content.icon_path}\"></td>
+                            <td>&nbsp;{content.message_html}</td>
                         </tr>
                     </table>
                 </center>
@@ -78,24 +94,36 @@ class NextGisBannerWidget(QFrame):
         """
         self._label.setText(html)
 
-    def _campaign_name(self) -> str:
-        black_friday_start = datetime(
-            year=2025,
-            month=12,
-            day=1,
-            hour=6,
-            minute=1,
-            tzinfo=timezone.utc,
-        ).timestamp()
-        black_friday_finish = datetime(
-            year=2025,
-            month=12,
-            day=6,
-            hour=5,
-            minute=59,
-            tzinfo=timezone.utc,
-        ).timestamp()
-        now = datetime.now().timestamp()
+    def _campaign_content(
+        self,
+        campaign: _BannerCampaign,
+        utm: str,
+    ) -> _BannerCampaignContent:
+        if campaign == _BannerCampaign.BLACK_FRIDAY_2025:
+            return _BannerCampaignContent(
+                icon_path=":/plugins/osminfo/icons/fire.png",
+                message_html=self.tr(
+                    '<a href="https://data.nextgis.com/?{utm}">'
+                    "Fresh geodata</a> for your project <b>(50% off!)</b>"
+                ).format(utm=utm),
+            )
 
-        is_black_friday = black_friday_start <= now <= black_friday_finish
-        return "black-friday25" if is_black_friday else "constant"
+        return _BannerCampaignContent(
+            icon_path=":/plugins/osminfo/icons/news.png",
+            message_html=self.tr(
+                '<a href="https://data.nextgis.com/?{utm}">'
+                "Download geodata</a> for your project"
+            ).format(utm=utm),
+        )
+
+    def _campaign_name(self) -> _BannerCampaign:
+        now = datetime.now(timezone.utc)
+        is_black_friday = (
+            self.BLACK_FRIDAY_2025_START
+            <= now
+            <= self.BLACK_FRIDAY_2025_FINISH
+        )
+        if is_black_friday:
+            return _BannerCampaign.BLACK_FRIDAY_2025
+
+        return _BannerCampaign.CONSTANT

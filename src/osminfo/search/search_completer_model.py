@@ -940,9 +940,13 @@ class OsmInfoSearchCompleter(QCompleter):
     def _widget_text_and_cursor_position(widget: QWidget) -> Tuple[str, int]:
         if isinstance(widget, QComboBox):
             line_edit = widget.lineEdit()
-        elif isinstance(widget, QLineEdit):
-            line_edit = widget
+            assert line_edit is not None, (
+                "Search completer combo box must have a line edit"
+            )
         else:
-            raise TypeError("Unsupported widget type for search completer")
+            assert isinstance(widget, QLineEdit), (
+                "Unsupported widget type for search completer"
+            )
+            line_edit = widget
 
         return line_edit.text(), line_edit.cursorPosition()

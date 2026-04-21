@@ -63,10 +63,12 @@ class QueryBuilder:
     def build_for_string(self, search_string: str) -> List[str]:
         normalized_search_string = search_string.strip()
         if len(normalized_search_string) == 0:
+            # fmt: off
             message = QgsApplication.translate(
                 "Exceptions",
-                "Search string is empty.",
+                "Search string is empty"
             )
+            # fmt: on
             raise OsmInfoQueryBuilderError(
                 log_message="Search string is empty",
                 user_message=message,
@@ -84,10 +86,12 @@ class QueryBuilder:
             self._last_strategy_name = strategy.NAME
             return queries
 
+        # fmt: off
         message = QgsApplication.translate(
             "Exceptions",
-            "Unsupported search string. Provide coordinates or Overpass QL.",
+            "Unsupported search string. Provide coordinates or Overpass QL"
         )
+        # fmt: on
         raise OsmInfoQueryBuilderError(
             log_message=(
                 f"No query strategy accepted search string: "

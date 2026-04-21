@@ -36,10 +36,12 @@ OVERPASS_TRANSFER_TIMEOUT_MARGIN_SECONDS = 5
 
 class _OverpassQueryCancelledError(OsmInfoOverpassQueryError):
     def __init__(self) -> None:
+        # fmt: off
         message = QgsApplication.translate(
             "Exceptions",
-            "Overpass query was cancelled.",
+            "Overpass query was cancelled"
         )
+        # fmt: on
         super().__init__(
             log_message=message,
             user_message=message,
@@ -100,7 +102,7 @@ class OverpassQueryTask(QgsTask):
         except Exception as error:
             self._error = OsmInfoOverpassQueryError(
                 log_message=f"Unexpected Overpass query error: {error}",
-                user_message=str(error),
+                user_message=self.tr("Unexpected Overpass query error"),
             )
             logger.exception("Unexpected Overpass query error")
             return False
@@ -167,7 +169,7 @@ class OverpassQueryTask(QgsTask):
             logger.error(detail)
             raise OsmInfoOverpassQueryError(
                 log_message=f"Overpass request failed: {detail}",
-                user_message=self.tr("Error getting data from the server"),
+                user_message=self.tr("Failed to fetch data from the server"),
                 detail=detail,
             )
 
@@ -178,10 +180,10 @@ class OverpassQueryTask(QgsTask):
         try:
             json_content = json.loads(response_content.data())
         except Exception as error:
-            logger.exception("Parsing data error")
+            logger.exception("Failed to parse Overpass response")
             raise OsmInfoOverpassQueryError(
-                log_message="Parsing data error",
-                user_message=self.tr("Parsing data error"),
+                log_message="Failed to parse Overpass response",
+                user_message=self.tr("Failed to parse server response"),
                 detail=str(error),
             ) from error
 

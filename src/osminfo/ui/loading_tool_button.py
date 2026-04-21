@@ -99,7 +99,7 @@ class LoadingToolButton(QToolButton):
         if icon_size.isValid():
             self._movie.setScaledSize(icon_size)
 
-        self.setToolTip("Cancel")
+        self.setToolTip(self.tr("Cancel"))
 
         self._movie.start()
         self._update_icon()
