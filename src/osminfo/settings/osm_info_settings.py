@@ -250,7 +250,7 @@ class OsmInfoSettings:
     @show_all_found_features.setter
     def show_all_found_features(self, value: bool) -> None:
         self.__settings.setValue(
-            f"{self.COMPANY_NAME}/{self.PRODUCT}/showAllFoundFeatures",
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/renderer/showAllFoundFeatures",
             value,
         )
 
