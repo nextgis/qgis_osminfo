@@ -161,7 +161,7 @@ class OverpassQueryTask(QgsTask):
         finally:
             self._active_feedback = None
 
-        if self.isCanceled() or feedback.isCanceled():
+        if self._check_cancellation():
             raise _OverpassQueryCancelledError()
 
         if reply_content.error() != QNetworkReply.NetworkError.NoError:
@@ -205,9 +205,39 @@ class OverpassQueryTask(QgsTask):
         )
         return elements
 
+    def _cancel_requests(self) -> None:
+        cancel_endpoint = self._endpoint.replace(
+            "/interpreter", "/kill_my_queries"
+        )
+        request = QNetworkRequest(QUrl(cancel_endpoint))
+
+        logger.debug("Cancelling Overpass requests at %s", cancel_endpoint)
+
+        qgs_network_access_manager = QgsNetworkAccessManager.instance()
+        try:
+            reply_content = qgs_network_access_manager.blockingGet(
+                request, None, False
+            )
+        except Exception:
+            logger.exception("Failed to cancel Overpass request")
+            return
+
+        if reply_content.error() != QNetworkReply.NetworkError.NoError:
+            detail = reply_content.errorString()
+            logger.error(detail)
+
+        logger.debug(
+            "Overpass request cancellation response:\n%s",
+            reply_content.content().data().decode("utf-8"),
+        )
+
     def _check_cancellation(self) -> None:
-        if self.isCanceled():
-            raise _OverpassQueryCancelledError()
+        if not self.isCanceled():
+            return
+
+        self._cancel_requests()
+
+        raise _OverpassQueryCancelledError()
 
     def _transfer_timeout_milliseconds(self) -> Optional[int]:
         if self._timeout_seconds is None:
