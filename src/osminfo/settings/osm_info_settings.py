@@ -242,7 +242,7 @@ class OsmInfoSettings:
     def show_all_found_features(self) -> bool:
         result = self.__settings.value(
             f"{self.COMPANY_NAME}/{self.PRODUCT}/renderer/showAllFoundFeatures",
-            defaultValue=True,
+            defaultValue=False,
             type=bool,
         )
         return result
