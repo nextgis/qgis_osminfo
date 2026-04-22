@@ -591,52 +591,52 @@ Usa l'elenco a discesa per vedere le ricerche recenti.</translation>
 <context>
     <name>OsmInfoSearchManager</name>
     <message>
-        <location filename="../search/search_manager.py" line="170"/>
+        <location filename="../search/search_manager.py" line="183"/>
         <source>Show/Hide {} Panel</source>
         <translation>Mostra/Nascondi pannello {}</translation>
     </message>
     <message>
-        <location filename="../search/search_manager.py" line="216"/>
+        <location filename="../search/search_manager.py" line="235"/>
         <source>Identify OpenStreetMap Features</source>
         <translation>Identifica le feature OpenStreetMap</translation>
     </message>
     <message>
-        <location filename="../search/search_manager.py" line="357"/>
+        <location filename="../search/search_manager.py" line="376"/>
         <source>Custom Overpass API URL is not set</source>
         <translation>L'URL personalizzato dell'API Overpass non è impostato</translation>
     </message>
     <message>
-        <location filename="../search/search_manager.py" line="428"/>
+        <location filename="../search/search_manager.py" line="447"/>
         <source>Failed to read current map extent.</source>
         <translation>Impossibile leggere l'estensione corrente della mappa.</translation>
     </message>
     <message>
-        <location filename="../search/search_manager.py" line="587"/>
+        <location filename="../search/search_manager.py" line="606"/>
         <source>Failed to build Overpass query</source>
         <translation>Impossibile costruire la query Overpass</translation>
     </message>
     <message>
-        <location filename="../search/search_manager.py" line="541"/>
+        <location filename="../search/search_manager.py" line="560"/>
         <source>Search results</source>
         <translation>Risultati della ricerca</translation>
     </message>
     <message>
-        <location filename="../search/search_manager.py" line="542"/>
+        <location filename="../search/search_manager.py" line="561"/>
         <source>Nearby features</source>
         <translation>Feature vicine</translation>
     </message>
     <message>
-        <location filename="../search/search_manager.py" line="543"/>
+        <location filename="../search/search_manager.py" line="562"/>
         <source>Is inside</source>
         <translation>Si trova in</translation>
     </message>
     <message>
-        <location filename="../search/search_manager.py" line="896"/>
+        <location filename="../search/search_manager.py" line="938"/>
         <source>Unknown preset</source>
         <translation>Preset sconosciuto</translation>
     </message>
     <message>
-        <location filename="../search/search_manager.py" line="910"/>
+        <location filename="../search/search_manager.py" line="952"/>
         <source>The term &quot;{search_term}&quot; was not recognized.</source>
         <translation>Il termine &quot;{search_term}&quot; non è stato riconosciuto.</translation>
     </message>
@@ -644,24 +644,34 @@ Usa l'elenco a discesa per vedere le ricerche recenti.</translation>
 <context>
     <name>OsmInfoSearchPanel</name>
     <message>
-        <location filename="../search/ui/search_panel.py" line="80"/>
+        <location filename="../search/ui/search_panel.py" line="82"/>
         <source>Search OSM features</source>
         <translation>Cerca feature OSM</translation>
     </message>
     <message>
-        <location filename="../search/ui/search_panel.py" line="91"/>
+        <location filename="../search/ui/search_panel.py" line="93"/>
         <source>Open OSMInfo menu</source>
         <translation>Apri il menu OSMInfo</translation>
     </message>
     <message>
-        <location filename="../search/ui/search_panel.py" line="104"/>
+        <location filename="../search/ui/search_panel.py" line="127"/>
         <source>Settings</source>
         <translation>Impostazioni</translation>
     </message>
     <message>
-        <location filename="../search/ui/search_panel.py" line="110"/>
+        <location filename="../search/ui/search_panel.py" line="133"/>
         <source>About plugin…</source>
         <translation>Informazioni sul plugin…</translation>
+    </message>
+    <message>
+        <location filename="../search/ui/search_panel.py" line="107"/>
+        <source>Show all found features</source>
+        <translation>Mostra tutte le feature trovate</translation>
+    </message>
+    <message>
+        <location filename="../search/ui/search_panel.py" line="117"/>
+        <source>Show small features as points</source>
+        <translation>Mostra le piccole feature come punti</translation>
     </message>
 </context>
 <context>
