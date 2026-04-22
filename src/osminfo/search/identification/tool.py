@@ -28,7 +28,6 @@ from qgis.PyQt.QtGui import QCursor
 
 from osminfo.core.constants import POINT_PRECISION
 from osminfo.core.logging import logger
-from osminfo.search.identification.click_renderer import OsmInfoClickRenderer
 from osminfo.ui.cursor import OsmInfoCursor, create_cursor
 
 
@@ -57,9 +56,6 @@ class OsmInfoMapTool(QgsMapTool):
         self._is_pan_action_started = False
         self._is_loading = False
 
-        assert canvas is not None
-        self._click_renderer = OsmInfoClickRenderer(canvas, self)
-
         self.identify_point.connect(self._log_position)
 
     def __del__(self) -> None:
@@ -72,14 +68,6 @@ class OsmInfoMapTool(QgsMapTool):
     @property
     def is_loading(self) -> bool:
         return self._is_loading
-
-    @pyqtSlot(bool)
-    def set_visible(self, visible: bool) -> None:
-        self._click_renderer.set_visible(visible)
-
-    @pyqtSlot()
-    def clear(self) -> None:
-        self._click_renderer.clear()
 
     @is_loading.setter
     def is_loading(self, value: bool) -> None:
@@ -200,7 +188,6 @@ class OsmInfoMapTool(QgsMapTool):
         map_point = (
             self.canvas().getCoordinateTransform().toMapCoordinates(point)
         )
-        self._click_renderer.start_point_animation(map_point)
 
         target_crs = QgsCoordinateReferenceSystem.fromEpsgId(4326)
 

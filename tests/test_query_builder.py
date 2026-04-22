@@ -91,6 +91,18 @@ def test_build_for_string_parses_coordinates_to_qgs_point_xy(
     assert "55.755814,37.617635" in queries[0]
 
 
+def test_parse_coordinates_accepts_trimmed_coordinate_string(
+    query_builder_module,
+) -> None:
+    point = query_builder_module.QueryBuilder.parse_coordinates(
+        " 37.617635 , 55.755814 "
+    )
+
+    assert point is not None
+    assert point.x() == 37.617635
+    assert point.y() == 55.755814
+
+
 def test_build_for_string_rejects_out_of_range_coordinates(
     query_builder_module,
 ) -> None:

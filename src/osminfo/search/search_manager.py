@@ -16,7 +16,12 @@
 
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, cast
 
-from qgis.core import QgsPointXY
+from qgis.core import (
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
+    QgsPointXY,
+    QgsProject,
+)
 from qgis.PyQt.QtCore import (
     QItemSelectionModel,
     QObject,
@@ -48,6 +53,9 @@ from osminfo.overpass.query_builder import (
     QueryPostprocessor,
 )
 from osminfo.overpass.query_task import OverpassQueryTask
+from osminfo.search.identification.click_renderer import (
+    OsmInfoClickRenderer,
+)
 from osminfo.search.identification.tool import OsmInfoMapTool
 from osminfo.search.identification.tool_handler import OsmInfoToolHandler
 from osminfo.search.request_feedback_tracker import (
@@ -77,6 +85,7 @@ class OsmInfoSearchManager(QObject):
     _plugin: OsmInfoInterface
     _tool_action: Optional[QAction]
     _identify_tool: Optional[OsmInfoMapTool]
+    _click_renderer: Optional[OsmInfoClickRenderer]
     _panel_action: Optional[QAction]
     _search_panel: Optional[OsmInfoSearchPanel]
     _tool_handler: Optional[OsmInfoToolHandler]
@@ -97,6 +106,7 @@ class OsmInfoSearchManager(QObject):
         self._plugin = parent
         self._tool_action = None
         self._identify_tool = None
+        self._click_renderer = None
         self._panel_action = None
         self._search_panel = None
         self._tool_handler = None
@@ -171,6 +181,9 @@ class OsmInfoSearchManager(QObject):
         self._result_renderer.set_centroid_rendering_enabled(
             settings.show_small_features_as_points
         )
+        map_canvas = iface.mapCanvas()
+        assert map_canvas is not None
+        self._click_renderer = OsmInfoClickRenderer(map_canvas, self)
         self._search_panel.visibility_changed.connect(
             self._on_visibility_changed
         )
@@ -208,12 +221,18 @@ class OsmInfoSearchManager(QObject):
             )
 
         self._result_renderer.set_visible(self._search_panel.isVisible())
+        self._click_renderer.set_visible(self._search_panel.isVisible())
 
     def _unload_search_panel(self) -> None:
         self._cancel_active_task()
         if self._result_renderer is not None:
             self._result_renderer.unload()
             self._result_renderer = None
+
+        if self._click_renderer is not None:
+            self._click_renderer.clear()
+            self._click_renderer.deleteLater()
+            self._click_renderer = None
 
         self._clipboard_exporter = None
         self._layer_exporter = None
@@ -293,6 +312,7 @@ class OsmInfoSearchManager(QObject):
         try:
             queries = query_builder.build_for_string(search_text)
         except OsmInfoQueryBuilderError as error:
+            self._clear_click_renderer()
             self._request_feedback_tracker.reset_regional_empty_results()
             repaired_search = query_builder.repair_search(search_text)
             if repaired_search is not None and repaired_search != search_text:
@@ -308,9 +328,13 @@ class OsmInfoSearchManager(QObject):
 
         is_coordinate_search = query_builder.last_strategy_name == "coords"
         if is_coordinate_search:
+            coordinate_point = QueryBuilder.parse_coordinates(search_text)
+            if coordinate_point is not None:
+                self._show_search_point(coordinate_point)
             query_kinds = self._coordinate_query_kinds(settings)
             timeout_seconds = self._query_timeout_seconds(settings)
         else:
+            self._clear_click_renderer()
             query_kinds = ["search"] * len(queries)
             timeout_seconds = self._query_timeout_seconds(settings)
             assert self._search_panel is not None
@@ -348,8 +372,7 @@ class OsmInfoSearchManager(QObject):
         if self._result_renderer is not None:
             self._result_renderer.clear()
 
-        if self._identify_tool is not None:
-            self._identify_tool.clear()
+        self._clear_click_renderer()
 
         if self._search_panel is not None:
             self._search_panel.results_view.set_default_message()
@@ -489,6 +512,28 @@ class OsmInfoSearchManager(QObject):
             return None
 
         return settings.timeout
+
+    def _show_search_point(self, point: QgsPointXY) -> None:
+        if self._click_renderer is None:
+            return
+
+        map_canvas = iface.mapCanvas()
+        if map_canvas is None:
+            return
+
+        transform = QgsCoordinateTransform(
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
+            map_canvas.mapSettings().destinationCrs(),
+            QgsProject.instance(),
+        )
+        canvas_point = transform.transform(point)
+        self._click_renderer.start_point_animation(canvas_point)
+
+    def _clear_click_renderer(self) -> None:
+        if self._click_renderer is None:
+            return
+
+        self._click_renderer.clear()
 
     def _start_loading(self) -> None:
         if self._is_loading:
@@ -1010,8 +1055,8 @@ class OsmInfoSearchManager(QObject):
         if self._result_renderer is not None:
             self._result_renderer.set_visible(visible)
 
-        if self._identify_tool is not None:
-            self._identify_tool.set_visible(visible)
+        if self._click_renderer is not None:
+            self._click_renderer.set_visible(visible)
 
     def _open_url(self, url: str) -> None:
         QDesktopServices.openUrl(QUrl(url))

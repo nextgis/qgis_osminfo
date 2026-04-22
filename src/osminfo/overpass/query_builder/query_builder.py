@@ -60,6 +60,20 @@ class QueryBuilder:
         self._last_strategy_name = "coords"
         return self._coordinates_strategy.build(point)
 
+    @classmethod
+    def parse_coordinates(cls, search_string: str) -> Optional[QgsPointXY]:
+        normalized_search_string = search_string.strip()
+        if len(normalized_search_string) == 0:
+            return None
+
+        match = COORDINATES_PATTERN.fullmatch(search_string)
+        if match is None:
+            return None
+
+        longitude = match.group("longitude")
+        latitude = match.group("latitude")
+        return QgsPointXY(float(longitude), float(latitude))
+
     def build_for_string(self, search_string: str) -> List[str]:
         normalized_search_string = search_string.strip()
         if len(normalized_search_string) == 0:
@@ -74,7 +88,7 @@ class QueryBuilder:
                 user_message=message,
             )
 
-        point = self._parse_coordinates(normalized_search_string)
+        point = self.parse_coordinates(normalized_search_string)
         if point is not None:
             return self.build_for_coords(point)
 
@@ -106,7 +120,7 @@ class QueryBuilder:
         if len(normalized_search_string) == 0:
             return None
 
-        if self._parse_coordinates(normalized_search_string) is not None:
+        if self.parse_coordinates(normalized_search_string) is not None:
             return None
 
         for strategy in self._string_strategies:
@@ -117,16 +131,3 @@ class QueryBuilder:
             return repaired_search
 
         return None
-
-    @classmethod
-    def _parse_coordinates(
-        cls,
-        search_string: str,
-    ) -> Optional[QgsPointXY]:
-        match = COORDINATES_PATTERN.fullmatch(search_string)
-        if match is None:
-            return None
-
-        longitude = match.group("longitude")
-        latitude = match.group("latitude")
-        return QgsPointXY(float(longitude), float(latitude))
