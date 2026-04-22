@@ -970,6 +970,7 @@ class OsmInfoSearchManager(QObject):
         results_menu = self._results_menu_builder.add_identified_results_menu(
             menu,
             elements,
+            select_element_handler=self._select_context_menu_element,
             hovered_element_handler=self._highlight_context_menu_element,
             menu_destroyed_handler=self._restore_context_menu_active_elements,
         )
@@ -1150,6 +1151,15 @@ class OsmInfoSearchManager(QObject):
         )
         self._search_panel.results_view.scrollTo(result_index)
         self._search_panel.setUserVisible(True)
+        return True
+
+    def _select_context_menu_element(self, element: OsmElement) -> bool:
+        is_selected = self._select_result_element(element)
+        if not is_selected:
+            return False
+
+        self._context_menu_active_elements = None
+        self._on_result_selection_changed()
         return True
 
     def _show_error(self, message: str) -> None:

@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
-from typing import Callable, Optional, Sequence, Tuple
+from typing import Any, Callable, Optional, Sequence, Tuple
 
 from qgis.core import QgsRectangle
 from qgis.PyQt.QtCore import QByteArray, QObject, QUrl
@@ -75,8 +75,9 @@ class OsmResultsContextMenuBuilder(QObject):
         self,
         menu: QMenu,
         elements: Sequence[OsmElement],
-        hovered_element_handler: Optional[Callable[[OsmElement], None]] = None,
-        menu_destroyed_handler: Optional[Callable[[], None]] = None,
+        select_element_handler: Optional[Callable[[OsmElement], Any]] = None,
+        hovered_element_handler: Optional[Callable[[OsmElement], Any]] = None,
+        menu_destroyed_handler: Optional[Callable[[], Any]] = None,
     ) -> Optional[QMenu]:
         if len(elements) == 0:
             return None
@@ -87,7 +88,11 @@ class OsmResultsContextMenuBuilder(QObject):
             results_menu.destroyed.connect(lambda *_: menu_destroyed_handler())
 
         if len(elements) == 1:
-            self._add_identified_element_actions(results_menu, elements[0])
+            self._add_identified_element_actions(
+                results_menu,
+                elements[0],
+                select_element_handler=select_element_handler,
+            )
             return results_menu
 
         for element in elements:
@@ -99,7 +104,11 @@ class OsmResultsContextMenuBuilder(QObject):
                 element_menu.menuAction().hovered.connect(
                     lambda element=element: hovered_element_handler(element)
                 )
-            self._add_identified_element_actions(element_menu, element)
+            self._add_identified_element_actions(
+                element_menu,
+                element,
+                select_element_handler=select_element_handler,
+            )
 
         return results_menu
 
@@ -187,8 +196,23 @@ class OsmResultsContextMenuBuilder(QObject):
         self,
         menu: QMenu,
         element: OsmElement,
+        select_element_handler: Optional[Callable[[OsmElement], None]] = None,
     ) -> None:
         item = OsmResultSelectionItem(element=element)
+        if select_element_handler is not None:
+            select_action = QAction(
+                plugin_icon(),
+                self.tr("Select feature in search panel"),
+                menu,
+            )
+            select_action.triggered.connect(
+                lambda checked=False, element=element: (
+                    select_element_handler(element)
+                )
+            )
+            menu.addAction(select_action)
+            self._add_separator(menu)
+
         new_layer_action = QAction(
             qgis_icon("mActionCreateMemory.svg"),
             self.tr("Add feature to new temporary layer"),
