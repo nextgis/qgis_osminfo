@@ -18,7 +18,7 @@ from typing import ClassVar, Optional
 
 from qgis.core import QgsGeometry, QgsPointXY
 from qgis.gui import QgsMapCanvas, QgsRubberBand
-from qgis.PyQt.QtCore import QObject, QVariantAnimation
+from qgis.PyQt.QtCore import QObject, QVariantAnimation, pyqtSlot
 from qgis.PyQt.QtGui import QColor
 
 from osminfo.core.compat import GeometryType
@@ -28,10 +28,11 @@ from osminfo.core.constants import OSM_COLOR
 class OsmInfoClickRenderer(QObject):
     """Render a temporary highlighted point on the map canvas."""
 
-    POINT_SIZE: ClassVar[int] = 15
+    POINT_START_SIZE: ClassVar[int] = 20
+    POINT_END_SIZE: ClassVar[int] = 10
     POINT_STROKE_WIDTH: ClassVar[int] = 3
     STROKE_COLOR_ALPHA: ClassVar[int] = 150
-    ANIMATION_DURATION: ClassVar[int] = 1000
+    ANIMATION_DURATION: ClassVar[int] = 300
 
     def __init__(
         self, canvas: QgsMapCanvas, parent: Optional[QObject] = None
@@ -45,22 +46,22 @@ class OsmInfoClickRenderer(QObject):
         self._point_rubber_band = self._create_point_rubber_band()
         self._point_fade_animation = QVariantAnimation(self)
         self._point_fade_animation.setDuration(self.ANIMATION_DURATION)
-        self._point_fade_animation.setStartValue(self._point_color.alpha())
-        self._point_fade_animation.setEndValue(0)
+        self._point_fade_animation.setStartValue(self.POINT_START_SIZE)
+        self._point_fade_animation.setEndValue(self.POINT_END_SIZE)
         self._point_fade_animation.valueChanged.connect(
             self._on_point_fade_animation_value_changed
-        )
-        self._point_fade_animation.finished.connect(
-            self._on_point_fade_animation_finished
         )
 
     def __del__(self) -> None:
         self.clear()
 
+    @pyqtSlot(bool)
+    def set_visible(self, visible: bool) -> None:
+        self._point_rubber_band.setVisible(visible)
+
     def clear(self) -> None:
         self._point_fade_animation.stop()
         self._point_rubber_band.reset(GeometryType.Point)
-        self._point_rubber_band.setColor(self._point_color)
 
     def start_point_animation(self, point: QgsPointXY) -> None:
         """Highlight the selected point geometry.
@@ -83,7 +84,7 @@ class OsmInfoClickRenderer(QObject):
         rubber_band = QgsRubberBand(self._canvas, GeometryType.Point)
         rubber_band.setIcon(QgsRubberBand.IconType.ICON_CIRCLE)
         rubber_band.setColor(self._point_color)
-        rubber_band.setIconSize(self.POINT_SIZE)
+        rubber_band.setIconSize(self.POINT_START_SIZE)
         rubber_band.setWidth(self.POINT_STROKE_WIDTH)
         return rubber_band
 
@@ -94,9 +95,9 @@ class OsmInfoClickRenderer(QObject):
         transparent.
         """
         self._point_fade_animation.stop()
-        self._point_fade_animation.setStartValue(self._point_color.alpha())
-        self._point_fade_animation.setEndValue(0)
-        self._point_rubber_band.setColor(self._point_color)
+        self._point_fade_animation.setStartValue(self.POINT_START_SIZE)
+        self._point_fade_animation.setEndValue(self.POINT_END_SIZE)
+        self._point_rubber_band.setIconSize(self.POINT_START_SIZE)
         self._point_fade_animation.start()
 
     def _on_point_fade_animation_value_changed(self, value: int) -> None:
@@ -104,10 +105,6 @@ class OsmInfoClickRenderer(QObject):
 
         :param value: Alpha value produced by the fade animation.
         """
-        color = QColor(self._point_color)
-        color.setAlpha(value)
-        self._point_rubber_band.setColor(color)
+        self._point_rubber_band.setIconSize(value)
         self._point_rubber_band.update()
-
-    def _on_point_fade_animation_finished(self) -> None:
-        self.clear()
+        self._canvas.refresh()

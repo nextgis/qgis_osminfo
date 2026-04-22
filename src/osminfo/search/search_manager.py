@@ -172,7 +172,7 @@ class OsmInfoSearchManager(QObject):
             settings.show_small_features_as_points
         )
         self._search_panel.visibility_changed.connect(
-            self._result_renderer.set_visible
+            self._on_visibility_changed
         )
         self._clipboard_exporter = OsmResultClipboardExporter(self)
         self._layer_exporter = OsmResultLayerExporter(self)
@@ -347,6 +347,9 @@ class OsmInfoSearchManager(QObject):
 
         if self._result_renderer is not None:
             self._result_renderer.clear()
+
+        if self._identify_tool is not None:
+            self._identify_tool.clear()
 
         if self._search_panel is not None:
             self._search_panel.results_view.set_default_message()
@@ -1002,6 +1005,13 @@ class OsmInfoSearchManager(QObject):
             return False
 
         return not endpoint.value.is_global
+
+    def _on_visibility_changed(self, visible: bool) -> None:
+        if self._result_renderer is not None:
+            self._result_renderer.set_visible(visible)
+
+        if self._identify_tool is not None:
+            self._identify_tool.set_visible(visible)
 
     def _open_url(self, url: str) -> None:
         QDesktopServices.openUrl(QUrl(url))

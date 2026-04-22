@@ -73,6 +73,14 @@ class OsmInfoMapTool(QgsMapTool):
     def is_loading(self) -> bool:
         return self._is_loading
 
+    @pyqtSlot(bool)
+    def set_visible(self, visible: bool) -> None:
+        self._click_renderer.set_visible(visible)
+
+    @pyqtSlot()
+    def clear(self) -> None:
+        self._click_renderer.clear()
+
     @is_loading.setter
     def is_loading(self, value: bool) -> None:
         self._is_loading = value
