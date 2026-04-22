@@ -225,7 +225,7 @@ class OsmElementTitleBuilder:
         if type_info.label is not None:
             return type_info.label
 
-        return f"object {osm_id}"
+        return f"object #{osm_id}"
 
     def _load_presets(self) -> Tuple[PresetDefinition, ...]:
         try:
