@@ -539,7 +539,7 @@ def test_tree_model_exposes_element_and_tag_links() -> None:
     assert model.rowCount() == 1
     assert (
         model.data(group_index, Qt.ItemDataRole.DisplayRole)
-        == "Search results"
+        == "Search results (1)"
     )
     assert (
         model.data(feature_index, Qt.ItemDataRole.DisplayRole)

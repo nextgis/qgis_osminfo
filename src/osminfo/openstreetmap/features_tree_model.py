@@ -214,7 +214,7 @@ class OsmFeaturesTreeModel(QAbstractItemModel):
         for group in result_tree.groups:
             group_node = _FeatureTreeNode(
                 FeatureTreeNodeType.GROUP,
-                (group.title, ""),
+                (f"{group.title} ({len(group.elements)})", ""),
                 parent=self._root,
             )
             self._root.children.append(group_node)
