@@ -194,6 +194,9 @@ class OsmInfoMapTool(QgsMapTool):
         self.canvas().setSceneRect(-point.x(), -point.y(), width, height)
 
     def __process_point(self, point: QPoint) -> None:
+        if self.is_loading:
+            return
+
         map_point = (
             self.canvas().getCoordinateTransform().toMapCoordinates(point)
         )
