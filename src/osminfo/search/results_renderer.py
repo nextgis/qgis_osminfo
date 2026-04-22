@@ -693,6 +693,7 @@ class OsmResultsRenderer(QObject):
         return self._marker_symbol(
             outline_color,
             self._fill_color(active, False),
+            active=active,
             size=MARKER_SIZE,
             outline_width=2,
         )
@@ -717,11 +718,15 @@ class OsmResultsRenderer(QObject):
         layer.setWidth(5.0)
         layer.setWidthUnit(Qgis.RenderUnit.Pixels)
 
+        if active:
+            layer.setRenderingPass(1)
+
         if tainted:
             layer.setPenStyle(Qt.PenStyle.CustomDashLine)
             layer.setUseCustomDashPattern(True)
             layer.setCustomDashVector([5.0, 8.0])
             layer.setCustomDashPatternUnit(Qgis.RenderUnit.Pixels)
+
         symbol.appendSymbolLayer(layer)
 
         return symbol
@@ -747,8 +752,13 @@ class OsmResultsRenderer(QObject):
         layer.setStrokeWidth(2.0)
         layer.setStrokeWidthUnit(Qgis.RenderUnit.Pixels)
         layer.setFillColor(self._fill_color(active, False))
+
+        if active:
+            layer.setRenderingPass(1)
+
         if tainted:
             layer.setStrokeStyle(Qt.PenStyle.DashLine)
+
         symbol.appendSymbolLayer(layer)
 
         return symbol
@@ -796,10 +806,15 @@ class OsmResultsRenderer(QObject):
                     relation_related,
                 ),
                 self._fill_color(active, True),
+                active=active,
                 size=MARKER_SIZE,
                 outline_width=2.0,
             )
         )
+
+        if active:
+            geometry_layer.setRenderingPass(1)
+
         symbol.appendSymbolLayer(geometry_layer)
         return symbol
 
@@ -828,10 +843,15 @@ class OsmResultsRenderer(QObject):
                     relation_related,
                 ),
                 self._fill_color(active, True),
+                active=active,
                 size=MARKER_SIZE,
                 outline_width=2.0,
             )
         )
+
+        if active:
+            centroid_layer.setRenderingPass(1)
+
         symbol.appendSymbolLayer(centroid_layer)
         return symbol
 
@@ -840,6 +860,7 @@ class OsmResultsRenderer(QObject):
         outline_color: QColor,
         fill_color: QColor,
         *,
+        active: bool = False,
         size: float,
         outline_width: float,
     ) -> QgsMarkerSymbol:
@@ -859,6 +880,10 @@ class OsmResultsRenderer(QObject):
         )
         marker_layer.setSizeUnit(Qgis.RenderUnit.Pixels)
         marker_layer.setStrokeWidthUnit(Qgis.RenderUnit.Pixels)
+
+        if active:
+            marker_layer.setRenderingPass(1)
+
         return symbol
 
     def _color_string(self, color: QColor) -> str:
