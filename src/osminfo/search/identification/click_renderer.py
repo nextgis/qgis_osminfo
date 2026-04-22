@@ -22,7 +22,7 @@ from qgis.PyQt.QtCore import QObject, QVariantAnimation, pyqtSlot
 from qgis.PyQt.QtGui import QColor
 
 from osminfo.core.compat import GeometryType
-from osminfo.core.constants import OSM_COLOR
+from osminfo.core.constants import NEXTGIS_COLOR
 
 
 class OsmInfoClickRenderer(QObject):
@@ -40,7 +40,7 @@ class OsmInfoClickRenderer(QObject):
         super().__init__(parent)
         self._canvas = canvas
 
-        self._point_color = QColor(OSM_COLOR)
+        self._point_color = QColor(NEXTGIS_COLOR)
         self._point_color.setAlpha(self.STROKE_COLOR_ALPHA)
 
         self._point_rubber_band = self._create_point_rubber_band()
