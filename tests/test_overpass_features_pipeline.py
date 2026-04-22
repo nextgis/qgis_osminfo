@@ -18,10 +18,48 @@
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
 import json
+import sys
+import types
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, cast
 
 import pytest
+
+
+def _import_search_manager():
+    query_builder_module = types.ModuleType("osminfo.overpass.query_builder")
+    query_builder_module.__path__ = []
+    query_builder_module_any = cast(Any, query_builder_module)
+
+    class QueryBuilder:
+        pass
+
+    class QueryContext:
+        pass
+
+    class QueryPostprocessor:
+        pass
+
+    query_builder_module_any.QueryBuilder = QueryBuilder
+    query_builder_module_any.QueryContext = QueryContext
+    query_builder_module_any.QueryPostprocessor = QueryPostprocessor
+    sys.modules["osminfo.overpass.query_builder"] = query_builder_module
+
+    query_context_module = types.ModuleType(
+        "osminfo.overpass.query_builder.query_context"
+    )
+    query_context_module_any = cast(Any, query_context_module)
+    query_context_module_any.QueryContext = QueryContext
+    sys.modules["osminfo.overpass.query_builder.query_context"] = (
+        query_context_module
+    )
+
+    sys.modules.pop("osminfo.search.search_manager", None)
+    sys.modules.pop("osminfo.nominatim.geocode_task", None)
+
+    from osminfo.search.search_manager import OsmInfoSearchManager
+
+    return OsmInfoSearchManager
 
 
 @pytest.fixture
@@ -1436,63 +1474,13 @@ def test_results_renderer_adds_larger_polygons_first(
 
 def test_result_layer_store_identifies_only_visible_active_features(
     monkeypatch,
+    qgis_iface,
 ) -> None:
-    from qgis.core import (
-        QgsCoordinateReferenceSystem,
-        QgsFeature,
-        QgsGeometry,
-        QgsPointXY,
-        QgsRectangle,
-    )
+    from qgis.core import QgsFeature, QgsGeometry, QgsPointXY, QgsRectangle
 
     import osminfo.search.result_layer_store as result_layer_store_module
 
-    class FakeSignal:
-        def connect(self, callback) -> None:
-            self._callback = callback
-
-        def disconnect(self, callback) -> None:
-            del callback
-
-        def emit(self, *args) -> None:
-            callback = getattr(self, "_callback", None)
-            if callback is not None:
-                callback(*args)
-
-    class FakeMapSettings:
-        def destinationCrs(self):
-            return QgsCoordinateReferenceSystem.fromEpsgId(4326)
-
-    class FakeCanvas:
-        def __init__(self) -> None:
-            self.layersChanged = FakeSignal()
-            self._layers = []
-
-        def scale(self) -> float:
-            return 100.0
-
-        def layers(self):
-            return list(self._layers)
-
-        def setLayers(self, layers) -> None:
-            self._layers = list(layers)
-            self.layersChanged.emit()
-
-        def mapSettings(self) -> FakeMapSettings:
-            return FakeMapSettings()
-
-        def refresh(self) -> None:
-            return None
-
-    class FakeIface:
-        def __init__(self) -> None:
-            self._canvas = FakeCanvas()
-
-        def mapCanvas(self) -> FakeCanvas:
-            return self._canvas
-
-    fake_iface = FakeIface()
-    monkeypatch.setattr(result_layer_store_module, "iface", fake_iface)
+    monkeypatch.setattr(result_layer_store_module, "iface", qgis_iface)
 
     store = result_layer_store_module.OsmResultLayerStore()
     store.ensure_layers()
@@ -1546,66 +1534,17 @@ def test_result_layer_store_identifies_only_visible_active_features(
 
 def test_result_layer_store_uses_centroid_for_overview_identify(
     monkeypatch,
+    qgis_iface,
 ) -> None:
-    from qgis.core import (
-        QgsCoordinateReferenceSystem,
-        QgsFeature,
-        QgsGeometry,
-        QgsPointXY,
-        QgsRectangle,
-    )
+    from qgis.core import QgsFeature, QgsGeometry, QgsPointXY, QgsRectangle
 
     import osminfo.search.result_layer_store as result_layer_store_module
 
-    class FakeSignal:
-        def connect(self, callback) -> None:
-            self._callback = callback
-
-        def disconnect(self, callback) -> None:
-            del callback
-
-        def emit(self, *args) -> None:
-            callback = getattr(self, "_callback", None)
-            if callback is not None:
-                callback(*args)
-
-    class FakeMapSettings:
-        def destinationCrs(self):
-            return QgsCoordinateReferenceSystem.fromEpsgId(4326)
-
-    class FakeCanvas:
-        def __init__(self) -> None:
-            self.layersChanged = FakeSignal()
-            self._layers = []
-
-        def scale(self) -> float:
-            return 1000.0
-
-        def layers(self):
-            return list(self._layers)
-
-        def setLayers(self, layers) -> None:
-            self._layers = list(layers)
-            self.layersChanged.emit()
-
-        def mapSettings(self) -> FakeMapSettings:
-            return FakeMapSettings()
-
-        def refresh(self) -> None:
-            return None
-
-    class FakeIface:
-        def __init__(self) -> None:
-            self._canvas = FakeCanvas()
-
-        def mapCanvas(self) -> FakeCanvas:
-            return self._canvas
-
-    fake_iface = FakeIface()
-    monkeypatch.setattr(result_layer_store_module, "iface", fake_iface)
+    monkeypatch.setattr(result_layer_store_module, "iface", qgis_iface)
 
     store = result_layer_store_module.OsmResultLayerStore()
     store.ensure_layers()
+    qgis_iface.mapCanvas().zoomScale(1000.0)
 
     polygon_layer = store.layers[
         result_layer_store_module.OsmGeometryType.POLYGON
@@ -1654,3 +1593,351 @@ def test_result_layer_store_uses_centroid_for_overview_identify(
     )
 
     store.unload()
+
+
+def test_identified_results_menu_places_select_action_first() -> None:
+    from unittest.mock import Mock
+
+    from qgis.PyQt.QtWidgets import QMenu
+
+    from osminfo.openstreetmap.models import OsmElement, OsmElementType
+    from osminfo.search.results_context_menu import (
+        OsmResultsContextMenuBuilder,
+    )
+
+    selected_elements = []
+    layer_exporter = Mock()
+    layer_exporter.can_save_in_selected_layer.return_value = True
+    builder = OsmResultsContextMenuBuilder(
+        clipboard_exporter=Mock(),
+        layer_exporter=layer_exporter,
+        result_renderer=Mock(),
+    )
+    menu = QMenu()
+    element = OsmElement(
+        osm_id=99,
+        element_type=OsmElementType.NODE,
+        title="Selected",
+    )
+
+    results_menu = builder.add_identified_results_menu(
+        menu,
+        (element,),
+        select_element_handler=selected_elements.append,
+    )
+
+    assert results_menu is not None
+    assert results_menu.actions()[0].text() == builder.tr(
+        "Select feature in search panel"
+    )
+
+    results_menu.actions()[0].trigger()
+
+    assert selected_elements == [element]
+
+
+def test_search_manager_selects_requested_result_in_panel(qgis_iface) -> None:
+    from qgis.core import QgsGeometry, QgsPointXY
+
+    from osminfo.openstreetmap.features_tree_model import OsmFeaturesTreeModel
+    from osminfo.openstreetmap.models import (
+        OsmElement,
+        OsmElementType,
+        OsmResultGroup,
+        OsmResultGroupType,
+        OsmResultTree,
+    )
+    from osminfo.search.ui.results_view import OsmInfoResultsView
+
+    class PanelStub:
+        def __init__(self, results_view) -> None:
+            self.results_view = results_view
+            self.visible_states = []
+
+        def setUserVisible(self, is_visible: bool) -> None:
+            self.visible_states.append(is_visible)
+
+    first_element = OsmElement(
+        osm_id=201,
+        element_type=OsmElementType.NODE,
+        title="First",
+        geometry=QgsGeometry.fromPointXY(QgsPointXY(30.0, 60.0)),
+    )
+    second_element = OsmElement(
+        osm_id=202,
+        element_type=OsmElementType.NODE,
+        title="Second",
+        geometry=QgsGeometry.fromPointXY(QgsPointXY(31.0, 61.0)),
+    )
+
+    model = OsmFeaturesTreeModel()
+    model.set_result_tree(
+        OsmResultTree(
+            groups=(
+                OsmResultGroup(
+                    group_type=OsmResultGroupType.SEARCH,
+                    title="Search results",
+                    elements=(first_element, second_element),
+                ),
+            )
+        )
+    )
+    results_view = OsmInfoResultsView(qgis_iface.mainWindow())
+    results_view.setModel(model)
+    panel = PanelStub(results_view)
+    OsmInfoSearchManager = _import_search_manager()
+    manager = OsmInfoSearchManager(cast(Any, None))
+    manager._search_panel = cast(Any, panel)
+    manager._results_model = model
+
+    is_selected = manager._select_result_element(second_element)
+
+    selected_indexes = results_view.selectionModel().selectedRows(0)
+    assert is_selected is True
+    assert len(selected_indexes) == 1
+    assert model.osm_element_for_index(selected_indexes[0]) == second_element
+    assert model.osm_element_for_index(results_view.currentIndex()) == (
+        second_element
+    )
+    assert panel.visible_states == [True]
+
+
+def test_tree_model_returns_index_for_element() -> None:
+    from qgis.core import QgsGeometry, QgsPointXY
+
+    from osminfo.openstreetmap.features_tree_model import OsmFeaturesTreeModel
+    from osminfo.openstreetmap.models import (
+        OsmElement,
+        OsmElementType,
+        OsmResultGroup,
+        OsmResultGroupType,
+        OsmResultTree,
+    )
+
+    first_element = OsmElement(
+        osm_id=211,
+        element_type=OsmElementType.NODE,
+        title="First",
+        geometry=QgsGeometry.fromPointXY(QgsPointXY(30.0, 60.0)),
+    )
+    second_element = OsmElement(
+        osm_id=212,
+        element_type=OsmElementType.NODE,
+        title="Second",
+        geometry=QgsGeometry.fromPointXY(QgsPointXY(31.0, 61.0)),
+    )
+
+    model = OsmFeaturesTreeModel()
+    model.set_result_tree(
+        OsmResultTree(
+            groups=(
+                OsmResultGroup(
+                    group_type=OsmResultGroupType.SEARCH,
+                    title="Search results",
+                    elements=(first_element, second_element),
+                ),
+            )
+        )
+    )
+
+    result_index = model.index_for_element(second_element)
+
+    assert result_index is not None
+    assert result_index.isValid()
+    assert model.osm_element_for_index(result_index) == second_element
+
+
+def test_search_manager_context_menu_selection_updates_renderer(
+    qgis_iface,
+) -> None:
+    from qgis.core import QgsGeometry, QgsPointXY
+
+    from osminfo.openstreetmap.features_tree_model import OsmFeaturesTreeModel
+    from osminfo.openstreetmap.models import (
+        OsmElement,
+        OsmElementType,
+        OsmResultGroup,
+        OsmResultGroupType,
+        OsmResultTree,
+    )
+    from osminfo.search.ui.results_view import OsmInfoResultsView
+
+    class PanelStub:
+        def __init__(self, results_view) -> None:
+            self.results_view = results_view
+            self.visible_states = []
+
+        def setUserVisible(self, is_visible: bool) -> None:
+            self.visible_states.append(is_visible)
+
+    class RendererStub:
+        def __init__(self) -> None:
+            self.active = tuple()
+
+        def set_active_elements(self, elements) -> None:
+            self.active = tuple(elements)
+
+    first_element = OsmElement(
+        osm_id=221,
+        element_type=OsmElementType.NODE,
+        title="First",
+        geometry=QgsGeometry.fromPointXY(QgsPointXY(30.0, 60.0)),
+    )
+    second_element = OsmElement(
+        osm_id=222,
+        element_type=OsmElementType.NODE,
+        title="Second",
+        geometry=QgsGeometry.fromPointXY(QgsPointXY(31.0, 61.0)),
+    )
+
+    model = OsmFeaturesTreeModel()
+    model.set_result_tree(
+        OsmResultTree(
+            groups=(
+                OsmResultGroup(
+                    group_type=OsmResultGroupType.SEARCH,
+                    title="Search results",
+                    elements=(first_element, second_element),
+                ),
+            )
+        )
+    )
+    results_view = OsmInfoResultsView(qgis_iface.mainWindow())
+    results_view.setModel(model)
+    panel = PanelStub(results_view)
+    renderer = RendererStub()
+    OsmInfoSearchManager = _import_search_manager()
+    manager = OsmInfoSearchManager(cast(Any, None))
+    manager._search_panel = cast(Any, panel)
+    manager._results_model = model
+    manager._result_renderer = cast(Any, renderer)
+
+    manager._select_result_element(first_element)
+    manager._on_result_selection_changed()
+    manager._context_menu_active_elements = (first_element,)
+    manager._highlight_context_menu_element(second_element)
+
+    is_selected = manager._select_context_menu_element(second_element)
+    manager._restore_context_menu_active_elements()
+
+    assert is_selected is True
+    assert renderer.active == (second_element,)
+    assert manager._context_menu_active_elements is None
+
+
+def test_search_manager_ctrl_click_adds_identified_result_to_selection(
+    monkeypatch,
+    qgis_iface,
+) -> None:
+    from qgis.core import QgsGeometry, QgsPointXY
+    from qgis.PyQt.QtCore import QPoint
+
+    from osminfo.openstreetmap.features_tree_model import OsmFeaturesTreeModel
+    from osminfo.openstreetmap.models import (
+        OsmElement,
+        OsmElementType,
+        OsmResultGroup,
+        OsmResultGroupType,
+        OsmResultTree,
+    )
+    from osminfo.search.ui.results_view import OsmInfoResultsView
+
+    class PanelStub:
+        def __init__(self, results_view) -> None:
+            self.results_view = results_view
+            self.visible_states = []
+
+        def setUserVisible(self, is_visible: bool) -> None:
+            self.visible_states.append(is_visible)
+
+    first_element = OsmElement(
+        osm_id=301,
+        element_type=OsmElementType.NODE,
+        title="First",
+        geometry=QgsGeometry.fromPointXY(QgsPointXY(30.0, 60.0)),
+    )
+    second_element = OsmElement(
+        osm_id=302,
+        element_type=OsmElementType.NODE,
+        title="Second",
+        geometry=QgsGeometry.fromPointXY(QgsPointXY(31.0, 61.0)),
+    )
+
+    model = OsmFeaturesTreeModel()
+    model.set_result_tree(
+        OsmResultTree(
+            groups=(
+                OsmResultGroup(
+                    group_type=OsmResultGroupType.SEARCH,
+                    title="Search results",
+                    elements=(first_element, second_element),
+                ),
+            )
+        )
+    )
+    results_view = OsmInfoResultsView(qgis_iface.mainWindow())
+    results_view.setModel(model)
+    panel = PanelStub(results_view)
+    OsmInfoSearchManager = _import_search_manager()
+    manager = OsmInfoSearchManager(cast(Any, None))
+    manager._search_panel = cast(Any, panel)
+    manager._results_model = model
+    manager._select_result_element(first_element)
+    monkeypatch.setattr(
+        manager,
+        "_identify_result_elements_at_position",
+        lambda position: (second_element,),
+    )
+
+    manager._on_append_identified_results(QPoint(12, 18))
+
+    selected_element_keys = {
+        (
+            model.osm_element_for_index(index).element_type.value,
+            model.osm_element_for_index(index).osm_id,
+        )
+        for index in results_view.selectionModel().selectedRows(0)
+    }
+    assert selected_element_keys == {
+        (first_element.element_type.value, first_element.osm_id),
+        (second_element.element_type.value, second_element.osm_id),
+    }
+    assert model.osm_element_for_index(results_view.currentIndex()) == (
+        second_element
+    )
+    assert panel.visible_states == [True, True]
+
+
+def test_map_tool_ctrl_click_emits_append_selection_signal(qgis_iface) -> None:
+    from qgis.PyQt.QtCore import QPoint, Qt
+
+    from osminfo.search.identification.tool import OsmInfoMapTool
+
+    class FakeMouseEvent:
+        def __init__(self, position: QPoint) -> None:
+            self._position = position
+
+        def button(self):
+            return Qt.MouseButton.LeftButton
+
+        def buttons(self):
+            return Qt.MouseButton.LeftButton
+
+        def modifiers(self):
+            return Qt.KeyboardModifier.ControlModifier
+
+        def pos(self) -> QPoint:
+            return QPoint(self._position)
+
+    tool = OsmInfoMapTool(qgis_iface.mapCanvas())
+    appended_positions = []
+    identified_points = []
+    event = FakeMouseEvent(QPoint(24, 36))
+    tool.append_identified_results.connect(appended_positions.append)
+    tool.identify_point.connect(identified_points.append)
+
+    tool.canvasPressEvent(cast(Any, event))
+    tool.canvasReleaseEvent(cast(Any, event))
+
+    assert appended_positions == [QPoint(24, 36)]
+    assert identified_points == []
