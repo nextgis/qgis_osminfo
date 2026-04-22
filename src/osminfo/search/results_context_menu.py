@@ -14,19 +14,24 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
-from typing import Optional, Tuple
+from typing import Callable, Optional, Sequence, Tuple
 
 from qgis.core import QgsRectangle
 from qgis.PyQt.QtCore import QByteArray, QObject, QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtWidgets import QAction, QMenu, QWidget
 
+from osminfo.core.constants import PLUGIN_NAME
+from osminfo.openstreetmap.models import OsmElement
 from osminfo.openstreetmap.tag2link import TagLink
 from osminfo.search.result_clipboard_exporter import (
     OsmResultClipboardExporter,
 )
 from osminfo.search.result_layer_exporter import OsmResultLayerExporter
-from osminfo.search.result_selection import OsmResultSelection
+from osminfo.search.result_selection import (
+    OsmResultSelection,
+    OsmResultSelectionItem,
+)
 from osminfo.search.results_renderer import OsmResultsRenderer
 from osminfo.ui.icon import material_icon, plugin_icon, qgis_icon
 from osminfo.ui.utils import set_clipboard_data
@@ -65,6 +70,38 @@ class OsmResultsContextMenuBuilder(QObject):
             return None
 
         return menu
+
+    def add_identified_results_menu(
+        self,
+        menu: QMenu,
+        elements: Sequence[OsmElement],
+        hovered_element_handler: Optional[Callable[[OsmElement], None]] = None,
+        menu_destroyed_handler: Optional[Callable[[], None]] = None,
+    ) -> Optional[QMenu]:
+        if len(elements) == 0:
+            return None
+
+        results_menu = QMenu(PLUGIN_NAME, menu)
+        results_menu.setIcon(plugin_icon())
+        if menu_destroyed_handler is not None:
+            results_menu.destroyed.connect(lambda *_: menu_destroyed_handler())
+
+        if len(elements) == 1:
+            self._add_identified_element_actions(results_menu, elements[0])
+            return results_menu
+
+        for element in elements:
+            element_menu = results_menu.addMenu(
+                self._element_menu_title(element)
+            )
+            assert element_menu is not None
+            if hovered_element_handler is not None:
+                element_menu.menuAction().hovered.connect(
+                    lambda element=element: hovered_element_handler(element)
+                )
+            self._add_identified_element_actions(element_menu, element)
+
+        return results_menu
 
     def _add_zoom_action(
         self,
@@ -145,6 +182,61 @@ class OsmResultsContextMenuBuilder(QObject):
             )
         )
         menu.addAction(selected_layer_action)
+
+    def _add_identified_element_actions(
+        self,
+        menu: QMenu,
+        element: OsmElement,
+    ) -> None:
+        item = OsmResultSelectionItem(element=element)
+        new_layer_action = QAction(
+            qgis_icon("mActionCreateMemory.svg"),
+            self.tr("Add feature to new temporary layer"),
+            menu,
+        )
+        new_layer_action.triggered.connect(
+            lambda checked=False, item=item: (
+                self._layer_exporter.save_in_new_temporary_layers((item,))
+            )
+        )
+        menu.addAction(new_layer_action)
+
+        selected_layer_action = QAction(
+            qgis_icon("mActionCreateMemory.svg"),
+            self.tr("Add feature to active layer"),
+            menu,
+        )
+        selected_layer_action.setEnabled(
+            self._layer_exporter.can_save_in_selected_layer((item,))
+        )
+        selected_layer_action.triggered.connect(
+            lambda checked=False, item=item: (
+                self._layer_exporter.save_in_selected_layer((item,))
+            )
+        )
+        menu.addAction(selected_layer_action)
+
+        self._add_separator(menu)
+
+        open_action = QAction(
+            plugin_icon("osm_logo.svg"),
+            self.tr("Open in OpenStreetMap"),
+            menu,
+        )
+        open_action.triggered.connect(
+            lambda checked=False, url=element.osm_url: self._open_url(url)
+        )
+        menu.addAction(open_action)
+
+        copy_action = QAction(
+            plugin_icon("osm_logo.svg"),
+            self.tr("Copy OpenStreetMap URL"),
+            menu,
+        )
+        copy_action.triggered.connect(
+            lambda checked=False, url=element.osm_url: self._copy_link(url)
+        )
+        menu.addAction(copy_action)
 
     def _add_osm_actions(
         self,
@@ -283,6 +375,12 @@ class OsmResultsContextMenuBuilder(QObject):
     def _add_separator(self, menu: QMenu) -> None:
         if len(menu.actions()) > 0 and not menu.actions()[-1].isSeparator():
             menu.addSeparator()
+
+    def _element_menu_title(self, element: OsmElement) -> str:
+        if len(element.title) == 0:
+            return f"{element.element_type.value} #{element.osm_id}"
+
+        return element.title
 
     def _open_url(self, url: str) -> None:
         QDesktopServices.openUrl(QUrl(url))

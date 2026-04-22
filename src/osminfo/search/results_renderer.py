@@ -36,8 +36,6 @@ from qgis.core import (
     QgsGeometry,
     QgsGeometryGeneratorSymbolLayer,
     QgsLineSymbol,
-    QgsMapLayer,
-    QgsMapLayerStore,
     QgsMarkerSymbol,
     QgsPointXY,
     QgsProject,
@@ -50,7 +48,7 @@ from qgis.core import (
     QgsSymbol,
     QgsVectorLayer,
 )
-from qgis.PyQt.QtCore import QObject, Qt, pyqtSlot
+from qgis.PyQt.QtCore import QObject, Qt
 from qgis.PyQt.QtGui import QColor
 from qgis.utils import iface
 
@@ -61,30 +59,33 @@ from osminfo.openstreetmap.models import (
     OsmGeometryType,
     OsmResultTree,
 )
+from osminfo.search.result_layer_store import (
+    FIELD_ACTIVE,
+    FIELD_MAX_SCALE,
+    FIELD_RELATION,
+    FIELD_TAINTED,
+    OsmResultLayerHit,
+    OsmResultLayerStore,
+)
 
 if TYPE_CHECKING:
     from qgis.gui import QgisInterface
 
     assert isinstance(iface, QgisInterface)
 
-LAYER_DEFINITIONS = (
-    (OsmGeometryType.POLYGON, "MultiPolygon", "OSMInfo polygons"),
-    (OsmGeometryType.LINESTRING, "MultiLineString", "OSMInfo lines"),
-    (OsmGeometryType.POINT, "MultiPoint", "OSMInfo points"),
-)
-
-RESULT_LAYER_PROPERTY = "osminfo_result_layer"
-FIELD_RELATION = "relation_related"
-FIELD_TAINTED = "is_tainted"
-FIELD_ACTIVE = "is_active"
-FIELD_MAX_SCALE = "max_scale"
 MARKER_SIZE = 16.0
 
 
 class OsmResultsRenderer(QObject):
-    def __init__(self, parent: Optional[QObject] = None) -> None:
+    def __init__(
+        self,
+        layer_store: OsmResultLayerStore,
+        parent: Optional[QObject] = None,
+    ) -> None:
         super().__init__(parent)
-        self._layers: Dict[OsmGeometryType, QgsVectorLayer] = {}
+
+        self._layer_store = layer_store or OsmResultLayerStore(self)
+        self._layers = self._layer_store.layers
         self._elements: Dict[Tuple[OsmElementType, int], OsmElement] = {}
         self._active_keys: Set[Tuple[OsmElementType, int]] = set()
         self._feature_ids_by_element: Dict[
@@ -93,30 +94,22 @@ class OsmResultsRenderer(QObject):
         ] = {}
         self._is_centroid_rendering_enabled = True
         self._show_all_features = True
-        self._layer_store = QgsMapLayerStore(self)
-        self._is_updating = False
-        self._is_visible = True
-
-        map_canvas = iface.mapCanvas()
-        map_canvas.layersChanged.connect(self._on_layers_changed)
 
     def unload(self) -> None:
-        map_canvas = iface.mapCanvas()
-        map_canvas.layersChanged.disconnect(self._on_layers_changed)
-
         self.clear()
 
     def clear(self) -> None:
         self._elements = {}
         self._active_keys = set()
         self._feature_ids_by_element = {}
-        self._remove_layers()
+        self._layer_store.clear()
 
     def set_centroid_rendering_enabled(self, enabled: bool) -> None:
         if self._is_centroid_rendering_enabled == enabled:
             return
 
         self._is_centroid_rendering_enabled = enabled
+        self._layer_store.set_centroid_rendering_enabled(enabled)
         if len(self._layers) == 0:
             return
 
@@ -127,20 +120,14 @@ class OsmResultsRenderer(QObject):
             return
 
         self._show_all_features = enabled
+        self._layer_store.set_show_all_features(enabled)
         if len(self._layers) == 0:
             return
 
         self._refresh_renderers()
 
     def set_visible(self, visible: bool) -> None:
-        if self._is_visible == visible:
-            return
-
-        self._is_visible = visible
-        if len(self._layers) == 0:
-            return
-
-        self._apply_canvas_layers()
+        self._layer_store.set_visible(visible)
 
     def set_result_tree(self, result_tree: OsmResultTree) -> None:
         self._elements = {}
@@ -150,11 +137,32 @@ class OsmResultsRenderer(QObject):
 
         self._active_keys = set()
         if len(self._elements) == 0:
-            self._remove_layers()
+            self._layer_store.remove_layers()
             return
 
-        self._ensure_layers()
+        self._layer_store.ensure_layers()
         self._refresh_layers()
+
+    def active_elements(self) -> Tuple[OsmElement, ...]:
+        return tuple(
+            element
+            for element_key, element in self._elements.items()
+            if element_key in self._active_keys
+        )
+
+    def elements_for_hits(
+        self,
+        hits: Tuple[OsmResultLayerHit, ...],
+    ) -> Tuple[OsmElement, ...]:
+        elements: List[OsmElement] = []
+        for hit in hits:
+            element = self._elements.get((hit.element_type, hit.osm_id))
+            if element is None:
+                continue
+
+            elements.append(element)
+
+        return tuple(elements)
 
     def set_active_elements(
         self,
@@ -194,90 +202,12 @@ class OsmResultsRenderer(QObject):
         map_canvas.setExtent(new_extent)
         map_canvas.refresh()
 
-    @pyqtSlot()
-    def _on_layers_changed(self) -> None:
-        if self._is_updating or len(self._layers) == 0:
-            return
-
-        self._apply_canvas_layers()
-
-    def _ensure_layers(self) -> None:
-        if len(self._layers) > 0:
-            return
-
-        for geometry_type, geometry_name, layer_name in LAYER_DEFINITIONS:
-            layer = QgsVectorLayer(
-                (
-                    f"{geometry_name}?crs=EPSG:4326"
-                    f"&field={FIELD_RELATION}:integer"
-                    f"&field={FIELD_TAINTED}:integer"
-                    f"&field={FIELD_ACTIVE}:integer"
-                    f"&field={FIELD_MAX_SCALE}:double"
-                ),
-                layer_name,
-                "memory",
-            )
-            layer.setCustomProperty(RESULT_LAYER_PROPERTY, 1)
-            layer.setCustomProperty("skipMemoryLayersCheck", 1)
-            layer.setReadOnly(True)
-            layer.setRenderer(self._create_renderer(geometry_type))
-            self._layer_store.addMapLayer(layer)
-            self._layers[geometry_type] = layer
-
-        self._apply_canvas_layers()
-
     def _refresh_renderers(self) -> None:
         for geometry_type, layer in self._layers.items():
             layer.setRenderer(self._create_renderer(geometry_type))
             layer.triggerRepaint()
 
         iface.mapCanvas().refresh()
-
-    def _remove_layers(self) -> None:
-        if len(self._layers) == 0:
-            return
-
-        map_canvas = iface.mapCanvas()
-        self._is_updating = True
-        try:
-            map_canvas.setLayers(self._base_canvas_layers())
-        finally:
-            self._is_updating = False
-        map_canvas.refresh()
-
-        self._layer_store.removeAllMapLayers()
-        self._layers = {}
-        self._feature_ids_by_element = {}
-
-    def _apply_canvas_layers(self) -> None:
-        map_canvas = iface.mapCanvas()
-        self._is_updating = True
-        try:
-            canvas_layers: List[QgsMapLayer] = self._base_canvas_layers()
-            if self._is_visible:
-                canvas_layers = self._ordered_layers() + canvas_layers
-
-            map_canvas.setLayers(canvas_layers)
-        finally:
-            self._is_updating = False
-        map_canvas.refresh()
-
-    def _base_canvas_layers(self) -> List[QgsMapLayer]:
-        return [
-            layer
-            for layer in iface.mapCanvas().layers()
-            if not self._is_result_layer(layer)
-        ]
-
-    def _ordered_layers(self) -> List[QgsVectorLayer]:
-        return [
-            self._layers[geometry_type]
-            for geometry_type, _, _ in reversed(LAYER_DEFINITIONS)
-            if geometry_type in self._layers
-        ]
-
-    def _is_result_layer(self, layer: QgsMapLayer) -> bool:
-        return bool(layer.customProperty(RESULT_LAYER_PROPERTY, 0))
 
     def _refresh_layers(self) -> None:
         if len(self._layers) == 0:
@@ -305,6 +235,8 @@ class OsmResultsRenderer(QObject):
                 )
                 feature.setAttributes(
                     [
+                        element.element_type.value,
+                        element.osm_id,
                         int(
                             element.is_relation_member
                             or element.element_type.value == "relation"
@@ -323,6 +255,8 @@ class OsmResultsRenderer(QObject):
             existing_ids = list(layer.allFeatureIds())
             if len(existing_ids) > 0:
                 provider.deleteFeatures(existing_ids)
+
+            layer.setRenderer(self._create_renderer(geometry_type))
 
             layer_entries = feature_entries_by_layer[geometry_type]
             layer_entries.sort(

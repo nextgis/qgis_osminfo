@@ -14,15 +14,30 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
+import gc
 import importlib
 import json
+import os
+import shutil
 import sys
+import tempfile
 import types
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Generator, Optional
+from unittest.mock import MagicMock, Mock
 
 import pytest
+import qgis.utils
+from qgis.core import (
+    QgsApplication,
+    QgsLayerTreeModel,
+    QgsProject,
+    QgsSettings,
+)
+from qgis.gui import QgisInterface, QgsLayerTreeView, QgsMapCanvas
+from qgis.PyQt.QtCore import QSize, Qt
+from qgis.PyQt.QtWidgets import QMainWindow
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOT = WORKSPACE_ROOT / "src"
@@ -39,6 +54,16 @@ class WizardModules:
     repair: Any
     renderer: Any
     semantic: Any
+
+
+@dataclass(frozen=True)
+class ApplicationInfo:
+    application: QgsApplication
+    qgis_custom_config_path: Path
+    qgis_auth_db_path: Path
+
+
+APPLICATION_INFO: Optional[ApplicationInfo] = None
 
 
 def _install_package_stub(module_name: str, path: Path) -> None:
@@ -67,6 +92,121 @@ def configure_wizard_imports() -> None:
         "osminfo.search",
         SOURCE_ROOT / "osminfo" / "search",
     )
+
+
+def start_qgis() -> QgsApplication:
+    global APPLICATION_INFO
+
+    if APPLICATION_INFO is not None:
+        return APPLICATION_INFO.application
+
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+    qgis_custom_config_path = Path(
+        tempfile.mkdtemp(prefix="TestOSMInfo-config-")
+    )
+    qgis_auth_db_path = Path(tempfile.mkdtemp(prefix="TestOSMInfo-authdb-"))
+    os.environ["QGIS_CUSTOM_CONFIG_PATH"] = str(qgis_custom_config_path)
+    os.environ["QGIS_AUTH_DB_DIR_PATH"] = str(qgis_auth_db_path)
+
+    QgsApplication.setAttribute(
+        Qt.ApplicationAttribute.AA_ShareOpenGLContexts,
+        True,
+    )
+    QgsApplication.setOrganizationName("NextGIS_Test")
+    QgsApplication.setOrganizationDomain("TestOSMInfo.com")
+    QgsApplication.setApplicationName("TestOSMInfo")
+    QgsSettings().clear()
+
+    application = QgsApplication(list(map(os.fsencode, sys.argv)), True)
+    application.initQgis()
+    init_interface()
+    APPLICATION_INFO = ApplicationInfo(
+        application=application,
+        qgis_custom_config_path=qgis_custom_config_path,
+        qgis_auth_db_path=qgis_auth_db_path,
+    )
+    return application
+
+
+def stop_qgis() -> None:
+    global APPLICATION_INFO
+
+    if APPLICATION_INFO is None:
+        return
+
+    QgsSettings().clear()
+    for _ in range(3):
+        gc.collect()
+        QgsApplication.processEvents()
+
+    APPLICATION_INFO.application.exitQgis()
+    shutil.rmtree(APPLICATION_INFO.qgis_custom_config_path, ignore_errors=True)
+    shutil.rmtree(APPLICATION_INFO.qgis_auth_db_path, ignore_errors=True)
+    APPLICATION_INFO = None
+
+
+@pytest.fixture(scope="session")
+def qgis_app() -> Generator[QgsApplication, None, None]:
+    application = start_qgis()
+    try:
+        yield application
+    finally:
+        stop_qgis()
+
+
+def init_interface() -> QgisInterface:
+    iface = getattr(qgis.utils, "iface", None)
+    if iface is None:
+        iface = Mock(spec=QgisInterface)
+        qgis.utils.iface = iface
+
+    assert isinstance(iface, Mock)
+
+    main_window = iface.mainWindow.return_value
+    if not isinstance(main_window, QMainWindow):
+        main_window = QMainWindow()
+        iface.mainWindow.return_value = main_window
+
+    map_canvas = iface.mapCanvas.return_value
+    if not isinstance(map_canvas, QgsMapCanvas):
+        map_canvas = QgsMapCanvas(main_window)
+        map_canvas.resize(QSize(400, 400))
+        iface.mapCanvas.return_value = map_canvas
+
+    layer_tree_view = iface.layerTreeView.return_value
+    if not isinstance(layer_tree_view, QgsLayerTreeView):
+        layer_tree_view = QgsLayerTreeView(main_window)
+        iface.layerTreeView.return_value = layer_tree_view
+
+    layer_tree_model = QgsLayerTreeModel(
+        QgsProject.instance().layerTreeRoot(),
+        layer_tree_view,
+    )
+    layer_tree_view.setModel(layer_tree_model)
+
+    user_profile_manager = iface.userProfileManager.return_value
+    if not isinstance(user_profile_manager, MagicMock):
+        user_profile = MagicMock()
+        user_profile.folder.return_value = tempfile.mkdtemp(
+            prefix="TestOSMInfo-profile-"
+        )
+        user_profile_manager = MagicMock()
+        user_profile_manager.userProfile.return_value = user_profile
+        iface.userProfileManager.return_value = user_profile_manager
+
+    return iface
+
+
+@pytest.fixture
+def qgis_iface(qgis_app) -> QgisInterface:
+    del qgis_app
+
+    iface = init_interface()
+    QgsProject.instance().removeAllMapLayers()
+    iface.mapCanvas().setLayers([])
+    iface.mapCanvas().resize(QSize(400, 400))
+    return iface
 
 
 @pytest.fixture(scope="session")

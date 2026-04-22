@@ -21,6 +21,36 @@ import json
 from pathlib import Path
 from typing import Any, Dict
 
+import pytest
+
+
+@pytest.fixture
+def results_renderer_factory(monkeypatch, qgis_iface):
+    from qgis.core import QgsProject
+
+    import osminfo.search.result_layer_store as result_layer_store_module
+    import osminfo.search.results_renderer as results_renderer_module
+
+    monkeypatch.setattr(result_layer_store_module, "iface", qgis_iface)
+    monkeypatch.setattr(results_renderer_module, "iface", qgis_iface)
+
+    created_renderers = []
+
+    def factory():
+        layer_store = result_layer_store_module.OsmResultLayerStore()
+        renderer = results_renderer_module.OsmResultsRenderer(layer_store)
+        created_renderers.append((renderer, layer_store))
+        return results_renderer_module, renderer, layer_store
+
+    yield factory
+
+    for renderer, layer_store in reversed(created_renderers):
+        renderer.unload()
+        layer_store.unload()
+
+    QgsProject.instance().removeAllMapLayers()
+    qgis_iface.mapCanvas().setLayers([])
+
 
 def test_parse_relation_collection_geometry() -> None:
     from osminfo.overpass.json_parser import OverpassJsonParser
@@ -892,11 +922,12 @@ def test_title_builder_uses_relation_boundary_preset_for_area_geometry() -> (
     )
 
 
-def test_results_renderer_creates_layers_only_for_results(monkeypatch) -> None:
-    from qgis.core import QgsGeometry, QgsPointXY, QgsVectorLayer
-    from qgis.utils import iface
+def test_results_renderer_creates_layers_only_for_results(
+    qgis_iface,
+    results_renderer_factory,
+) -> None:
+    from qgis.core import QgsGeometry, QgsPointXY, QgsProject, QgsVectorLayer
 
-    import osminfo.search.results_renderer as results_renderer_module
     from osminfo.openstreetmap.models import (
         OsmElement,
         OsmElementType,
@@ -904,70 +935,6 @@ def test_results_renderer_creates_layers_only_for_results(monkeypatch) -> None:
         OsmResultGroupType,
         OsmResultTree,
     )
-
-    class FakeSignal:
-        def connect(self, callback) -> None:
-            self._callback = callback
-
-        def disconnect(self, callback) -> None:
-            del callback
-
-        def emit(self, *args) -> None:
-            callback = getattr(self, "_callback", None)
-            if callback is not None:
-                callback(*args)
-
-    class FakeCrs:
-        def authid(self) -> str:
-            return "EPSG:4326"
-
-        def postgisSrid(self) -> int:
-            return 4326
-
-    class FakeMapSettings:
-        def destinationCrs(self) -> FakeCrs:
-            return FakeCrs()
-
-    class FakeCanvas:
-        def __init__(self) -> None:
-            self.scaleChanged = FakeSignal()
-            self.layersChanged = FakeSignal()
-            self.destinationCrsChanged = FakeSignal()
-            self._layers = []
-            self._map_units_per_pixel = 0.0001
-
-        def scale(self) -> float:
-            return 1000.0
-
-        def mapUnitsPerPixel(self) -> float:
-            return self._map_units_per_pixel
-
-        def layers(self):
-            return list(self._layers)
-
-        def setLayers(self, layers) -> None:
-            self._layers = list(layers)
-            self.layersChanged.emit()
-
-        def mapSettings(self) -> FakeMapSettings:
-            return FakeMapSettings()
-
-        def setExtent(self, bbox) -> None:
-            self._bbox = bbox
-
-        def refresh(self) -> None:
-            return None
-
-    class FakeIface:
-        def __init__(self) -> None:
-            self._canvas = FakeCanvas()
-
-        def mapCanvas(self) -> FakeCanvas:
-            return self._canvas
-
-    fake_iface = FakeIface()
-    monkeypatch.setattr(results_renderer_module, "iface", fake_iface)
-    monkeypatch.setattr("qgis.utils.iface", fake_iface)
 
     point_element = OsmElement(
         osm_id=1,
@@ -1002,10 +969,9 @@ def test_results_renderer_creates_layers_only_for_results(monkeypatch) -> None:
         ),
     )
 
-    renderer = results_renderer_module.OsmResultsRenderer()
-    del iface
+    results_renderer_module, renderer, _ = results_renderer_factory()
     assert len(renderer._layers) == 0
-    assert len(fake_iface.mapCanvas().layers()) == 0
+    assert len(qgis_iface.mapCanvas().layers()) == 0
 
     renderer.set_result_tree(
         OsmResultTree(
@@ -1028,7 +994,7 @@ def test_results_renderer_creates_layers_only_for_results(monkeypatch) -> None:
     assert line_geometry_type is not None
     assert polygon_geometry_type is not None
 
-    canvas_layers = fake_iface.mapCanvas().layers()
+    canvas_layers = qgis_iface.mapCanvas().layers()
     assert len(renderer._layers) == 3
     assert len(canvas_layers) == 3
     assert canvas_layers[0] is renderer._layers[point_geometry_type]
@@ -1041,12 +1007,11 @@ def test_results_renderer_creates_layers_only_for_results(monkeypatch) -> None:
     renderer.clear()
 
     assert len(renderer._layers) == 0
-    assert len(fake_iface.mapCanvas().layers()) == 0
-
-    renderer.unload()
+    assert len(qgis_iface.mapCanvas().layers()) == 0
 
     base_layer = QgsVectorLayer("Point?crs=EPSG:4326", "Base", "memory")
-    renderer = results_renderer_module.OsmResultsRenderer()
+    QgsProject.instance().addMapLayer(base_layer, False)
+    _, renderer, _ = results_renderer_factory()
     renderer.set_result_tree(
         OsmResultTree(
             groups=(
@@ -1059,9 +1024,9 @@ def test_results_renderer_creates_layers_only_for_results(monkeypatch) -> None:
         )
     )
 
-    fake_iface.mapCanvas().setLayers([base_layer])
+    qgis_iface.mapCanvas().setLayers([base_layer])
 
-    canvas_layers = fake_iface.mapCanvas().layers()
+    canvas_layers = qgis_iface.mapCanvas().layers()
     assert base_layer in canvas_layers
     assert len(canvas_layers) == 4
     assert canvas_layers[0] is renderer._layers[point_geometry_type]
@@ -1073,15 +1038,12 @@ def test_results_renderer_creates_layers_only_for_results(monkeypatch) -> None:
         for layer in canvas_layers
     )
 
-    renderer.unload()
-
 
 def test_results_renderer_updates_active_attribute_in_place(
-    monkeypatch,
+    results_renderer_factory,
 ) -> None:
     from qgis.core import QgsGeometry, QgsPointXY
 
-    import osminfo.search.results_renderer as results_renderer_module
     from osminfo.openstreetmap.models import (
         OsmElement,
         OsmElementType,
@@ -1090,65 +1052,6 @@ def test_results_renderer_updates_active_attribute_in_place(
         OsmResultTree,
     )
 
-    class FakeSignal:
-        def connect(self, callback) -> None:
-            self._callback = callback
-
-        def disconnect(self, callback) -> None:
-            del callback
-
-        def emit(self, *args) -> None:
-            callback = getattr(self, "_callback", None)
-            if callback is not None:
-                callback(*args)
-
-    class FakeCrs:
-        def authid(self) -> str:
-            return "EPSG:4326"
-
-        def postgisSrid(self) -> int:
-            return 4326
-
-    class FakeMapSettings:
-        def destinationCrs(self) -> FakeCrs:
-            return FakeCrs()
-
-    class FakeCanvas:
-        def __init__(self) -> None:
-            self.scaleChanged = FakeSignal()
-            self.layersChanged = FakeSignal()
-            self.destinationCrsChanged = FakeSignal()
-            self._layers = []
-
-        def scale(self) -> float:
-            return 1000.0
-
-        def layers(self):
-            return list(self._layers)
-
-        def setLayers(self, layers) -> None:
-            self._layers = list(layers)
-            self.layersChanged.emit()
-
-        def mapSettings(self) -> FakeMapSettings:
-            return FakeMapSettings()
-
-        def setExtent(self, bbox) -> None:
-            self._bbox = bbox
-
-        def refresh(self) -> None:
-            return None
-
-    class FakeIface:
-        def __init__(self) -> None:
-            self._canvas = FakeCanvas()
-
-        def mapCanvas(self) -> FakeCanvas:
-            return self._canvas
-
-    fake_iface = FakeIface()
-    monkeypatch.setattr(results_renderer_module, "iface", fake_iface)
-
     point_element = OsmElement(
         osm_id=21,
         element_type=OsmElementType.NODE,
@@ -1156,7 +1059,7 @@ def test_results_renderer_updates_active_attribute_in_place(
         geometry=QgsGeometry.fromPointXY(QgsPointXY(30.0, 60.0)),
     )
 
-    renderer = results_renderer_module.OsmResultsRenderer()
+    results_renderer_module, renderer, _ = results_renderer_factory()
     renderer.set_result_tree(
         OsmResultTree(
             groups=(
@@ -1189,70 +1092,15 @@ def test_results_renderer_updates_active_attribute_in_place(
     assert inactive_feature.id() == initial_feature_id
     assert inactive_feature[results_renderer_module.FIELD_ACTIVE] == 0
 
-    renderer.unload()
 
-
-def test_results_renderer_centers_single_point_bbox(monkeypatch) -> None:
+def test_results_renderer_centers_single_point_bbox(
+    monkeypatch,
+    qgis_iface,
+    results_renderer_factory,
+) -> None:
     from qgis.core import QgsRectangle
 
-    import osminfo.search.results_renderer as results_renderer_module
-
-    class FakeSignal:
-        def connect(self, callback) -> None:
-            self._callback = callback
-
-        def disconnect(self, callback) -> None:
-            del callback
-
-        def emit(self, *args) -> None:
-            callback = getattr(self, "_callback", None)
-            if callback is not None:
-                callback(*args)
-
-    class FakeCrs:
-        def authid(self) -> str:
-            return "EPSG:4326"
-
-        def postgisSrid(self) -> int:
-            return 4326
-
-    class FakeMapSettings:
-        def destinationCrs(self) -> FakeCrs:
-            return FakeCrs()
-
-    class FakeCanvas:
-        def __init__(self) -> None:
-            self.scaleChanged = FakeSignal()
-            self.layersChanged = FakeSignal()
-            self.destinationCrsChanged = FakeSignal()
-            self._layers = []
-            self._extent = QgsRectangle(0.0, 0.0, 10.0, 10.0)
-
-        def layers(self):
-            return list(self._layers)
-
-        def setLayers(self, layers) -> None:
-            self._layers = list(layers)
-            self.layersChanged.emit()
-
-        def mapSettings(self) -> FakeMapSettings:
-            return FakeMapSettings()
-
-        def extent(self) -> QgsRectangle:
-            return QgsRectangle(self._extent)
-
-        def setExtent(self, bbox) -> None:
-            self._extent = QgsRectangle(bbox)
-
-        def refresh(self) -> None:
-            return None
-
-    class FakeIface:
-        def __init__(self) -> None:
-            self._canvas = FakeCanvas()
-
-        def mapCanvas(self) -> FakeCanvas:
-            return self._canvas
+    results_renderer_module, renderer, _ = results_renderer_factory()
 
     class FakeCoordinateTransform:
         def __init__(self, source_crs, destination_crs, project) -> None:
@@ -1268,8 +1116,6 @@ def test_results_renderer_centers_single_point_bbox(monkeypatch) -> None:
         def instance():
             return object()
 
-    fake_iface = FakeIface()
-    monkeypatch.setattr(results_renderer_module, "iface", fake_iface)
     monkeypatch.setattr(
         results_renderer_module,
         "QgsCoordinateTransform",
@@ -1277,25 +1123,23 @@ def test_results_renderer_centers_single_point_bbox(monkeypatch) -> None:
     )
     monkeypatch.setattr(results_renderer_module, "QgsProject", FakeProject)
 
-    renderer = results_renderer_module.OsmResultsRenderer()
+    qgis_iface.mapCanvas().setExtent(QgsRectangle(0.0, 0.0, 10.0, 10.0))
+    initial_extent = QgsRectangle(qgis_iface.mapCanvas().extent())
     renderer.zoom_to_bbox(QgsRectangle(30.0, 60.0, 30.0, 60.0))
 
-    extent = fake_iface.mapCanvas().extent()
+    extent = qgis_iface.mapCanvas().extent()
     center = extent.center()
-    assert extent.width() == 10.0
-    assert extent.height() == 10.0
+    assert extent.width() == initial_extent.width()
+    assert extent.height() == initial_extent.height()
     assert center.x() == 30.0
     assert center.y() == 60.0
 
-    renderer.unload()
-
 
 def test_results_renderer_keeps_collection_points_at_overview_scale(
-    monkeypatch,
+    results_renderer_factory,
 ) -> None:
     from qgis.core import QgsGeometry, QgsPointXY
 
-    import osminfo.search.results_renderer as results_renderer_module
     from osminfo.openstreetmap.models import (
         OsmElement,
         OsmElementType,
@@ -1304,69 +1148,6 @@ def test_results_renderer_keeps_collection_points_at_overview_scale(
         OsmResultGroupType,
         OsmResultTree,
     )
-
-    class FakeSignal:
-        def connect(self, callback) -> None:
-            self._callback = callback
-
-        def disconnect(self, callback) -> None:
-            del callback
-
-        def emit(self, *args) -> None:
-            callback = getattr(self, "_callback", None)
-            if callback is not None:
-                callback(*args)
-
-    class FakeCrs:
-        def authid(self) -> str:
-            return "EPSG:4326"
-
-        def postgisSrid(self) -> int:
-            return 4326
-
-    class FakeMapSettings:
-        def destinationCrs(self) -> FakeCrs:
-            return FakeCrs()
-
-    class FakeCanvas:
-        def __init__(self) -> None:
-            self.scaleChanged = FakeSignal()
-            self.layersChanged = FakeSignal()
-            self.destinationCrsChanged = FakeSignal()
-            self._layers = []
-            self._map_units_per_pixel = 1.0
-
-        def scale(self) -> float:
-            return 1000.0
-
-        def mapUnitsPerPixel(self) -> float:
-            return self._map_units_per_pixel
-
-        def layers(self):
-            return list(self._layers)
-
-        def setLayers(self, layers) -> None:
-            self._layers = list(layers)
-            self.layersChanged.emit()
-
-        def mapSettings(self) -> FakeMapSettings:
-            return FakeMapSettings()
-
-        def setExtent(self, bbox) -> None:
-            self._bbox = bbox
-
-        def refresh(self) -> None:
-            return None
-
-    class FakeIface:
-        def __init__(self) -> None:
-            self._canvas = FakeCanvas()
-
-        def mapCanvas(self) -> FakeCanvas:
-            return self._canvas
-
-    fake_iface = FakeIface()
-    monkeypatch.setattr(results_renderer_module, "iface", fake_iface)
 
     collection_element = OsmElement(
         osm_id=10,
@@ -1381,7 +1162,7 @@ def test_results_renderer_keeps_collection_points_at_overview_scale(
         max_scale=100.0,
     )
 
-    renderer = results_renderer_module.OsmResultsRenderer()
+    results_renderer_module, renderer, _ = results_renderer_factory()
     renderer.set_result_tree(
         OsmResultTree(
             groups=(
@@ -1414,15 +1195,12 @@ def test_results_renderer_keeps_collection_points_at_overview_scale(
     )
     assert line_feature[results_renderer_module.FIELD_MAX_SCALE] is None
 
-    renderer.unload()
-
 
 def test_results_renderer_stores_max_scale_for_non_point_features(
-    monkeypatch,
+    results_renderer_factory,
 ) -> None:
     from qgis.core import QgsGeometry, QgsPointXY
 
-    import osminfo.search.results_renderer as results_renderer_module
     from osminfo.openstreetmap.models import (
         OsmElement,
         OsmElementType,
@@ -1430,65 +1208,6 @@ def test_results_renderer_stores_max_scale_for_non_point_features(
         OsmResultGroupType,
         OsmResultTree,
     )
-
-    class FakeSignal:
-        def connect(self, callback) -> None:
-            self._callback = callback
-
-        def disconnect(self, callback) -> None:
-            del callback
-
-        def emit(self, *args) -> None:
-            callback = getattr(self, "_callback", None)
-            if callback is not None:
-                callback(*args)
-
-    class FakeCrs:
-        def authid(self) -> str:
-            return "EPSG:4326"
-
-        def postgisSrid(self) -> int:
-            return 4326
-
-    class FakeMapSettings:
-        def destinationCrs(self) -> FakeCrs:
-            return FakeCrs()
-
-    class FakeCanvas:
-        def __init__(self) -> None:
-            self.scaleChanged = FakeSignal()
-            self.layersChanged = FakeSignal()
-            self.destinationCrsChanged = FakeSignal()
-            self._layers = []
-
-        def scale(self) -> float:
-            return 1000.0
-
-        def layers(self):
-            return list(self._layers)
-
-        def setLayers(self, layers) -> None:
-            self._layers = list(layers)
-            self.layersChanged.emit()
-
-        def mapSettings(self) -> FakeMapSettings:
-            return FakeMapSettings()
-
-        def setExtent(self, bbox) -> None:
-            self._bbox = bbox
-
-        def refresh(self) -> None:
-            return None
-
-    class FakeIface:
-        def __init__(self) -> None:
-            self._canvas = FakeCanvas()
-
-        def mapCanvas(self) -> FakeCanvas:
-            return self._canvas
-
-    fake_iface = FakeIface()
-    monkeypatch.setattr(results_renderer_module, "iface", fake_iface)
 
     polygon_element = OsmElement(
         osm_id=11,
@@ -1507,7 +1226,7 @@ def test_results_renderer_stores_max_scale_for_non_point_features(
         max_scale=250.0,
     )
 
-    renderer = results_renderer_module.OsmResultsRenderer()
+    results_renderer_module, renderer, _ = results_renderer_factory()
     renderer.set_result_tree(
         OsmResultTree(
             groups=(
@@ -1534,13 +1253,12 @@ def test_results_renderer_stores_max_scale_for_non_point_features(
     )
     assert polygon_feature[results_renderer_module.FIELD_MAX_SCALE] == 250.0
 
-    renderer.unload()
 
-
-def test_results_renderer_can_disable_centroid_rules(monkeypatch) -> None:
+def test_results_renderer_can_disable_centroid_rules(
+    results_renderer_factory,
+) -> None:
     from qgis.core import QgsGeometry, QgsPointXY
 
-    import osminfo.search.results_renderer as results_renderer_module
     from osminfo.openstreetmap.models import (
         OsmElement,
         OsmElementType,
@@ -1548,65 +1266,6 @@ def test_results_renderer_can_disable_centroid_rules(monkeypatch) -> None:
         OsmResultGroupType,
         OsmResultTree,
     )
-
-    class FakeSignal:
-        def connect(self, callback) -> None:
-            self._callback = callback
-
-        def disconnect(self, callback) -> None:
-            del callback
-
-        def emit(self, *args) -> None:
-            callback = getattr(self, "_callback", None)
-            if callback is not None:
-                callback(*args)
-
-    class FakeCrs:
-        def authid(self) -> str:
-            return "EPSG:4326"
-
-        def postgisSrid(self) -> int:
-            return 4326
-
-    class FakeMapSettings:
-        def destinationCrs(self) -> FakeCrs:
-            return FakeCrs()
-
-    class FakeCanvas:
-        def __init__(self) -> None:
-            self.scaleChanged = FakeSignal()
-            self.layersChanged = FakeSignal()
-            self.destinationCrsChanged = FakeSignal()
-            self._layers = []
-
-        def scale(self) -> float:
-            return 1000.0
-
-        def layers(self):
-            return list(self._layers)
-
-        def setLayers(self, layers) -> None:
-            self._layers = list(layers)
-            self.layersChanged.emit()
-
-        def mapSettings(self) -> FakeMapSettings:
-            return FakeMapSettings()
-
-        def setExtent(self, bbox) -> None:
-            self._bbox = bbox
-
-        def refresh(self) -> None:
-            return None
-
-    class FakeIface:
-        def __init__(self) -> None:
-            self._canvas = FakeCanvas()
-
-        def mapCanvas(self) -> FakeCanvas:
-            return self._canvas
-
-    fake_iface = FakeIface()
-    monkeypatch.setattr(results_renderer_module, "iface", fake_iface)
 
     polygon_element = OsmElement(
         osm_id=12,
@@ -1625,7 +1284,7 @@ def test_results_renderer_can_disable_centroid_rules(monkeypatch) -> None:
         max_scale=250.0,
     )
 
-    renderer = results_renderer_module.OsmResultsRenderer()
+    results_renderer_module, renderer, _ = results_renderer_factory()
     renderer.set_result_tree(
         OsmResultTree(
             groups=(
@@ -1647,15 +1306,12 @@ def test_results_renderer_can_disable_centroid_rules(monkeypatch) -> None:
 
     assert len(polygon_layer.renderer().rootRule().children()) == 5
 
-    renderer.unload()
-
 
 def test_results_renderer_uses_mutually_exclusive_style_filters(
-    monkeypatch,
+    results_renderer_factory,
 ) -> None:
     from qgis.core import QgsGeometry, QgsPointXY
 
-    import osminfo.search.results_renderer as results_renderer_module
     from osminfo.openstreetmap.models import (
         OsmElement,
         OsmElementType,
@@ -1663,65 +1319,6 @@ def test_results_renderer_uses_mutually_exclusive_style_filters(
         OsmResultGroupType,
         OsmResultTree,
     )
-
-    class FakeSignal:
-        def connect(self, callback) -> None:
-            self._callback = callback
-
-        def disconnect(self, callback) -> None:
-            del callback
-
-        def emit(self, *args) -> None:
-            callback = getattr(self, "_callback", None)
-            if callback is not None:
-                callback(*args)
-
-    class FakeCrs:
-        def authid(self) -> str:
-            return "EPSG:4326"
-
-        def postgisSrid(self) -> int:
-            return 4326
-
-    class FakeMapSettings:
-        def destinationCrs(self) -> FakeCrs:
-            return FakeCrs()
-
-    class FakeCanvas:
-        def __init__(self) -> None:
-            self.scaleChanged = FakeSignal()
-            self.layersChanged = FakeSignal()
-            self.destinationCrsChanged = FakeSignal()
-            self._layers = []
-
-        def scale(self) -> float:
-            return 1000.0
-
-        def layers(self):
-            return list(self._layers)
-
-        def setLayers(self, layers) -> None:
-            self._layers = list(layers)
-            self.layersChanged.emit()
-
-        def mapSettings(self) -> FakeMapSettings:
-            return FakeMapSettings()
-
-        def setExtent(self, bbox) -> None:
-            self._bbox = bbox
-
-        def refresh(self) -> None:
-            return None
-
-    class FakeIface:
-        def __init__(self) -> None:
-            self._canvas = FakeCanvas()
-
-        def mapCanvas(self) -> FakeCanvas:
-            return self._canvas
-
-    fake_iface = FakeIface()
-    monkeypatch.setattr(results_renderer_module, "iface", fake_iface)
 
     polygon_element = OsmElement(
         osm_id=13,
@@ -1741,7 +1338,7 @@ def test_results_renderer_uses_mutually_exclusive_style_filters(
         is_incomplete=True,
     )
 
-    renderer = results_renderer_module.OsmResultsRenderer()
+    results_renderer_module, renderer, _ = results_renderer_factory()
     renderer.set_result_tree(
         OsmResultTree(
             groups=(
@@ -1770,13 +1367,12 @@ def test_results_renderer_uses_mutually_exclusive_style_filters(
         for filter_text in filters
     )
 
-    renderer.unload()
 
-
-def test_results_renderer_adds_larger_polygons_first(monkeypatch) -> None:
+def test_results_renderer_adds_larger_polygons_first(
+    results_renderer_factory,
+) -> None:
     from qgis.core import QgsGeometry, QgsPointXY
 
-    import osminfo.search.results_renderer as results_renderer_module
     from osminfo.openstreetmap.models import (
         OsmElement,
         OsmElementType,
@@ -1784,65 +1380,6 @@ def test_results_renderer_adds_larger_polygons_first(monkeypatch) -> None:
         OsmResultGroupType,
         OsmResultTree,
     )
-
-    class FakeSignal:
-        def connect(self, callback) -> None:
-            self._callback = callback
-
-        def disconnect(self, callback) -> None:
-            del callback
-
-        def emit(self, *args) -> None:
-            callback = getattr(self, "_callback", None)
-            if callback is not None:
-                callback(*args)
-
-    class FakeCrs:
-        def authid(self) -> str:
-            return "EPSG:4326"
-
-        def postgisSrid(self) -> int:
-            return 4326
-
-    class FakeMapSettings:
-        def destinationCrs(self) -> FakeCrs:
-            return FakeCrs()
-
-    class FakeCanvas:
-        def __init__(self) -> None:
-            self.scaleChanged = FakeSignal()
-            self.layersChanged = FakeSignal()
-            self.destinationCrsChanged = FakeSignal()
-            self._layers = []
-
-        def scale(self) -> float:
-            return 1000.0
-
-        def layers(self):
-            return list(self._layers)
-
-        def setLayers(self, layers) -> None:
-            self._layers = list(layers)
-            self.layersChanged.emit()
-
-        def mapSettings(self) -> FakeMapSettings:
-            return FakeMapSettings()
-
-        def setExtent(self, bbox) -> None:
-            self._bbox = bbox
-
-        def refresh(self) -> None:
-            return None
-
-    class FakeIface:
-        def __init__(self) -> None:
-            self._canvas = FakeCanvas()
-
-        def mapCanvas(self) -> FakeCanvas:
-            return self._canvas
-
-    fake_iface = FakeIface()
-    monkeypatch.setattr(results_renderer_module, "iface", fake_iface)
 
     small_polygon = OsmElement(
         osm_id=14,
@@ -1875,7 +1412,7 @@ def test_results_renderer_adds_larger_polygons_first(monkeypatch) -> None:
         ),
     )
 
-    renderer = results_renderer_module.OsmResultsRenderer()
+    results_renderer_module, renderer, _ = results_renderer_factory()
     renderer.set_result_tree(
         OsmResultTree(
             groups=(
@@ -1896,4 +1433,224 @@ def test_results_renderer_adds_larger_polygons_first(monkeypatch) -> None:
     ]
     assert feature_areas == sorted(feature_areas, reverse=True)
 
-    renderer.unload()
+
+def test_result_layer_store_identifies_only_visible_active_features(
+    monkeypatch,
+) -> None:
+    from qgis.core import (
+        QgsCoordinateReferenceSystem,
+        QgsFeature,
+        QgsGeometry,
+        QgsPointXY,
+        QgsRectangle,
+    )
+
+    import osminfo.search.result_layer_store as result_layer_store_module
+
+    class FakeSignal:
+        def connect(self, callback) -> None:
+            self._callback = callback
+
+        def disconnect(self, callback) -> None:
+            del callback
+
+        def emit(self, *args) -> None:
+            callback = getattr(self, "_callback", None)
+            if callback is not None:
+                callback(*args)
+
+    class FakeMapSettings:
+        def destinationCrs(self):
+            return QgsCoordinateReferenceSystem.fromEpsgId(4326)
+
+    class FakeCanvas:
+        def __init__(self) -> None:
+            self.layersChanged = FakeSignal()
+            self._layers = []
+
+        def scale(self) -> float:
+            return 100.0
+
+        def layers(self):
+            return list(self._layers)
+
+        def setLayers(self, layers) -> None:
+            self._layers = list(layers)
+            self.layersChanged.emit()
+
+        def mapSettings(self) -> FakeMapSettings:
+            return FakeMapSettings()
+
+        def refresh(self) -> None:
+            return None
+
+    class FakeIface:
+        def __init__(self) -> None:
+            self._canvas = FakeCanvas()
+
+        def mapCanvas(self) -> FakeCanvas:
+            return self._canvas
+
+    fake_iface = FakeIface()
+    monkeypatch.setattr(result_layer_store_module, "iface", fake_iface)
+
+    store = result_layer_store_module.OsmResultLayerStore()
+    store.ensure_layers()
+    store.set_show_all_features(False)
+
+    point_layer = store.layers[result_layer_store_module.OsmGeometryType.POINT]
+    provider = point_layer.dataProvider()
+    hidden_feature = QgsFeature(point_layer.fields())
+    hidden_feature.setGeometry(
+        QgsGeometry.fromMultiPointXY([QgsPointXY(30.0, 60.0)])
+    )
+    hidden_feature.setAttributes(
+        [
+            "node",
+            1,
+            0,
+            0,
+            0,
+            None,
+        ]
+    )
+    visible_feature = QgsFeature(point_layer.fields())
+    visible_feature.setGeometry(
+        QgsGeometry.fromMultiPointXY([QgsPointXY(30.1, 60.1)])
+    )
+    visible_feature.setAttributes(
+        [
+            "node",
+            2,
+            0,
+            0,
+            1,
+            None,
+        ]
+    )
+    provider.addFeatures([hidden_feature, visible_feature])
+
+    identified_hits = store.identify(
+        QgsGeometry.fromRect(QgsRectangle(29.9, 59.9, 30.2, 60.2))
+    )
+
+    assert identified_hits == (
+        result_layer_store_module.OsmResultLayerHit(
+            element_type=result_layer_store_module.OsmElementType.NODE,
+            osm_id=2,
+        ),
+    )
+
+    store.unload()
+
+
+def test_result_layer_store_uses_centroid_for_overview_identify(
+    monkeypatch,
+) -> None:
+    from qgis.core import (
+        QgsCoordinateReferenceSystem,
+        QgsFeature,
+        QgsGeometry,
+        QgsPointXY,
+        QgsRectangle,
+    )
+
+    import osminfo.search.result_layer_store as result_layer_store_module
+
+    class FakeSignal:
+        def connect(self, callback) -> None:
+            self._callback = callback
+
+        def disconnect(self, callback) -> None:
+            del callback
+
+        def emit(self, *args) -> None:
+            callback = getattr(self, "_callback", None)
+            if callback is not None:
+                callback(*args)
+
+    class FakeMapSettings:
+        def destinationCrs(self):
+            return QgsCoordinateReferenceSystem.fromEpsgId(4326)
+
+    class FakeCanvas:
+        def __init__(self) -> None:
+            self.layersChanged = FakeSignal()
+            self._layers = []
+
+        def scale(self) -> float:
+            return 1000.0
+
+        def layers(self):
+            return list(self._layers)
+
+        def setLayers(self, layers) -> None:
+            self._layers = list(layers)
+            self.layersChanged.emit()
+
+        def mapSettings(self) -> FakeMapSettings:
+            return FakeMapSettings()
+
+        def refresh(self) -> None:
+            return None
+
+    class FakeIface:
+        def __init__(self) -> None:
+            self._canvas = FakeCanvas()
+
+        def mapCanvas(self) -> FakeCanvas:
+            return self._canvas
+
+    fake_iface = FakeIface()
+    monkeypatch.setattr(result_layer_store_module, "iface", fake_iface)
+
+    store = result_layer_store_module.OsmResultLayerStore()
+    store.ensure_layers()
+
+    polygon_layer = store.layers[
+        result_layer_store_module.OsmGeometryType.POLYGON
+    ]
+    polygon_feature = QgsFeature(polygon_layer.fields())
+    polygon_feature.setGeometry(
+        QgsGeometry.fromMultiPolygonXY(
+            [
+                [
+                    [
+                        QgsPointXY(0.0, 0.0),
+                        QgsPointXY(10.0, 0.0),
+                        QgsPointXY(10.0, 10.0),
+                        QgsPointXY(0.0, 10.0),
+                        QgsPointXY(0.0, 0.0),
+                    ]
+                ]
+            ]
+        )
+    )
+    polygon_feature.setAttributes(
+        [
+            "way",
+            5,
+            0,
+            0,
+            1,
+            250.0,
+        ]
+    )
+    polygon_layer.dataProvider().addFeatures([polygon_feature])
+
+    corner_hits = store.identify(
+        QgsGeometry.fromRect(QgsRectangle(0.0, 0.0, 1.0, 1.0))
+    )
+    centroid_hits = store.identify(
+        QgsGeometry.fromRect(QgsRectangle(4.5, 4.5, 5.5, 5.5))
+    )
+
+    assert corner_hits == tuple()
+    assert centroid_hits == (
+        result_layer_store_module.OsmResultLayerHit(
+            element_type=result_layer_store_module.OsmElementType.WAY,
+            osm_id=5,
+        ),
+    )
+
+    store.unload()

@@ -19,9 +19,12 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, cast
 from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
+    QgsGeometry,
     QgsPointXY,
     QgsProject,
+    QgsRectangle,
 )
+from qgis.gui import QgsMapMouseEvent, QgsMapTool
 from qgis.PyQt.QtCore import (
     QItemSelectionModel,
     QObject,
@@ -31,7 +34,7 @@ from qgis.PyQt.QtCore import (
     pyqtSlot,
 )
 from qgis.PyQt.QtGui import QDesktopServices
-from qgis.PyQt.QtWidgets import QAction, QMainWindow
+from qgis.PyQt.QtWidgets import QAction, QMainWindow, QMenu
 from qgis.utils import iface
 
 from osminfo.core.constants import PLUGIN_NAME, POINT_PRECISION
@@ -44,7 +47,7 @@ from osminfo.core.utils import qgis_locale
 from osminfo.nominatim.geocode_task import GeocodeTask
 from osminfo.openstreetmap.features_parse_task import OverpassFeaturesParseTask
 from osminfo.openstreetmap.features_tree_model import OsmFeaturesTreeModel
-from osminfo.openstreetmap.models import OsmResultGroupType
+from osminfo.openstreetmap.models import OsmElement, OsmResultGroupType
 from osminfo.osminfo_interface import OsmInfoInterface
 from osminfo.overpass.endpoints import OverpassEndpoint
 from osminfo.overpass.query_builder import (
@@ -65,6 +68,7 @@ from osminfo.search.result_clipboard_exporter import (
     OsmResultClipboardExporter,
 )
 from osminfo.search.result_layer_exporter import OsmResultLayerExporter
+from osminfo.search.result_layer_store import OsmResultLayerStore
 from osminfo.search.result_selection import (
     OsmResultSelection,
     OsmResultSelectionItem,
@@ -90,6 +94,7 @@ class OsmInfoSearchManager(QObject):
     _search_panel: Optional[OsmInfoSearchPanel]
     _tool_handler: Optional[OsmInfoToolHandler]
     _results_model: Optional[OsmFeaturesTreeModel]
+    _result_layer_store: Optional[OsmResultLayerStore]
     _result_renderer: Optional[OsmResultsRenderer]
     _clipboard_exporter: Optional[OsmResultClipboardExporter]
     _layer_exporter: Optional[OsmResultLayerExporter]
@@ -111,6 +116,7 @@ class OsmInfoSearchManager(QObject):
         self._search_panel = None
         self._tool_handler = None
         self._results_model = None
+        self._result_layer_store = None
         self._result_renderer = None
         self._clipboard_exporter = None
         self._layer_exporter = None
@@ -131,6 +137,9 @@ class OsmInfoSearchManager(QObject):
             "enclosing": [],
             "search": [],
         }
+        self._context_menu_active_elements: Optional[
+            Tuple[OsmElement, ...]
+        ] = None
         self._is_loading = False
         self._request_feedback_tracker = SearchRequestFeedbackTracker()
 
@@ -174,7 +183,11 @@ class OsmInfoSearchManager(QObject):
             self._on_result_selection_changed
         )
 
-        self._result_renderer = OsmResultsRenderer(self)
+        self._result_layer_store = OsmResultLayerStore(self)
+        self._result_renderer = OsmResultsRenderer(
+            self._result_layer_store,
+            self,
+        )
         self._result_renderer.set_show_all_features(
             settings.show_all_found_features
         )
@@ -194,6 +207,9 @@ class OsmInfoSearchManager(QObject):
             clipboard_exporter=self._clipboard_exporter,
             layer_exporter=self._layer_exporter,
             result_renderer=self._result_renderer,
+        )
+        map_canvas.contextMenuAboutToShow.connect(
+            self._on_map_canvas_context_menu_about_to_show
         )
 
         self._panel_action = QAction(
@@ -225,9 +241,18 @@ class OsmInfoSearchManager(QObject):
 
     def _unload_search_panel(self) -> None:
         self._cancel_active_task()
+        map_canvas = iface.mapCanvas()
+        map_canvas.contextMenuAboutToShow.disconnect(
+            self._on_map_canvas_context_menu_about_to_show
+        )
+
         if self._result_renderer is not None:
             self._result_renderer.unload()
             self._result_renderer = None
+
+        if self._result_layer_store is not None:
+            self._result_layer_store.unload()
+            self._result_layer_store = None
 
         if self._click_renderer is not None:
             self._click_renderer.clear()
@@ -238,6 +263,7 @@ class OsmInfoSearchManager(QObject):
         self._layer_exporter = None
         self._results_menu_builder = None
         self._results_model = None
+        self._context_menu_active_elements = None
 
         if self._search_panel is not None:
             main_window = cast(QMainWindow, iface.mainWindow())
@@ -898,6 +924,91 @@ class OsmInfoSearchManager(QObject):
         menu.exec(
             self._search_panel.results_view.viewport().mapToGlobal(position)
         )
+
+    def _on_map_canvas_context_menu_about_to_show(
+        self,
+        menu: QMenu,
+        event: QgsMapMouseEvent,
+    ) -> None:
+        if (
+            self._result_layer_store is None
+            or self._result_renderer is None
+            or self._results_menu_builder is None
+        ):
+            return
+
+        search_geometry = self._context_menu_search_geometry(event)
+        if search_geometry is None:
+            return
+
+        hits = self._result_layer_store.identify(search_geometry)
+        if len(hits) == 0:
+            return
+
+        elements = self._result_renderer.elements_for_hits(hits)
+        if len(elements) == 0:
+            return
+
+        self._restore_context_menu_active_elements()
+        self._context_menu_active_elements = (
+            self._result_renderer.active_elements()
+        )
+        if len(elements) == 1:
+            self._result_renderer.set_active_elements((elements[0],))
+
+        results_menu = self._results_menu_builder.add_identified_results_menu(
+            menu,
+            elements,
+            hovered_element_handler=self._highlight_context_menu_element,
+            menu_destroyed_handler=self._restore_context_menu_active_elements,
+        )
+        if results_menu is None:
+            self._restore_context_menu_active_elements()
+            return
+
+        first_action = menu.actions()[0] if len(menu.actions()) > 0 else None
+        menu.insertMenu(first_action, results_menu)
+
+    def _context_menu_search_geometry(
+        self,
+        event: QgsMapMouseEvent,
+    ) -> Optional[QgsGeometry]:
+        map_canvas = iface.mapCanvas()
+        if map_canvas is None:
+            return None
+
+        point = map_canvas.getCoordinateTransform().toMapCoordinates(
+            event.pos()
+        )
+        search_radius = QgsMapTool.searchRadiusMU(map_canvas)
+        search_rect = QgsRectangle(
+            point.x() - search_radius,
+            point.y() - search_radius,
+            point.x() + search_radius,
+            point.y() + search_radius,
+        )
+        return QgsGeometry.fromRect(search_rect)
+
+    def _highlight_context_menu_element(
+        self,
+        element: OsmElement,
+    ) -> None:
+        if self._result_renderer is None:
+            return
+
+        self._result_renderer.set_active_elements((element,))
+
+    def _restore_context_menu_active_elements(self) -> None:
+        if (
+            self._result_renderer is None
+            or self._context_menu_active_elements is None
+        ):
+            return
+
+        self._result_renderer.set_active_elements(
+            self._context_menu_active_elements
+        )
+        self._context_menu_active_elements = None
 
     def _result_selection_for_context_menu(
         self,
