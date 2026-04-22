@@ -39,6 +39,8 @@ class OsmInfoSearchPanel(QgsDockWidget):
     search = pyqtSignal(str)
     cancel = pyqtSignal()
     clear_results = pyqtSignal()
+    all_features_visibility_changed = pyqtSignal(bool)
+    small_features_as_points_changed = pyqtSignal(bool)
 
     def __init__(
         self,
@@ -101,6 +103,27 @@ class OsmInfoSearchPanel(QgsDockWidget):
         plugin = OsmInfoInterface.instance()
 
         search_menu = QMenu(self.menu_button)
+
+        self.show_all_features_action = QAction(
+            qgis_icon("mActionHighlightFeature.svg"),
+            self.tr("Show all found features"),
+            self.menu_button,
+        )
+        self.show_all_features_action.setCheckable(True)
+        self.show_all_features_action.triggered.connect(
+            self.all_features_visibility_changed
+        )
+
+        self.small_features_action = QAction(
+            qgis_icon("rendererPointClusterSymbol.svg"),
+            self.tr("Show small features as points"),
+            self.menu_button,
+        )
+        self.small_features_action.setCheckable(True)
+        self.small_features_action.triggered.connect(
+            self.small_features_as_points_changed
+        )
+
         settings_action = QAction(
             qgis_icon("iconSettingsConsole.svg"),
             self.tr("Settings"),
@@ -114,6 +137,9 @@ class OsmInfoSearchPanel(QgsDockWidget):
         )
         about_action.triggered.connect(plugin.open_about_dialog)
 
+        search_menu.addAction(self.show_all_features_action)
+        search_menu.addAction(self.small_features_action)
+        search_menu.addSeparator()
         search_menu.addAction(settings_action)
         search_menu.addAction(about_action)
 
@@ -138,6 +164,12 @@ class OsmInfoSearchPanel(QgsDockWidget):
 
     def save_current_search(self) -> None:
         self.search_combobox.save_current_search()
+
+    def set_show_all_found_features(self, enabled: bool) -> None:
+        self.show_all_features_action.setChecked(enabled)
+
+    def set_show_small_features_as_points(self, enabled: bool) -> None:
+        self.small_features_action.setChecked(enabled)
 
     def set_loading_state(self, is_loading: bool) -> None:
         self.search_combobox.setEnabled(not is_loading)

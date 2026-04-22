@@ -238,6 +238,44 @@ class OsmInfoSettings:
             f"{self.COMPANY_NAME}/{self.PRODUCT}/fetchEnclosing", value
         )
 
+    @property
+    def show_all_found_features(self) -> bool:
+        result = self.__settings.value(
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/renderer/showAllFoundFeatures",
+            defaultValue=True,
+            type=bool,
+        )
+        return result
+
+    @show_all_found_features.setter
+    def show_all_found_features(self, value: bool) -> None:
+        self.__settings.setValue(
+            f"{self.COMPANY_NAME}/{self.PRODUCT}/showAllFoundFeatures",
+            value,
+        )
+
+    @property
+    def show_small_features_as_points(self) -> bool:
+        result = self.__settings.value(
+            (
+                f"{self.COMPANY_NAME}/{self.PRODUCT}/renderer"
+                "/showSmallFeaturesAsPoints"
+            ),
+            defaultValue=True,
+            type=bool,
+        )
+        return result
+
+    @show_small_features_as_points.setter
+    def show_small_features_as_points(self, value: bool) -> None:
+        self.__settings.setValue(
+            (
+                f"{self.COMPANY_NAME}/{self.PRODUCT}/renderer"
+                "/showSmallFeaturesAsPoints"
+            ),
+            value,
+        )
+
     @classmethod
     def __update_settings(cls):
         if cls.__is_updated:

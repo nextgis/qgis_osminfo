@@ -92,6 +92,7 @@ class OsmResultsRenderer(QObject):
             List[Tuple[OsmGeometryType, int]],
         ] = {}
         self._is_centroid_rendering_enabled = True
+        self._show_all_features = True
         self._layer_store = QgsMapLayerStore(self)
         self._is_updating = False
 
@@ -115,6 +116,16 @@ class OsmResultsRenderer(QObject):
             return
 
         self._is_centroid_rendering_enabled = enabled
+        if len(self._layers) == 0:
+            return
+
+        self._refresh_renderers()
+
+    def set_show_all_features(self, enabled: bool) -> None:
+        if self._show_all_features == enabled:
+            return
+
+        self._show_all_features = enabled
         if len(self._layers) == 0:
             return
 
@@ -540,9 +551,11 @@ class OsmResultsRenderer(QObject):
                 self._add_rule(
                     root_rule,
                     self._symbol_for_geometry(geometry_type, **symbol_kwargs),
-                    self._compose_filter(
-                        base_filter,
-                        self._normal_geometry_filter(),
+                    self._visible_filter(
+                        self._compose_filter(
+                            base_filter,
+                            self._normal_geometry_filter(),
+                        )
                     ),
                 )
                 self._add_rule(
@@ -552,9 +565,11 @@ class OsmResultsRenderer(QObject):
                         centroid=True,
                         **symbol_kwargs,
                     ),
-                    self._compose_filter(
-                        base_filter,
-                        self._centroid_geometry_filter(),
+                    self._visible_filter(
+                        self._compose_filter(
+                            base_filter,
+                            self._centroid_geometry_filter(),
+                        )
                     ),
                 )
             return renderer
@@ -563,7 +578,7 @@ class OsmResultsRenderer(QObject):
             self._add_rule(
                 root_rule,
                 self._symbol_for_geometry(geometry_type, **symbol_kwargs),
-                base_filter,
+                self._visible_filter(base_filter),
             )
 
         return renderer
@@ -614,6 +629,12 @@ class OsmResultsRenderer(QObject):
             f'"{FIELD_MAX_SCALE}" IS NOT NULL '
             f'AND @map_scale > "{FIELD_MAX_SCALE}"'
         )
+
+    def _visible_filter(self, base_filter: Optional[str]) -> Optional[str]:
+        if self._show_all_features:
+            return base_filter
+
+        return self._compose_filter(base_filter, f'"{FIELD_ACTIVE}" = 1')
 
     def _compose_filter(
         self,

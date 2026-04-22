@@ -136,11 +136,18 @@ class OsmInfoSearchManager(QObject):
         if self._search_panel is not None:
             return
 
+        settings = OsmInfoSettings()
         main_window = cast(QMainWindow, iface.mainWindow())
         self._search_panel = OsmInfoSearchPanel(PLUGIN_NAME, main_window)
         self._search_panel.search.connect(self._search_by_string)
         self._search_panel.cancel.connect(self._cancel)
         self._search_panel.clear_results.connect(self._clear_results)
+        self._search_panel.all_features_visibility_changed.connect(
+            self._on_show_all_found_features_toggled
+        )
+        self._search_panel.small_features_as_points_changed.connect(
+            self._on_show_small_features_as_points_toggled
+        )
 
         self._results_model = OsmFeaturesTreeModel(self._search_panel)
         self._search_panel.results_view.setModel(self._results_model)
@@ -158,6 +165,12 @@ class OsmInfoSearchManager(QObject):
         )
 
         self._result_renderer = OsmResultsRenderer(self)
+        self._result_renderer.set_show_all_features(
+            settings.show_all_found_features
+        )
+        self._result_renderer.set_centroid_rendering_enabled(
+            settings.show_small_features_as_points
+        )
         self._clipboard_exporter = OsmResultClipboardExporter(self)
         self._layer_exporter = OsmResultLayerExporter(self)
         self._results_menu_builder = OsmResultsContextMenuBuilder(
@@ -172,6 +185,12 @@ class OsmInfoSearchManager(QObject):
         )
         self._panel_action.setIcon(plugin_icon())
         self._search_panel.setToggleVisibilityAction(self._panel_action)
+        self._search_panel.set_show_all_found_features(
+            settings.show_all_found_features
+        )
+        self._search_panel.set_show_small_features_as_points(
+            settings.show_small_features_as_points
+        )
 
         # This action is used in the panel list in QGIS, so we set the icon for it as well
         self._search_panel.toggleViewAction().setIcon(plugin_icon())
@@ -730,6 +749,29 @@ class OsmInfoSearchManager(QObject):
         self._result_renderer.set_active_elements(
             tuple(selected_elements.values())
         )
+
+    @pyqtSlot(bool)
+    def _on_show_all_found_features_toggled(self, enabled: bool) -> None:
+        settings = OsmInfoSettings()
+        settings.show_all_found_features = enabled
+
+        if self._result_renderer is None:
+            return
+
+        self._result_renderer.set_show_all_features(enabled)
+
+    @pyqtSlot(bool)
+    def _on_show_small_features_as_points_toggled(
+        self,
+        enabled: bool,
+    ) -> None:
+        settings = OsmInfoSettings()
+        settings.show_small_features_as_points = enabled
+
+        if self._result_renderer is None:
+            return
+
+        self._result_renderer.set_centroid_rendering_enabled(enabled)
 
     @pyqtSlot()
     def _on_result_activated(self) -> None:
