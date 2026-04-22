@@ -18,6 +18,7 @@ from html import escape
 from typing import Optional
 
 from qgis.PyQt.QtCore import Qt, QTimer, pyqtSignal
+from qgis.PyQt.QtGui import QKeyEvent
 from qgis.PyQt.QtWidgets import (
     QAbstractItemView,
     QHeaderView,
@@ -44,6 +45,7 @@ class OsmInfoResultsView(QTreeView):
     LOADING_STAGE_READING = "reading"
 
     fix_wizard_query = pyqtSignal()
+    clear_selection = pyqtSignal()
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
@@ -96,6 +98,15 @@ class OsmInfoResultsView(QTreeView):
         QTimer.singleShot(0, self._resize_header)
 
         self.set_default_message()
+
+    def keyPressEvent(self, event: Optional[QKeyEvent]) -> None:
+        assert event is not None
+        if event.key() == Qt.Key.Key_Escape:
+            self.clear_selection.emit()
+            event.accept()
+            return
+
+        super().keyPressEvent(event)
 
     def show_root_level(self) -> None:
         model = self.model()

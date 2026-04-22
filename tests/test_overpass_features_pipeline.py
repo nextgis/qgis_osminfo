@@ -26,7 +26,7 @@ from typing import Any, Dict, cast
 import pytest
 
 
-def _import_search_manager():
+def _import_search_manager(monkeypatch):
     query_builder_module = types.ModuleType("osminfo.overpass.query_builder")
     query_builder_module.__path__ = []
     query_builder_module_any = cast(Any, query_builder_module)
@@ -43,19 +43,29 @@ def _import_search_manager():
     query_builder_module_any.QueryBuilder = QueryBuilder
     query_builder_module_any.QueryContext = QueryContext
     query_builder_module_any.QueryPostprocessor = QueryPostprocessor
-    sys.modules["osminfo.overpass.query_builder"] = query_builder_module
+    monkeypatch.setitem(
+        sys.modules,
+        "osminfo.overpass.query_builder",
+        query_builder_module,
+    )
 
     query_context_module = types.ModuleType(
         "osminfo.overpass.query_builder.query_context"
     )
     query_context_module_any = cast(Any, query_context_module)
     query_context_module_any.QueryContext = QueryContext
-    sys.modules["osminfo.overpass.query_builder.query_context"] = (
-        query_context_module
+    monkeypatch.setitem(
+        sys.modules,
+        "osminfo.overpass.query_builder.query_context",
+        query_context_module,
     )
 
-    sys.modules.pop("osminfo.search.search_manager", None)
-    sys.modules.pop("osminfo.nominatim.geocode_task", None)
+    monkeypatch.delitem(
+        sys.modules, "osminfo.search.search_manager", raising=False
+    )
+    monkeypatch.delitem(
+        sys.modules, "osminfo.nominatim.geocode_task", raising=False
+    )
 
     from osminfo.search.search_manager import OsmInfoSearchManager
 
@@ -1595,48 +1605,10 @@ def test_result_layer_store_uses_centroid_for_overview_identify(
     store.unload()
 
 
-def test_identified_results_menu_places_select_action_first() -> None:
-    from unittest.mock import Mock
-
-    from qgis.PyQt.QtWidgets import QMenu
-
-    from osminfo.openstreetmap.models import OsmElement, OsmElementType
-    from osminfo.search.results_context_menu import (
-        OsmResultsContextMenuBuilder,
-    )
-
-    selected_elements = []
-    layer_exporter = Mock()
-    layer_exporter.can_save_in_selected_layer.return_value = True
-    builder = OsmResultsContextMenuBuilder(
-        clipboard_exporter=Mock(),
-        layer_exporter=layer_exporter,
-        result_renderer=Mock(),
-    )
-    menu = QMenu()
-    element = OsmElement(
-        osm_id=99,
-        element_type=OsmElementType.NODE,
-        title="Selected",
-    )
-
-    results_menu = builder.add_identified_results_menu(
-        menu,
-        (element,),
-        select_element_handler=selected_elements.append,
-    )
-
-    assert results_menu is not None
-    assert results_menu.actions()[0].text() == builder.tr(
-        "Select feature in search panel"
-    )
-
-    results_menu.actions()[0].trigger()
-
-    assert selected_elements == [element]
-
-
-def test_search_manager_selects_requested_result_in_panel(qgis_iface) -> None:
+def test_search_manager_selects_requested_result_in_panel(
+    monkeypatch,
+    qgis_iface,
+) -> None:
     from qgis.core import QgsGeometry, QgsPointXY
 
     from osminfo.openstreetmap.features_tree_model import OsmFeaturesTreeModel
@@ -1685,7 +1657,7 @@ def test_search_manager_selects_requested_result_in_panel(qgis_iface) -> None:
     results_view = OsmInfoResultsView(qgis_iface.mainWindow())
     results_view.setModel(model)
     panel = PanelStub(results_view)
-    OsmInfoSearchManager = _import_search_manager()
+    OsmInfoSearchManager = _import_search_manager(monkeypatch)
     manager = OsmInfoSearchManager(cast(Any, None))
     manager._search_panel = cast(Any, panel)
     manager._results_model = model
@@ -1747,9 +1719,12 @@ def test_tree_model_returns_index_for_element() -> None:
     assert model.osm_element_for_index(result_index) == second_element
 
 
-def test_search_manager_context_menu_selection_updates_renderer(
+def test_search_manager_map_context_menu_selection_includes_copy_action(
+    monkeypatch,
     qgis_iface,
 ) -> None:
+    from unittest.mock import Mock
+
     from qgis.core import QgsGeometry, QgsPointXY
 
     from osminfo.openstreetmap.features_tree_model import OsmFeaturesTreeModel
@@ -1759,6 +1734,9 @@ def test_search_manager_context_menu_selection_updates_renderer(
         OsmResultGroup,
         OsmResultGroupType,
         OsmResultTree,
+    )
+    from osminfo.search.results_context_menu import (
+        OsmResultsContextMenuBuilder,
     )
     from osminfo.search.ui.results_view import OsmInfoResultsView
 
@@ -1770,21 +1748,92 @@ def test_search_manager_context_menu_selection_updates_renderer(
         def setUserVisible(self, is_visible: bool) -> None:
             self.visible_states.append(is_visible)
 
-    class RendererStub:
-        def __init__(self) -> None:
-            self.active = tuple()
+    element = OsmElement(
+        osm_id=223,
+        element_type=OsmElementType.NODE,
+        title="Selected",
+        geometry=QgsGeometry.fromPointXY(QgsPointXY(31.0, 61.0)),
+    )
 
-        def set_active_elements(self, elements) -> None:
-            self.active = tuple(elements)
+    model = OsmFeaturesTreeModel()
+    model.set_result_tree(
+        OsmResultTree(
+            groups=(
+                OsmResultGroup(
+                    group_type=OsmResultGroupType.SEARCH,
+                    title="Search results",
+                    elements=(element,),
+                ),
+            )
+        )
+    )
+    results_view = OsmInfoResultsView(qgis_iface.mainWindow())
+    results_view.setModel(model)
+    panel = PanelStub(results_view)
+    OsmInfoSearchManager = _import_search_manager(monkeypatch)
+    manager = OsmInfoSearchManager(cast(Any, None))
+    manager._search_panel = cast(Any, panel)
+    manager._results_model = model
+
+    selection = manager._selection_for_map_context_menu_elements((element,))
+    assert selection is not None
+
+    layer_exporter = Mock()
+    layer_exporter.can_save_in_selected_layer.return_value = True
+    builder = OsmResultsContextMenuBuilder(
+        clipboard_exporter=Mock(),
+        layer_exporter=layer_exporter,
+        result_renderer=Mock(),
+    )
+    menu = builder.build_menu(qgis_iface.mainWindow(), selection)
+
+    assert menu is not None
+    assert any(
+        action.text() == builder.tr("Copy feature to clipboard")
+        for action in menu.actions()
+    )
+    selected_indexes = results_view.selectionModel().selectedRows(0)
+    assert len(selected_indexes) == 1
+    assert model.osm_element_for_index(selected_indexes[0]) == element
+
+
+def test_search_manager_map_context_menu_reuses_existing_multi_selection(
+    monkeypatch,
+    qgis_iface,
+) -> None:
+    from unittest.mock import Mock
+
+    from qgis.core import QgsGeometry, QgsPointXY
+
+    from osminfo.openstreetmap.features_tree_model import OsmFeaturesTreeModel
+    from osminfo.openstreetmap.models import (
+        OsmElement,
+        OsmElementType,
+        OsmResultGroup,
+        OsmResultGroupType,
+        OsmResultTree,
+    )
+    from osminfo.search.results_context_menu import (
+        OsmResultsContextMenuBuilder,
+    )
+    from osminfo.search.ui.results_view import OsmInfoResultsView
+
+    class PanelStub:
+        def __init__(self, results_view) -> None:
+            self.results_view = results_view
+            self.visible_states = []
+
+        def setUserVisible(self, is_visible: bool) -> None:
+            self.visible_states.append(is_visible)
 
     first_element = OsmElement(
-        osm_id=221,
+        osm_id=224,
         element_type=OsmElementType.NODE,
         title="First",
         geometry=QgsGeometry.fromPointXY(QgsPointXY(30.0, 60.0)),
     )
     second_element = OsmElement(
-        osm_id=222,
+        osm_id=225,
         element_type=OsmElementType.NODE,
         title="Second",
         geometry=QgsGeometry.fromPointXY(QgsPointXY(31.0, 61.0)),
@@ -1805,24 +1854,50 @@ def test_search_manager_context_menu_selection_updates_renderer(
     results_view = OsmInfoResultsView(qgis_iface.mainWindow())
     results_view.setModel(model)
     panel = PanelStub(results_view)
-    renderer = RendererStub()
-    OsmInfoSearchManager = _import_search_manager()
+    OsmInfoSearchManager = _import_search_manager(monkeypatch)
     manager = OsmInfoSearchManager(cast(Any, None))
     manager._search_panel = cast(Any, panel)
     manager._results_model = model
-    manager._result_renderer = cast(Any, renderer)
+    manager._select_result_elements((first_element, second_element))
 
-    manager._select_result_element(first_element)
-    manager._on_result_selection_changed()
-    manager._context_menu_active_elements = (first_element,)
-    manager._highlight_context_menu_element(second_element)
+    selection = manager._selection_for_map_context_menu_elements(
+        (first_element,)
+    )
+    assert selection is not None
 
-    is_selected = manager._select_context_menu_element(second_element)
-    manager._restore_context_menu_active_elements()
+    layer_exporter = Mock()
+    layer_exporter.can_save_in_selected_layer.return_value = True
+    builder = OsmResultsContextMenuBuilder(
+        clipboard_exporter=Mock(),
+        layer_exporter=layer_exporter,
+        result_renderer=Mock(),
+    )
+    menu = builder.build_menu(qgis_iface.mainWindow(), selection)
+    action_states = {
+        action.text(): action.isEnabled() for action in menu.actions()
+    }
 
-    assert is_selected is True
-    assert renderer.active == (second_element,)
-    assert manager._context_menu_active_elements is None
+    assert [item.element for item in selection.items] == [
+        first_element,
+        second_element,
+    ]
+    assert any(
+        action.text() == builder.tr("Copy features to clipboard")
+        for action in menu.actions()
+    )
+    assert action_states[builder.tr("Open in OpenStreetMap")] is False
+    assert action_states[builder.tr("Copy OpenStreetMap URL")] is False
+    selected_element_keys = {
+        (
+            model.osm_element_for_index(index).element_type.value,
+            model.osm_element_for_index(index).osm_id,
+        )
+        for index in results_view.selectionModel().selectedRows(0)
+    }
+    assert selected_element_keys == {
+        (first_element.element_type.value, first_element.osm_id),
+        (second_element.element_type.value, second_element.osm_id),
+    }
 
 
 def test_search_manager_ctrl_click_adds_identified_result_to_selection(
@@ -1878,7 +1953,7 @@ def test_search_manager_ctrl_click_adds_identified_result_to_selection(
     results_view = OsmInfoResultsView(qgis_iface.mainWindow())
     results_view.setModel(model)
     panel = PanelStub(results_view)
-    OsmInfoSearchManager = _import_search_manager()
+    OsmInfoSearchManager = _import_search_manager(monkeypatch)
     manager = OsmInfoSearchManager(cast(Any, None))
     manager._search_panel = cast(Any, panel)
     manager._results_model = model
@@ -1908,6 +1983,71 @@ def test_search_manager_ctrl_click_adds_identified_result_to_selection(
     assert panel.visible_states == [True, True]
 
 
+def test_search_manager_ctrl_click_toggles_selected_result_off(
+    monkeypatch,
+    qgis_iface,
+) -> None:
+    from qgis.core import QgsGeometry, QgsPointXY
+    from qgis.PyQt.QtCore import QPoint
+
+    from osminfo.openstreetmap.features_tree_model import OsmFeaturesTreeModel
+    from osminfo.openstreetmap.models import (
+        OsmElement,
+        OsmElementType,
+        OsmResultGroup,
+        OsmResultGroupType,
+        OsmResultTree,
+    )
+    from osminfo.search.ui.results_view import OsmInfoResultsView
+
+    class PanelStub:
+        def __init__(self, results_view) -> None:
+            self.results_view = results_view
+            self.visible_states = []
+
+        def setUserVisible(self, is_visible: bool) -> None:
+            self.visible_states.append(is_visible)
+
+    element = OsmElement(
+        osm_id=303,
+        element_type=OsmElementType.NODE,
+        title="Selected",
+        geometry=QgsGeometry.fromPointXY(QgsPointXY(31.0, 61.0)),
+    )
+
+    model = OsmFeaturesTreeModel()
+    model.set_result_tree(
+        OsmResultTree(
+            groups=(
+                OsmResultGroup(
+                    group_type=OsmResultGroupType.SEARCH,
+                    title="Search results",
+                    elements=(element,),
+                ),
+            )
+        )
+    )
+    results_view = OsmInfoResultsView(qgis_iface.mainWindow())
+    results_view.setModel(model)
+    panel = PanelStub(results_view)
+    OsmInfoSearchManager = _import_search_manager(monkeypatch)
+    manager = OsmInfoSearchManager(cast(Any, None))
+    manager._search_panel = cast(Any, panel)
+    manager._results_model = model
+    manager._select_result_element(element)
+    monkeypatch.setattr(
+        manager,
+        "_identify_result_elements_at_position",
+        lambda position: (element,),
+    )
+
+    manager._on_append_identified_results(QPoint(12, 18))
+
+    assert results_view.selectionModel().selectedRows(0) == []
+    assert not results_view.currentIndex().isValid()
+    assert panel.visible_states == [True, True]
+
+
 def test_map_tool_ctrl_click_emits_append_selection_signal(qgis_iface) -> None:
     from qgis.PyQt.QtCore import QPoint, Qt
 
@@ -1933,7 +2073,7 @@ def test_map_tool_ctrl_click_emits_append_selection_signal(qgis_iface) -> None:
     appended_positions = []
     identified_points = []
     event = FakeMouseEvent(QPoint(24, 36))
-    tool.append_identified_results.connect(appended_positions.append)
+    tool.toggle_selection.connect(appended_positions.append)
     tool.identify_point.connect(identified_points.append)
 
     tool.canvasPressEvent(cast(Any, event))
@@ -1941,3 +2081,50 @@ def test_map_tool_ctrl_click_emits_append_selection_signal(qgis_iface) -> None:
 
     assert appended_positions == [QPoint(24, 36)]
     assert identified_points == []
+
+
+def test_map_tool_escape_emits_clear_results_signal(qgis_iface) -> None:
+    from qgis.PyQt.QtCore import Qt
+
+    from osminfo.search.identification.tool import OsmInfoMapTool
+
+    class FakeKeyEvent:
+        def __init__(self) -> None:
+            self.accepted = False
+
+        def key(self):
+            return Qt.Key.Key_Escape
+
+        def accept(self) -> None:
+            self.accepted = True
+
+    tool = OsmInfoMapTool(qgis_iface.mapCanvas())
+    cleared = []
+    event = FakeKeyEvent()
+    tool.clear_selection.connect(lambda: cleared.append(True))
+
+    tool.keyPressEvent(cast(Any, event))
+
+    assert cleared == [True]
+    assert event.accepted is True
+
+
+def test_results_view_escape_emits_clear_selection_signal(qgis_iface) -> None:
+    from qgis.PyQt.QtCore import QEvent, Qt
+    from qgis.PyQt.QtGui import QKeyEvent
+
+    from osminfo.search.ui.results_view import OsmInfoResultsView
+
+    view = OsmInfoResultsView(qgis_iface.mainWindow())
+    cleared = []
+    event = QKeyEvent(
+        QEvent.Type.KeyPress,
+        Qt.Key.Key_Escape,
+        Qt.KeyboardModifier.NoModifier,
+    )
+    view.clear_selection.connect(lambda: cleared.append(True))
+
+    view.keyPressEvent(event)
+
+    assert cleared == [True]
+    assert event.isAccepted() is True

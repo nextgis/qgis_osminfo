@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, cast
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, cast
 
 from qgis.core import (
     QgsCoordinateReferenceSystem,
@@ -27,6 +27,7 @@ from qgis.core import (
 from qgis.gui import QgsMapMouseEvent, QgsMapTool
 from qgis.PyQt.QtCore import (
     QItemSelectionModel,
+    QModelIndex,
     QObject,
     QPoint,
     Qt,
@@ -137,9 +138,6 @@ class OsmInfoSearchManager(QObject):
             "enclosing": [],
             "search": [],
         }
-        self._context_menu_active_elements: Optional[
-            Tuple[OsmElement, ...]
-        ] = None
         self._is_loading = False
         self._request_feedback_tracker = SearchRequestFeedbackTracker()
 
@@ -178,6 +176,9 @@ class OsmInfoSearchManager(QObject):
         )
         self._search_panel.results_view.fix_wizard_query.connect(
             self._apply_repaired_search
+        )
+        self._search_panel.results_view.clear_selection.connect(
+            self._clear_result_selection
         )
         self._search_panel.results_view.selectionModel().selectionChanged.connect(
             self._on_result_selection_changed
@@ -263,7 +264,6 @@ class OsmInfoSearchManager(QObject):
         self._layer_exporter = None
         self._results_menu_builder = None
         self._results_model = None
-        self._context_menu_active_elements = None
 
         if self._search_panel is not None:
             main_window = cast(QMainWindow, iface.mainWindow())
@@ -293,8 +293,11 @@ class OsmInfoSearchManager(QObject):
 
         self._identify_tool = OsmInfoMapTool(iface.mapCanvas())
         self._identify_tool.identify_point.connect(self._on_identify_point)
-        self._identify_tool.append_identified_results.connect(
+        self._identify_tool.toggle_selection.connect(
             self._on_append_identified_results
+        )
+        self._identify_tool.clear_selection.connect(
+            self._clear_result_selection
         )
 
         self._tool_handler = OsmInfoToolHandler(
@@ -335,7 +338,22 @@ class OsmInfoSearchManager(QObject):
         if len(elements) == 0:
             return
 
-        self._select_result_element(elements[0], clear_selection=False)
+        self._toggle_result_element(elements[0])
+
+    @pyqtSlot()
+    def _clear_result_selection(self) -> None:
+        if self._search_panel is None:
+            return
+
+        selection_model = self._search_panel.results_view.selectionModel()
+        selection_model.clearSelection()
+        selection_model.setCurrentIndex(
+            QModelIndex(),
+            QItemSelectionModel.SelectionFlag.NoUpdate,
+        )
+
+        if self._result_renderer is not None:
+            self._result_renderer.set_active_elements(tuple())
 
     @pyqtSlot(str)
     def _search_by_string(self, search_text: str) -> None:
@@ -960,24 +978,16 @@ class OsmInfoSearchManager(QObject):
         if len(elements) == 0:
             return
 
-        self._restore_context_menu_active_elements()
-        self._context_menu_active_elements = (
-            self._result_renderer.active_elements()
-        )
-        if len(elements) == 1:
-            self._result_renderer.set_active_elements((elements[0],))
-
-        results_menu = self._results_menu_builder.add_identified_results_menu(
-            menu,
-            elements,
-            select_element_handler=self._select_context_menu_element,
-            hovered_element_handler=self._highlight_context_menu_element,
-            menu_destroyed_handler=self._restore_context_menu_active_elements,
-        )
-        if results_menu is None:
-            self._restore_context_menu_active_elements()
+        selection = self._selection_for_map_context_menu_elements(elements)
+        if selection is None:
             return
 
+        results_menu = self._results_menu_builder.build_menu(menu, selection)
+        if results_menu is None:
+            return
+
+        results_menu.setTitle(PLUGIN_NAME)
+        results_menu.setIcon(plugin_icon())
         first_action = menu.actions()[0] if len(menu.actions()) > 0 else None
         menu.insertMenu(first_action, results_menu)
 
@@ -1022,27 +1032,6 @@ class OsmInfoSearchManager(QObject):
 
         return self._result_renderer.elements_for_hits(hits)
 
-    def _highlight_context_menu_element(
-        self,
-        element: OsmElement,
-    ) -> None:
-        if self._result_renderer is None:
-            return
-
-        self._result_renderer.set_active_elements((element,))
-
-    def _restore_context_menu_active_elements(self) -> None:
-        if (
-            self._result_renderer is None
-            or self._context_menu_active_elements is None
-        ):
-            return
-
-        self._result_renderer.set_active_elements(
-            self._context_menu_active_elements
-        )
-        self._context_menu_active_elements = None
-
     def _result_selection_for_context_menu(
         self,
         position: QPoint,
@@ -1061,31 +1050,26 @@ class OsmInfoSearchManager(QObject):
             clicked_row_index.row(),
             clicked_row_index.parent(),
         ):
-            selection_flag = cast(
-                Any,
-                getattr(
-                    QItemSelectionModel,
-                    "SelectionFlag",
-                    QItemSelectionModel,
-                ),
-            )
+            selection_flag = QItemSelectionModel.SelectionFlag
             selection_model.select(
                 clicked_row_index,
                 selection_flag.ClearAndSelect | selection_flag.Rows,
             )
             results_view.setCurrentIndex(clicked_row_index)
 
-        return self._current_result_selection(clicked_row_index)
+        selected_indexes = selection_model.selectedRows(0)
+        return self._selection_from_indexes(
+            selected_indexes, clicked_row_index
+        )
 
-    def _current_result_selection(
+    def _selection_from_indexes(
         self,
-        clicked_index,
+        selected_indexes,
+        clicked_index=None,
     ) -> Optional[OsmResultSelection]:
         if self._search_panel is None or self._results_model is None:
             return None
 
-        selection_model = self._search_panel.results_view.selectionModel()
-        selected_indexes = selection_model.selectedRows(0)
         selected_items_by_key: Dict[
             Tuple[str, int], OsmResultSelectionItem
         ] = {}
@@ -1104,27 +1088,75 @@ class OsmInfoSearchManager(QObject):
                 element=osm_element,
             )
 
-        clicked_element = self._results_model.osm_element_for_index(
-            clicked_index
-        )
         clicked_item: Optional[OsmResultSelectionItem] = None
-        if clicked_element is not None:
-            clicked_item = OsmResultSelectionItem(
-                element=clicked_element,
+        clicked_tag_links = tuple()
+        if clicked_index is not None:
+            clicked_element = self._results_model.osm_element_for_index(
+                clicked_index
+            )
+            if clicked_element is not None:
+                clicked_item = OsmResultSelectionItem(
+                    element=clicked_element,
+                )
+
+            clicked_tag_links = self._results_model.tag_links_for_index(
+                clicked_index
             )
 
         selection = OsmResultSelection(
             items=tuple(selected_items_by_key.values()),
             clicked_item=clicked_item,
-            clicked_tag_links=self._results_model.tag_links_for_index(
-                clicked_index
-            ),
+            clicked_tag_links=clicked_tag_links,
             selected_row_count=len(selected_indexes),
         )
         if not selection.has_elements:
             return None
 
         return selection
+
+    def _selection_for_map_context_menu_elements(
+        self,
+        elements: Tuple[OsmElement, ...],
+    ) -> Optional[OsmResultSelection]:
+        current_selection = self._current_selected_result_selection()
+        if self._should_use_current_selection_for_map_menu(
+            current_selection,
+            elements,
+        ):
+            return current_selection
+
+        is_selected = self._select_result_elements(elements)
+        if not is_selected:
+            return None
+
+        return self._current_selected_result_selection()
+
+    def _current_selected_result_selection(
+        self,
+    ) -> Optional[OsmResultSelection]:
+        if self._search_panel is None or self._results_model is None:
+            return None
+
+        selection_model = self._search_panel.results_view.selectionModel()
+        return self._selection_from_indexes(selection_model.selectedRows(0))
+
+    def _should_use_current_selection_for_map_menu(
+        self,
+        selection: Optional[OsmResultSelection],
+        elements: Tuple[OsmElement, ...],
+    ) -> bool:
+        if selection is None or not selection.has_multiple_elements:
+            return False
+
+        selected_keys = {
+            (item.element.element_type.value, item.element.osm_id)
+            for item in selection.items
+        }
+        element_keys = {
+            (element.element_type.value, element.osm_id)
+            for element in elements
+        }
+        return len(selected_keys & element_keys) > 0
 
     def _select_result_element(
         self,
@@ -1153,13 +1185,81 @@ class OsmInfoSearchManager(QObject):
         self._search_panel.setUserVisible(True)
         return True
 
-    def _select_context_menu_element(self, element: OsmElement) -> bool:
-        is_selected = self._select_result_element(element)
-        if not is_selected:
+    def _select_result_elements(
+        self,
+        elements: Tuple[OsmElement, ...],
+    ) -> bool:
+        if self._search_panel is None or self._results_model is None:
             return False
 
-        self._context_menu_active_elements = None
-        self._on_result_selection_changed()
+        selection_model = self._search_panel.results_view.selectionModel()
+        selection_flag = QItemSelectionModel.SelectionFlag
+        current_index = QModelIndex()
+        has_selected_elements = False
+        selected_keys = set()
+
+        for element in elements:
+            element_key = (element.element_type.value, element.osm_id)
+            if element_key in selected_keys:
+                continue
+
+            result_index = self._results_model.index_for_element(element)
+            if result_index is None:
+                continue
+
+            selection_mode = selection_flag.Select | selection_flag.Rows
+            if not has_selected_elements:
+                selection_mode |= selection_flag.ClearAndSelect
+
+            selection_model.select(result_index, selection_mode)
+            current_index = result_index
+            has_selected_elements = True
+            selected_keys.add(element_key)
+
+        if not has_selected_elements:
+            return False
+
+        selection_model.setCurrentIndex(
+            current_index,
+            selection_flag.NoUpdate,
+        )
+        self._search_panel.results_view.scrollTo(current_index)
+        self._search_panel.setUserVisible(True)
+        return True
+
+    def _toggle_result_element(self, element: OsmElement) -> bool:
+        if self._search_panel is None or self._results_model is None:
+            return False
+
+        result_index = self._results_model.index_for_element(element)
+        if result_index is None:
+            return False
+
+        selection_model = self._search_panel.results_view.selectionModel()
+        selection_flag = QItemSelectionModel.SelectionFlag
+        is_selected = selection_model.isRowSelected(
+            result_index.row(),
+            result_index.parent(),
+        )
+        if not is_selected:
+            return self._select_result_element(element, clear_selection=False)
+
+        selection_model.select(
+            result_index,
+            selection_flag.Deselect | selection_flag.Rows,
+        )
+
+        selected_indexes = selection_model.selectedRows(0)
+        current_index = (
+            selected_indexes[-1]
+            if len(selected_indexes) > 0
+            else QModelIndex()
+        )
+        selection_model.setCurrentIndex(
+            current_index,
+            selection_flag.NoUpdate,
+        )
+        self._search_panel.setUserVisible(True)
         return True
 
     def _show_error(self, message: str) -> None:

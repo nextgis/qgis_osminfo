@@ -24,7 +24,7 @@ from qgis.core import (
 )
 from qgis.gui import QgsMapCanvas, QgsMapMouseEvent, QgsMapTool
 from qgis.PyQt.QtCore import QPoint, Qt, pyqtSignal, pyqtSlot
-from qgis.PyQt.QtGui import QCursor
+from qgis.PyQt.QtGui import QCursor, QKeyEvent
 
 from osminfo.core.constants import POINT_PRECISION
 from osminfo.core.logging import logger
@@ -35,8 +35,8 @@ class OsmInfoMapTool(QgsMapTool):
     """A tool for identifying openstreetmap objects by clicking on the map canvas"""
 
     identify_point = pyqtSignal(QgsPointXY)
-    append_identified_results = pyqtSignal(QPoint)
-    clear_results = pyqtSignal()
+    toggle_selection = pyqtSignal(QPoint)
+    clear_selection = pyqtSignal()
 
     _cursor: QCursor
     _pressed_position: Optional[QPoint]
@@ -116,7 +116,7 @@ class OsmInfoMapTool(QgsMapTool):
         if self._is_pan_action_started:
             self.__pan_action_end(event.pos())
         elif bool(event.modifiers() & Qt.KeyboardModifier.ControlModifier):
-            self.append_identified_results.emit(QPoint(event.pos()))
+            self.toggle_selection.emit(QPoint(event.pos()))
         else:
             self.__process_point(event.pos())
 
@@ -124,6 +124,15 @@ class OsmInfoMapTool(QgsMapTool):
         self._last_position = None
 
         self.canvas().setCursor(self._cursor)
+
+    def keyPressEvent(self, e: Optional[QKeyEvent]) -> None:
+        assert e is not None
+        if e.key() == Qt.Key.Key_Escape:
+            self.clear_selection.emit()
+            e.accept()
+            return
+
+        super().keyPressEvent(e)
 
     def __pan_action_start(self, release_point: QPoint) -> None:
         if self._is_pan_action_started:
