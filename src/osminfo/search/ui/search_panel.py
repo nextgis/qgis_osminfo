@@ -17,7 +17,7 @@
 from typing import Optional
 
 from qgis.gui import QgsDockWidget
-from qgis.PyQt.QtCore import Qt, pyqtSignal, pyqtSlot
+from qgis.PyQt.QtCore import Qt, QTimer, pyqtSignal, pyqtSlot
 from qgis.PyQt.QtWidgets import (
     QAction,
     QHBoxLayout,
@@ -27,6 +27,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from osminfo.core.logging import logger
 from osminfo.osminfo_interface import OsmInfoInterface
 from osminfo.search.ui.nextgis_banner import NextGisBannerWidget
 from osminfo.search.ui.results_view import OsmInfoResultsView
@@ -38,6 +39,7 @@ from osminfo.ui.loading_tool_button import LoadingToolButton
 class OsmInfoSearchPanel(QgsDockWidget):
     search = pyqtSignal(str)
     cancel = pyqtSignal()
+    visibility_changed = pyqtSignal(bool)
     clear_results = pyqtSignal()
     all_features_visibility_changed = pyqtSignal(bool)
     small_features_as_points_changed = pyqtSignal(bool)
@@ -154,6 +156,10 @@ class OsmInfoSearchPanel(QgsDockWidget):
 
         self.banner_widget = NextGisBannerWidget(self)
         self._main_layout.addWidget(self.banner_widget)
+        self._updated_visibility = False
+        self._is_visible = False
+
+        self.visibilityChanged.connect(self._log_visibility_change)
 
     @property
     def search_text(self) -> str:
@@ -182,3 +188,18 @@ class OsmInfoSearchPanel(QgsDockWidget):
     @pyqtSlot()
     def _emit_search_requested(self) -> None:
         self.search.emit(self.search_text)
+
+    def _log_visibility_change(self, is_enabled: bool) -> None:
+        self._updated_visibility = is_enabled
+        QTimer.singleShot(100, self._emit_visibility_changed)
+
+    @pyqtSlot()
+    def _emit_visibility_changed(self) -> None:
+        if self._is_visible == self._updated_visibility:
+            return
+
+        logger.debug(
+            f"Search panel visibility changed: {self._updated_visibility}"
+        )
+        self._is_visible = self._updated_visibility
+        self.visibility_changed.emit(self._updated_visibility)

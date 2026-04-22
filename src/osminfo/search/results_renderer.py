@@ -95,6 +95,7 @@ class OsmResultsRenderer(QObject):
         self._show_all_features = True
         self._layer_store = QgsMapLayerStore(self)
         self._is_updating = False
+        self._is_visible = True
 
         map_canvas = iface.mapCanvas()
         map_canvas.layersChanged.connect(self._on_layers_changed)
@@ -130,6 +131,16 @@ class OsmResultsRenderer(QObject):
             return
 
         self._refresh_renderers()
+
+    def set_visible(self, visible: bool) -> None:
+        if self._is_visible == visible:
+            return
+
+        self._is_visible = visible
+        if len(self._layers) == 0:
+            return
+
+        self._apply_canvas_layers()
 
     def set_result_tree(self, result_tree: OsmResultTree) -> None:
         self._elements = {}
@@ -242,9 +253,11 @@ class OsmResultsRenderer(QObject):
         map_canvas = iface.mapCanvas()
         self._is_updating = True
         try:
-            map_canvas.setLayers(
-                self._ordered_layers() + self._base_canvas_layers()
-            )
+            canvas_layers: List[QgsMapLayer] = self._base_canvas_layers()
+            if self._is_visible:
+                canvas_layers = self._ordered_layers() + canvas_layers
+
+            map_canvas.setLayers(canvas_layers)
         finally:
             self._is_updating = False
         map_canvas.refresh()

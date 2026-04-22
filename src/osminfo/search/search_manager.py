@@ -171,6 +171,9 @@ class OsmInfoSearchManager(QObject):
         self._result_renderer.set_centroid_rendering_enabled(
             settings.show_small_features_as_points
         )
+        self._search_panel.visibility_changed.connect(
+            self._result_renderer.set_visible
+        )
         self._clipboard_exporter = OsmResultClipboardExporter(self)
         self._layer_exporter = OsmResultLayerExporter(self)
         self._results_menu_builder = OsmResultsContextMenuBuilder(
@@ -203,6 +206,8 @@ class OsmInfoSearchManager(QObject):
                 Qt.DockWidgetArea.RightDockWidgetArea,
                 self._search_panel,
             )
+
+        self._result_renderer.set_visible(self._search_panel.isVisible())
 
     def _unload_search_panel(self) -> None:
         self._cancel_active_task()
