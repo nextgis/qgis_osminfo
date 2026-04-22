@@ -244,6 +244,7 @@ class OsmInfoSearchManager(QObject):
         self._tool_action.setIcon(plugin_icon("mActionIdentify.svg"))
         iface.addPluginToWebMenu(PLUGIN_NAME, self._tool_action)
         iface.addWebToolBarIcon(self._tool_action)
+        self._search_panel.set_map_tool_action(self._tool_action)
 
         self._identify_tool = OsmInfoMapTool(iface.mapCanvas())
         self._identify_tool.identify_point.connect(self._on_identify_point)
