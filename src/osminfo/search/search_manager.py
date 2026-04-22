@@ -715,6 +715,7 @@ class OsmInfoSearchManager(QObject):
         if self._search_panel is not None:
             self._search_panel.results_view.clear_message()
             self._search_panel.results_view.show_root_level()
+            self._select_first_result()
 
     @pyqtSlot()
     def _on_parse_task_terminated(self) -> None:
@@ -754,6 +755,42 @@ class OsmInfoSearchManager(QObject):
         self._result_renderer.set_active_elements(
             tuple(selected_elements.values())
         )
+
+    def _select_first_result(self) -> None:
+        if self._search_panel is None or self._results_model is None:
+            return
+
+        first_result_index = self._first_result_index()
+        if first_result_index is None:
+            return
+
+        results_view = self._search_panel.results_view
+        selection_model = results_view.selectionModel()
+        selection_flag = QItemSelectionModel.SelectionFlag
+        selection_model.select(
+            first_result_index,
+            selection_flag.ClearAndSelect | selection_flag.Rows,
+        )
+        results_view.setCurrentIndex(first_result_index)
+        results_view.scrollTo(first_result_index)
+
+    def _first_result_index(self):
+        if self._results_model is None:
+            return None
+
+        for group_row in range(self._results_model.rowCount()):
+            group_index = self._results_model.index(group_row, 0)
+            if not group_index.isValid():
+                continue
+
+            if self._results_model.rowCount(group_index) == 0:
+                continue
+
+            feature_index = self._results_model.index(0, 0, group_index)
+            if feature_index.isValid():
+                return feature_index
+
+        return None
 
     @pyqtSlot(bool)
     def _on_show_all_found_features_toggled(self, enabled: bool) -> None:
