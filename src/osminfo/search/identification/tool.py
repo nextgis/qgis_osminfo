@@ -35,6 +35,7 @@ class OsmInfoMapTool(QgsMapTool):
     """A tool for identifying openstreetmap objects by clicking on the map canvas"""
 
     identify_point = pyqtSignal(QgsPointXY)
+    append_identified_results = pyqtSignal(QPoint)
     clear_results = pyqtSignal()
 
     _cursor: QCursor
@@ -107,15 +108,17 @@ class OsmInfoMapTool(QgsMapTool):
         self.__pan_action_start(self._pressed_position)
         self.__pan_action()
 
-    def canvasReleaseEvent(self, e: Optional[QgsMapMouseEvent]) -> None:
-        assert e is not None
-        if e.button() != Qt.MouseButton.LeftButton:
+    def canvasReleaseEvent(self, event: Optional[QgsMapMouseEvent]) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
+        assert event is not None
+        if event.button() != Qt.MouseButton.LeftButton:
             return
 
         if self._is_pan_action_started:
-            self.__pan_action_end(e.pos())
+            self.__pan_action_end(event.pos())
+        elif bool(event.modifiers() & Qt.KeyboardModifier.ControlModifier):
+            self.append_identified_results.emit(QPoint(event.pos()))
         else:
-            self.__process_point(e.pos())
+            self.__process_point(event.pos())
 
         self._pressed_position = None
         self._last_position = None

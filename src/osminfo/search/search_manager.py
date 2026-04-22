@@ -293,6 +293,9 @@ class OsmInfoSearchManager(QObject):
 
         self._identify_tool = OsmInfoMapTool(iface.mapCanvas())
         self._identify_tool.identify_point.connect(self._on_identify_point)
+        self._identify_tool.append_identified_results.connect(
+            self._on_append_identified_results
+        )
 
         self._tool_handler = OsmInfoToolHandler(
             self._identify_tool,
@@ -325,6 +328,14 @@ class OsmInfoSearchManager(QObject):
         self._search_panel.set_search_text(search_text)
         self._search_panel.setUserVisible(True)
         self._search_by_string(search_text)
+
+    @pyqtSlot(QPoint)
+    def _on_append_identified_results(self, position: QPoint) -> None:
+        elements = self._identify_result_elements_at_position(position)
+        if len(elements) == 0:
+            return
+
+        self._select_result_element(elements[0], clear_selection=False)
 
     @pyqtSlot(str)
     def _search_by_string(self, search_text: str) -> None:
@@ -973,13 +984,17 @@ class OsmInfoSearchManager(QObject):
         self,
         event: QgsMapMouseEvent,
     ) -> Optional[QgsGeometry]:
+        return self._search_geometry_for_canvas_position(event.pos())
+
+    def _search_geometry_for_canvas_position(
+        self,
+        position: QPoint,
+    ) -> Optional[QgsGeometry]:
         map_canvas = iface.mapCanvas()
         if map_canvas is None:
             return None
 
-        point = map_canvas.getCoordinateTransform().toMapCoordinates(
-            event.pos()
-        )
+        point = map_canvas.getCoordinateTransform().toMapCoordinates(position)
         search_radius = QgsMapTool.searchRadiusMU(map_canvas)
         search_rect = QgsRectangle(
             point.x() - search_radius,
@@ -988,6 +1003,23 @@ class OsmInfoSearchManager(QObject):
             point.y() + search_radius,
         )
         return QgsGeometry.fromRect(search_rect)
+
+    def _identify_result_elements_at_position(
+        self,
+        position: QPoint,
+    ) -> Tuple[OsmElement, ...]:
+        if self._result_layer_store is None or self._result_renderer is None:
+            return tuple()
+
+        search_geometry = self._search_geometry_for_canvas_position(position)
+        if search_geometry is None:
+            return tuple()
+
+        hits = self._result_layer_store.identify(search_geometry)
+        if len(hits) == 0:
+            return tuple()
+
+        return self._result_renderer.elements_for_hits(hits)
 
     def _highlight_context_menu_element(
         self,
@@ -1092,6 +1124,33 @@ class OsmInfoSearchManager(QObject):
             return None
 
         return selection
+
+    def _select_result_element(
+        self,
+        element: OsmElement,
+        clear_selection: bool = True,
+    ) -> bool:
+        if self._search_panel is None or self._results_model is None:
+            return False
+
+        result_index = self._results_model.index_for_element(element)
+        if result_index is None:
+            return False
+
+        selection_model = self._search_panel.results_view.selectionModel()
+        selection_flag = QItemSelectionModel.SelectionFlag
+        selection_mode = selection_flag.Select | selection_flag.Rows
+        if clear_selection:
+            selection_mode |= selection_flag.ClearAndSelect
+
+        selection_model.select(result_index, selection_mode)
+        selection_model.setCurrentIndex(
+            result_index,
+            selection_flag.NoUpdate,
+        )
+        self._search_panel.results_view.scrollTo(result_index)
+        self._search_panel.setUserVisible(True)
+        return True
 
     def _show_error(self, message: str) -> None:
         logger.error(message)

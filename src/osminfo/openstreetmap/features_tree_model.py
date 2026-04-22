@@ -250,6 +250,31 @@ class OsmFeaturesTreeModel(QAbstractItemModel):
 
         return node.osm_tag.links
 
+    def index_for_element(self, element: OsmElement) -> Optional[QModelIndex]:
+        element_key = (element.element_type.value, element.osm_id)
+        for group_row in range(self.rowCount()):
+            group_index = self.index(group_row, 0)
+            if not group_index.isValid():
+                continue
+
+            for row in range(self.rowCount(group_index)):
+                feature_index = self.index(row, 0, group_index)
+                if not feature_index.isValid():
+                    continue
+
+                model_element = self.osm_element_for_index(feature_index)
+                if model_element is None:
+                    continue
+
+                model_key = (
+                    model_element.element_type.value,
+                    model_element.osm_id,
+                )
+                if model_key == element_key:
+                    return feature_index
+
+        return None
+
     def _set_element(
         self, group_node: _FeatureTreeNode, element: OsmElement
     ) -> None:
