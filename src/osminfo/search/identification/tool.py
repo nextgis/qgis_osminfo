@@ -59,10 +59,6 @@ class OsmInfoMapTool(QgsMapTool):
 
         self.identify_point.connect(self._log_position)
 
-    def __del__(self) -> None:
-        if self.canvas():
-            self.canvas().unsetMapTool(self)
-
     def flags(self) -> QgsMapTool.Flag:
         return super().flags() | QgsMapTool.Flag.ShowContextMenu  # type: ignore
 
