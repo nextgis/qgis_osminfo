@@ -23,8 +23,6 @@ import types
 from pathlib import Path
 from typing import Any, Dict, cast
 
-import pytest
-
 
 def _import_search_manager(monkeypatch):
     query_builder_module = types.ModuleType("osminfo.overpass.query_builder")
@@ -60,6 +58,35 @@ def _import_search_manager(monkeypatch):
         query_context_module,
     )
 
+    wizard_module = types.ModuleType("osminfo.overpass.query_builder.wizard")
+    wizard_module.__path__ = []
+    wizard_module_any = cast(Any, wizard_module)
+
+    class PlaceholderBuilder:
+        pass
+
+    wizard_module_any.PlaceholderBuilder = PlaceholderBuilder
+    monkeypatch.setitem(
+        sys.modules,
+        "osminfo.overpass.query_builder.wizard",
+        wizard_module,
+    )
+
+    free_form_syntax_module = types.ModuleType(
+        "osminfo.overpass.query_builder.wizard.free_form_syntax"
+    )
+    free_form_syntax_module_any = cast(Any, free_form_syntax_module)
+    free_form_syntax_module_any.FREE_FORM_BOUNDS_KEYWORDS = tuple()
+    free_form_syntax_module_any.FREE_FORM_LOGICAL_KEYWORDS = tuple()
+    free_form_syntax_module_any.contains_reserved_free_form_syntax = (
+        lambda value: False
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "osminfo.overpass.query_builder.wizard.free_form_syntax",
+        free_form_syntax_module,
+    )
+
     monkeypatch.delitem(
         sys.modules, "osminfo.search.search_manager", raising=False
     )
@@ -72,32 +99,22 @@ def _import_search_manager(monkeypatch):
     return OsmInfoSearchManager
 
 
-@pytest.fixture
-def results_renderer_factory(monkeypatch, qgis_iface):
-    from qgis.core import QgsProject
-
+def _create_results_renderer(
+    monkeypatch,
+    results_renderer_module,
+    fake_iface,
+):
     import osminfo.search.result_layer_store as result_layer_store_module
-    import osminfo.search.results_renderer as results_renderer_module
 
-    monkeypatch.setattr(result_layer_store_module, "iface", qgis_iface)
-    monkeypatch.setattr(results_renderer_module, "iface", qgis_iface)
+    monkeypatch.setattr(results_renderer_module, "iface", fake_iface)
+    monkeypatch.setattr(result_layer_store_module, "iface", fake_iface)
+    layer_store = result_layer_store_module.OsmResultLayerStore()
+    return results_renderer_module.OsmResultsRenderer(layer_store)
 
-    created_renderers = []
 
-    def factory():
-        layer_store = result_layer_store_module.OsmResultLayerStore()
-        renderer = results_renderer_module.OsmResultsRenderer(layer_store)
-        created_renderers.append((renderer, layer_store))
-        return results_renderer_module, renderer, layer_store
-
-    yield factory
-
-    for renderer, layer_store in reversed(created_renderers):
-        renderer.unload()
-        layer_store.unload()
-
-    QgsProject.instance().removeAllMapLayers()
-    qgis_iface.mapCanvas().setLayers([])
+def _dispose_results_renderer(renderer) -> None:
+    renderer.unload()
+    renderer._layer_store.unload()
 
 
 def test_parse_relation_collection_geometry() -> None:
@@ -517,11 +534,868 @@ def test_parse_task_builds_result_tree() -> None:
             OsmResultGroupType.NEARBY: "Nearby features",
             OsmResultGroupType.ENCLOSING: "Is inside",
         },
+        geometry_area_limit_sq_km=10.0,
     )
 
     assert task.run() is True
     assert len(task.result_tree.groups) == 1
     assert task.result_tree.groups[0].elements[0].title == "Library"
+    assert task.result_tree.groups[0].elements[0].geometry is not None
+
+
+def test_parse_task_defers_large_geometry_on_first_stage() -> None:
+    from osminfo.openstreetmap.features_parse_task import (
+        OverpassFeaturesParseTask,
+    )
+    from osminfo.openstreetmap.models import OsmResultGroupType
+
+    task = OverpassFeaturesParseTask(
+        locale_name="en",
+        nearby_elements=[],
+        enclosing_elements=[],
+        search_elements=[
+            {
+                "type": "way",
+                "id": 500,
+                "geometry": [
+                    {"lon": 30.0, "lat": 60.0},
+                    {"lon": 30.2, "lat": 60.0},
+                    {"lon": 30.2, "lat": 60.2},
+                    {"lon": 30.0, "lat": 60.2},
+                    {"lon": 30.0, "lat": 60.0},
+                ],
+                "bounds": {
+                    "minlon": 30.0,
+                    "minlat": 60.0,
+                    "maxlon": 30.2,
+                    "maxlat": 60.2,
+                },
+                "tags": {"landuse": "residential"},
+            }
+        ],
+        titles={
+            OsmResultGroupType.SEARCH: "Search results",
+            OsmResultGroupType.NEARBY: "Nearby features",
+            OsmResultGroupType.ENCLOSING: "Is inside",
+        },
+        geometry_area_limit_sq_km=10.0,
+    )
+
+    assert task.run() is True
+    element = task.result_tree.groups[0].elements[0]
+    assert element.geometry is None
+    assert element.is_geometry_deferred is True
+
+
+def test_parse_task_loads_large_geometry_when_limit_disabled() -> None:
+    from osminfo.openstreetmap.features_parse_task import (
+        OverpassFeaturesParseTask,
+    )
+    from osminfo.openstreetmap.models import OsmResultGroupType
+
+    task = OverpassFeaturesParseTask(
+        locale_name="en",
+        nearby_elements=[],
+        enclosing_elements=[],
+        search_elements=[
+            {
+                "type": "way",
+                "id": 501,
+                "geometry": [
+                    {"lon": 30.0, "lat": 60.0},
+                    {"lon": 30.2, "lat": 60.0},
+                    {"lon": 30.2, "lat": 60.2},
+                    {"lon": 30.0, "lat": 60.2},
+                    {"lon": 30.0, "lat": 60.0},
+                ],
+                "bounds": {
+                    "minlon": 30.0,
+                    "minlat": 60.0,
+                    "maxlon": 30.2,
+                    "maxlat": 60.2,
+                },
+                "tags": {"landuse": "residential"},
+            }
+        ],
+        titles={
+            OsmResultGroupType.SEARCH: "Search results",
+            OsmResultGroupType.NEARBY: "Nearby features",
+            OsmResultGroupType.ENCLOSING: "Is inside",
+        },
+        geometry_area_limit_sq_km=None,
+    )
+
+    assert task.run() is True
+    element = task.result_tree.groups[0].elements[0]
+    assert element.geometry is not None
+    assert element.is_geometry_deferred is False
+
+
+def test_large_bounds_geometry_is_deferred_before_geometry_build(
+    monkeypatch,
+) -> None:
+    from osminfo.openstreetmap.features_parser import OsmFeaturesParser
+    from osminfo.overpass.json_parser import OverpassJsonParser
+
+    def fail_on_geometry_build(self, raw_element):
+        raise AssertionError(
+            f"Geometry build should be skipped for {raw_element.get('id')}"
+        )
+
+    monkeypatch.setattr(
+        OverpassJsonParser,
+        "geometry_for_element",
+        fail_on_geometry_build,
+    )
+
+    parser = OsmFeaturesParser(locale_name="en")
+    element = parser.parse_element(
+        {
+            "type": "relation",
+            "id": 700,
+            "bounds": {
+                "minlon": 30.0,
+                "minlat": 60.0,
+                "maxlon": 31.0,
+                "maxlat": 61.0,
+            },
+            "tags": {
+                "type": "boundary",
+                "boundary": "administrative",
+            },
+            "members": [],
+        },
+        geometry_area_limit_sq_km=10.0,
+    )
+
+    assert element is not None
+    assert element.geometry is None
+    assert element.is_geometry_deferred is True
+    assert element.is_incomplete is False
+
+
+def test_show_all_found_features_roundtrip() -> None:
+    from osminfo.settings.osm_info_settings import OsmInfoSettings
+
+    settings = OsmInfoSettings()
+    previous_value = settings.show_all_found_features
+    try:
+        settings.show_all_found_features = True
+        assert settings.show_all_found_features is True
+
+        settings.show_all_found_features = False
+        assert settings.show_all_found_features is False
+    finally:
+        settings.show_all_found_features = previous_value
+
+
+def test_parse_group_skips_parser_for_deferred_large_bounds(
+    monkeypatch,
+) -> None:
+    from osminfo.openstreetmap.features_parser import OsmFeaturesParser
+    from osminfo.openstreetmap.models import OsmResultGroupType
+    from osminfo.overpass.json_parser import OverpassJsonParser
+
+    original_prepare_elements = OverpassJsonParser._prepare_elements
+
+    def guarded_prepare_elements(self):
+        if any(
+            isinstance(raw_element, dict) and raw_element.get("id") == 700
+            for raw_element in self._raw_elements
+        ):
+            raise AssertionError("Deferred element must not enter parser")
+
+        return original_prepare_elements(self)
+
+    monkeypatch.setattr(
+        OverpassJsonParser,
+        "_prepare_elements",
+        guarded_prepare_elements,
+    )
+
+    parser = OsmFeaturesParser(locale_name="en")
+    result_group = parser.parse_group(
+        OsmResultGroupType.ENCLOSING,
+        "Is inside",
+        [
+            {
+                "type": "relation",
+                "id": 700,
+                "bounds": {
+                    "minlon": 30.0,
+                    "minlat": 60.0,
+                    "maxlon": 31.0,
+                    "maxlat": 61.0,
+                },
+                "tags": {
+                    "type": "boundary",
+                    "boundary": "administrative",
+                    "name": "Large boundary",
+                },
+                "members": [
+                    {
+                        "type": "way",
+                        "ref": 100,
+                        "role": "outer",
+                        "geometry": [{"lat": 60.0, "lon": 30.0}],
+                    }
+                ],
+            },
+            {
+                "type": "node",
+                "id": 1,
+                "lat": 60.0,
+                "lon": 30.0,
+                "tags": {"name": "Small node"},
+            },
+        ],
+        geometry_area_limit_sq_km=10.0,
+    )
+
+    assert len(result_group.elements) == 2
+    large_boundary = next(
+        element for element in result_group.elements if element.osm_id == 700
+    )
+    assert large_boundary.is_geometry_deferred is True
+    assert large_boundary.is_incomplete is False
+
+
+def test_parse_group_avoids_full_feature_cache(monkeypatch) -> None:
+    from osminfo.openstreetmap.features_parser import OsmFeaturesParser
+    from osminfo.openstreetmap.models import OsmResultGroupType
+    from osminfo.overpass.json_parser import OverpassJsonParser
+
+    def fail_on_full_feature_cache(self) -> None:
+        raise AssertionError("Full feature cache should not be built")
+
+    monkeypatch.setattr(
+        OverpassJsonParser,
+        "_ensure_features_built",
+        fail_on_full_feature_cache,
+    )
+
+    parser = OsmFeaturesParser(locale_name="en")
+    result_group = parser.parse_group(
+        OsmResultGroupType.SEARCH,
+        "Search results",
+        [
+            {
+                "type": "node",
+                "id": 1,
+                "lon": 30.0,
+                "lat": 60.0,
+                "tags": {"name": "Node"},
+            },
+            {
+                "type": "way",
+                "id": 2,
+                "geometry": [
+                    {"lon": 30.0, "lat": 60.0},
+                    {"lon": 30.001, "lat": 60.0},
+                    {"lon": 30.001, "lat": 60.001},
+                    {"lon": 30.0, "lat": 60.0},
+                ],
+                "bounds": {
+                    "minlon": 30.0,
+                    "minlat": 60.0,
+                    "maxlon": 30.001,
+                    "maxlat": 60.001,
+                },
+                "tags": {"building": "yes"},
+            },
+        ],
+        geometry_area_limit_sq_km=10.0,
+    )
+
+    assert len(result_group.elements) == 2
+
+
+def test_geometry_load_task_loads_polygons_without_area_limit() -> None:
+    from osminfo.openstreetmap.geometry_load_task import (
+        OverpassGeometryLoadTask,
+    )
+
+    raw_elements = [
+        {
+            "type": "way",
+            "id": 500,
+            "geometry": [
+                {"lon": 30.0, "lat": 60.0},
+                {"lon": 30.2, "lat": 60.0},
+                {"lon": 30.2, "lat": 60.2},
+                {"lon": 30.0, "lat": 60.2},
+                {"lon": 30.0, "lat": 60.0},
+            ],
+            "bounds": {
+                "minlon": 30.0,
+                "minlat": 60.0,
+                "maxlon": 30.2,
+                "maxlat": 60.2,
+            },
+            "tags": {"landuse": "residential"},
+        }
+    ]
+
+    task = OverpassGeometryLoadTask(
+        "en",
+        raw_elements,
+        {("way", 500)},
+    )
+
+    assert task.run() is True
+    parsed_element = task.parsed_elements[("way", 500)]
+    assert parsed_element.geometry is not None
+    assert parsed_element.is_geometry_deferred is False
+    assert parsed_element.geometry_type() is not None
+    assert parsed_element.geometry_type().name == "POLYGON"
+
+
+def test_parse_elements_by_keys_uses_direct_relation_geometry_path(
+    monkeypatch,
+) -> None:
+    from osminfo.openstreetmap.features_parser import OsmFeaturesParser
+    from osminfo.overpass.json_parser import OverpassJsonParser
+
+    OsmFeaturesParser.clear_geometry_load_cache()
+
+    raw_relation = {
+        "type": "relation",
+        "id": 900,
+        "bounds": {
+            "minlon": 30.0,
+            "minlat": 60.0,
+            "maxlon": 30.1,
+            "maxlat": 60.1,
+        },
+        "tags": {
+            "type": "boundary",
+            "boundary": "administrative",
+            "admin_level": "4",
+            "name": "Fast boundary",
+        },
+        "members": [
+            {
+                "type": "way",
+                "ref": 1,
+                "role": "outer",
+                "geometry": [
+                    {"lon": 30.0, "lat": 60.0},
+                    {"lon": 30.1, "lat": 60.0},
+                    {"lon": 30.1, "lat": 60.1},
+                    {"lon": 30.0, "lat": 60.1},
+                    {"lon": 30.0, "lat": 60.0},
+                ],
+            }
+        ],
+    }
+
+    def fail_on_parser_init(*args, **kwargs):
+        del args
+        del kwargs
+        raise AssertionError("Direct geometry path should skip parser init")
+
+    monkeypatch.setattr(OverpassJsonParser, "__init__", fail_on_parser_init)
+
+    parsed_elements = OsmFeaturesParser("en").parse_elements_by_keys(
+        (raw_relation,),
+        {("relation", 900)},
+        geometry_area_limit_sq_km=None,
+    )
+
+    parsed_element = parsed_elements[("relation", 900)]
+    assert parsed_element.geometry is not None
+    assert parsed_element.is_geometry_deferred is False
+    assert parsed_element.geometry_type() is not None
+    assert parsed_element.geometry_type().name == "POLYGON"
+
+
+def test_parse_elements_by_keys_reuses_cached_admin_geometry(
+    monkeypatch,
+) -> None:
+    from osminfo.openstreetmap.features_parser import OsmFeaturesParser
+
+    OsmFeaturesParser.clear_geometry_load_cache()
+
+    raw_relation = {
+        "type": "relation",
+        "id": 901,
+        "bounds": {
+            "minlon": 30.0,
+            "minlat": 60.0,
+            "maxlon": 30.1,
+            "maxlat": 60.1,
+        },
+        "tags": {
+            "type": "boundary",
+            "boundary": "administrative",
+            "admin_level": "2",
+            "name": "Cached boundary",
+        },
+        "members": [
+            {
+                "type": "way",
+                "ref": 2,
+                "role": "outer",
+                "geometry": [
+                    {"lon": 30.0, "lat": 60.0},
+                    {"lon": 30.1, "lat": 60.0},
+                    {"lon": 30.1, "lat": 60.1},
+                    {"lon": 30.0, "lat": 60.1},
+                    {"lon": 30.0, "lat": 60.0},
+                ],
+            }
+        ],
+    }
+
+    first_result = OsmFeaturesParser("en").parse_elements_by_keys(
+        (raw_relation,),
+        {("relation", 901)},
+        geometry_area_limit_sq_km=None,
+    )
+    assert first_result[("relation", 901)].geometry is not None
+
+    def fail_direct_parse(self, raw_element, *, geometry_area_limit_sq_km):
+        del self
+        del raw_element
+        del geometry_area_limit_sq_km
+        raise AssertionError("Cached geometry should skip direct parsing")
+
+    monkeypatch.setattr(
+        OsmFeaturesParser,
+        "_parse_geometry_load_element_directly",
+        fail_direct_parse,
+    )
+
+    second_result = OsmFeaturesParser("en").parse_elements_by_keys(
+        (raw_relation,),
+        {("relation", 901)},
+        geometry_area_limit_sq_km=None,
+    )
+
+    cached_element = second_result[("relation", 901)]
+    assert cached_element.geometry is not None
+    assert cached_element.is_geometry_deferred is False
+
+
+def test_parse_elements_by_keys_uses_upstream_polygon_rules_for_way() -> None:
+    from osminfo.openstreetmap.features_parser import OsmFeaturesParser
+
+    raw_way = {
+        "type": "way",
+        "id": 904,
+        "geometry": [
+            {"lon": 30.0, "lat": 60.0},
+            {"lon": 30.1, "lat": 60.0},
+            {"lon": 30.1, "lat": 60.1},
+            {"lon": 30.0, "lat": 60.0},
+        ],
+        "tags": {"barrier": "hedge"},
+    }
+
+    parsed_elements = OsmFeaturesParser("en").parse_elements_by_keys(
+        (raw_way,),
+        {("way", 904)},
+        geometry_area_limit_sq_km=None,
+    )
+
+    parsed_element = parsed_elements[("way", 904)]
+    assert parsed_element.geometry is not None
+    assert parsed_element.geometry_type() is not None
+    assert parsed_element.geometry_type().name == "POLYGON"
+
+
+def test_parse_elements_by_keys_direct_relation_joins_reversed_segments() -> (
+    None
+):
+    from osminfo.openstreetmap.features_parser import OsmFeaturesParser
+
+    raw_relation = {
+        "type": "relation",
+        "id": 905,
+        "bounds": {
+            "minlon": 30.0,
+            "minlat": 60.0,
+            "maxlon": 31.0,
+            "maxlat": 61.0,
+        },
+        "tags": {
+            "type": "multipolygon",
+            "building": "yes",
+        },
+        "members": [
+            {
+                "type": "way",
+                "ref": 1,
+                "role": "outer",
+                "geometry": [
+                    {"lon": 30.0, "lat": 60.0},
+                    {"lon": 31.0, "lat": 60.0},
+                    {"lon": 31.0, "lat": 61.0},
+                ],
+            },
+            {
+                "type": "way",
+                "ref": 2,
+                "role": "outer",
+                "geometry": [
+                    {"lon": 30.0, "lat": 60.0},
+                    {"lon": 30.0, "lat": 61.0},
+                    {"lon": 31.0, "lat": 61.0},
+                ],
+            },
+        ],
+    }
+
+    parsed_elements = OsmFeaturesParser("en").parse_elements_by_keys(
+        (raw_relation,),
+        {("relation", 905)},
+        geometry_area_limit_sq_km=None,
+    )
+
+    parsed_element = parsed_elements[("relation", 905)]
+    assert parsed_element.geometry is not None
+    assert parsed_element.geometry_type() is not None
+    assert parsed_element.geometry_type().name == "POLYGON"
+
+
+def test_parse_elements_by_keys_direct_relation_ignores_unmatched_inner_ring() -> (
+    None
+):
+    from osminfo.openstreetmap.features_parser import OsmFeaturesParser
+
+    raw_relation = {
+        "type": "relation",
+        "id": 907,
+        "bounds": {
+            "minlon": 0.0,
+            "minlat": 0.0,
+            "maxlon": 4.0,
+            "maxlat": 4.0,
+        },
+        "tags": {"type": "multipolygon", "building": "yes"},
+        "members": [
+            {
+                "type": "way",
+                "ref": 1,
+                "role": "outer",
+                "geometry": [
+                    {"lon": 0.0, "lat": 0.0},
+                    {"lon": 1.0, "lat": 0.0},
+                    {"lon": 1.0, "lat": 1.0},
+                    {"lon": 0.0, "lat": 1.0},
+                    {"lon": 0.0, "lat": 0.0},
+                ],
+            },
+            {
+                "type": "way",
+                "ref": 2,
+                "role": "inner",
+                "geometry": [
+                    {"lon": 3.0, "lat": 3.0},
+                    {"lon": 4.0, "lat": 3.0},
+                    {"lon": 3.0, "lat": 4.0},
+                    {"lon": 3.0, "lat": 3.0},
+                ],
+            },
+        ],
+    }
+
+    parsed_element = OsmFeaturesParser("en").parse_elements_by_keys(
+        (raw_relation,),
+        {("relation", 907)},
+        geometry_area_limit_sq_km=None,
+    )[("relation", 907)]
+
+    qgs_geometry = parsed_element.qgs_geometry()
+    assert qgs_geometry is not None
+    assert parsed_element.geometry_type() is not None
+    assert parsed_element.geometry_type().name == "POLYGON"
+    assert len(qgs_geometry.asPolygon()) == 1
+
+
+def test_parse_elements_by_keys_direct_relation_builds_non_trivial_ring() -> (
+    None
+):
+    from osminfo.openstreetmap.features_parser import OsmFeaturesParser
+
+    raw_relation = {
+        "type": "relation",
+        "id": 908,
+        "bounds": {
+            "minlon": 0.0,
+            "minlat": 1.0,
+            "maxlon": 0.0,
+            "maxlat": 6.0,
+        },
+        "tags": {"type": "multipolygon", "building": "yes"},
+        "members": [
+            {
+                "type": "way",
+                "ref": 1,
+                "role": "outer",
+                "geometry": [
+                    {"lon": 0.0, "lat": 1.0},
+                    {"lon": 0.0, "lat": 2.0},
+                ],
+            },
+            {
+                "type": "way",
+                "ref": 2,
+                "role": "outer",
+                "geometry": [
+                    {"lon": 0.0, "lat": 2.0},
+                    {"lon": 0.0, "lat": 3.0},
+                ],
+            },
+            {
+                "type": "way",
+                "ref": 3,
+                "role": "outer",
+                "geometry": [
+                    {"lon": 0.0, "lat": 4.0},
+                    {"lon": 0.0, "lat": 3.0},
+                ],
+            },
+            {
+                "type": "way",
+                "ref": 4,
+                "role": "outer",
+                "geometry": [
+                    {"lon": 0.0, "lat": 5.0},
+                    {"lon": 0.0, "lat": 4.0},
+                ],
+            },
+            {
+                "type": "way",
+                "ref": 5,
+                "role": "outer",
+                "geometry": [
+                    {"lon": 0.0, "lat": 5.0},
+                    {"lon": 0.0, "lat": 6.0},
+                ],
+            },
+            {
+                "type": "way",
+                "ref": 6,
+                "role": "outer",
+                "geometry": [
+                    {"lon": 0.0, "lat": 1.0},
+                    {"lon": 0.0, "lat": 6.0},
+                ],
+            },
+        ],
+    }
+
+    parsed_element = OsmFeaturesParser("en").parse_elements_by_keys(
+        (raw_relation,),
+        {("relation", 908)},
+        geometry_area_limit_sq_km=None,
+    )[("relation", 908)]
+
+    qgs_geometry = parsed_element.qgs_geometry()
+    assert qgs_geometry is not None
+    assert parsed_element.geometry_type() is not None
+    assert parsed_element.geometry_type().name == "POLYGON"
+    assert len(qgs_geometry.asPolygon()[0]) == 7
+
+
+def test_parse_group_reuses_cached_admin_geometry(
+    monkeypatch,
+) -> None:
+    from osminfo.openstreetmap.features_parser import OsmFeaturesParser
+    from osminfo.openstreetmap.models import OsmResultGroupType
+    from osminfo.overpass.json_parser import OverpassJsonParser
+
+    OsmFeaturesParser.clear_geometry_load_cache()
+
+    raw_relation = {
+        "type": "relation",
+        "id": 902,
+        "bounds": {
+            "minlon": 30.0,
+            "minlat": 60.0,
+            "maxlon": 30.1,
+            "maxlat": 60.1,
+        },
+        "tags": {
+            "type": "boundary",
+            "boundary": "administrative",
+            "admin_level": "4",
+            "name": "Cached in full parse",
+        },
+        "members": [
+            {
+                "type": "way",
+                "ref": 3,
+                "role": "outer",
+                "geometry": [
+                    {"lon": 30.0, "lat": 60.0},
+                    {"lon": 30.1, "lat": 60.0},
+                    {"lon": 30.1, "lat": 60.1},
+                    {"lon": 30.0, "lat": 60.1},
+                    {"lon": 30.0, "lat": 60.0},
+                ],
+            }
+        ],
+    }
+
+    first_group = OsmFeaturesParser("en").parse_group(
+        OsmResultGroupType.SEARCH,
+        "Search results",
+        (raw_relation,),
+        geometry_area_limit_sq_km=None,
+    )
+    assert first_group.elements[0].geometry is not None
+
+    def fail_on_geometry_build(self, raw_element):
+        del self
+        del raw_element
+        raise AssertionError("Full parse should reuse cached geometry")
+
+    monkeypatch.setattr(
+        OverpassJsonParser,
+        "geometry_for_element",
+        fail_on_geometry_build,
+    )
+
+    second_group = OsmFeaturesParser("en").parse_group(
+        OsmResultGroupType.SEARCH,
+        "Search results",
+        (raw_relation,),
+        geometry_area_limit_sq_km=None,
+    )
+
+    assert second_group.elements[0].geometry is not None
+    assert second_group.elements[0].geometry_type() is not None
+    assert second_group.elements[0].geometry_type().name == "POLYGON"
+
+
+def test_search_manager_apply_loaded_geometries_updates_incomplete_flag(
+    monkeypatch,
+) -> None:
+    from qgis.core import QgsGeometry, QgsPointXY
+
+    from osminfo.openstreetmap.models import (
+        OsmElement,
+        OsmElementType,
+        OsmGeometryType,
+        OsmResultGroup,
+        OsmResultGroupType,
+        OsmResultTree,
+    )
+
+    OsmInfoSearchManager = _import_search_manager(monkeypatch)
+    manager = OsmInfoSearchManager(cast(Any, None))
+    current_element = OsmElement(
+        osm_id=906,
+        element_type=OsmElementType.WAY,
+        title="Deferred feature",
+        display_geometry_type=OsmGeometryType.POLYGON,
+        is_geometry_deferred=True,
+        raw_element={"type": "way", "id": 906},
+    )
+    manager._result_tree = OsmResultTree(
+        groups=(
+            OsmResultGroup(
+                group_type=OsmResultGroupType.SEARCH,
+                title="Search results",
+                elements=(current_element,),
+            ),
+        )
+    )
+
+    loaded_element = OsmElement(
+        osm_id=906,
+        element_type=OsmElementType.WAY,
+        title="Deferred feature",
+        geometry=QgsGeometry.fromPolylineXY(
+            [QgsPointXY(30.0, 60.0), QgsPointXY(31.0, 61.0)]
+        ),
+        display_geometry_type=OsmGeometryType.LINESTRING,
+        is_incomplete=True,
+    )
+
+    manager._apply_loaded_geometries(
+        {("way", 906): loaded_element},
+        {("way", 906)},
+    )
+
+    assert current_element.geometry is not None
+    assert current_element.is_incomplete is True
+
+
+def test_geometry_cache_rotates_by_admin_level() -> None:
+    from osminfo.openstreetmap.features_parser import OsmFeaturesParser
+
+    OsmFeaturesParser.clear_geometry_load_cache()
+    parser = OsmFeaturesParser("en")
+
+    def build_relation(osm_id: int, admin_level: int) -> Dict[str, Any]:
+        base_lon = float(osm_id)
+        return {
+            "type": "relation",
+            "id": osm_id,
+            "bounds": {
+                "minlon": base_lon,
+                "minlat": 60.0,
+                "maxlon": base_lon + 0.1,
+                "maxlat": 60.1,
+            },
+            "tags": {
+                "type": "boundary",
+                "boundary": "administrative",
+                "admin_level": str(admin_level),
+                "name": f"Level {admin_level} #{osm_id}",
+            },
+            "members": [
+                {
+                    "type": "way",
+                    "ref": osm_id,
+                    "role": "outer",
+                    "geometry": [
+                        {"lon": base_lon, "lat": 60.0},
+                        {"lon": base_lon + 0.1, "lat": 60.0},
+                        {"lon": base_lon + 0.1, "lat": 60.1},
+                        {"lon": base_lon, "lat": 60.1},
+                        {"lon": base_lon, "lat": 60.0},
+                    ],
+                }
+            ],
+        }
+
+    level_2_relations = [build_relation(200 + index, 2) for index in range(4)]
+    level_3_relations = [build_relation(300 + index, 3) for index in range(6)]
+    level_4_relations = [build_relation(400 + index, 4) for index in range(6)]
+    level_5_relations = [build_relation(500 + index, 5) for index in range(11)]
+
+    for raw_relation in (
+        level_2_relations
+        + level_3_relations
+        + level_4_relations
+        + level_5_relations
+    ):
+        parser.parse_elements_by_keys(
+            (raw_relation,),
+            {("relation", raw_relation["id"])},
+            geometry_area_limit_sq_km=None,
+        )
+
+    checker = OsmFeaturesParser("en")
+    assert checker._cached_geometry_element(level_2_relations[0]) is None
+    assert checker._cached_geometry_element(level_2_relations[1]) is not None
+    assert checker._cached_geometry_element(level_2_relations[3]) is not None
+
+    assert checker._cached_geometry_element(level_3_relations[0]) is None
+    assert checker._cached_geometry_element(level_3_relations[1]) is not None
+    assert checker._cached_geometry_element(level_3_relations[5]) is not None
+
+    assert checker._cached_geometry_element(level_4_relations[0]) is None
+    assert checker._cached_geometry_element(level_4_relations[1]) is not None
+    assert checker._cached_geometry_element(level_4_relations[5]) is not None
+
+    assert checker._cached_geometry_element(level_5_relations[0]) is None
+    assert checker._cached_geometry_element(level_5_relations[1]) is not None
+    assert checker._cached_geometry_element(level_5_relations[10]) is not None
 
 
 def test_features_parser_preserves_upstream_relation_membership() -> None:
@@ -628,6 +1502,54 @@ def test_tree_model_exposes_element_and_tag_links() -> None:
     icon = model.data(feature_index, Qt.ItemDataRole.DecorationRole)
     assert isinstance(icon, QIcon)
     assert not icon.isNull()
+
+
+def test_tree_model_tracks_loading_state_for_feature() -> None:
+    from qgis.PyQt.QtCore import Qt
+    from qgis.PyQt.QtGui import QIcon
+
+    from osminfo.openstreetmap.features_tree_model import OsmFeaturesTreeModel
+    from osminfo.openstreetmap.models import (
+        OsmElement,
+        OsmElementType,
+        OsmGeometryType,
+        OsmResultGroup,
+        OsmResultGroupType,
+        OsmResultTree,
+    )
+
+    model = OsmFeaturesTreeModel()
+    element = OsmElement(
+        osm_id=202,
+        element_type=OsmElementType.WAY,
+        title="Deferred polygon",
+        display_geometry_type=OsmGeometryType.POLYGON,
+    )
+    model.set_result_tree(
+        OsmResultTree(
+            groups=(
+                OsmResultGroup(
+                    group_type=OsmResultGroupType.SEARCH,
+                    title="Search results",
+                    elements=(element,),
+                ),
+            )
+        )
+    )
+
+    feature_index = model.index(0, 0, model.index(0, 0))
+
+    assert model.data(feature_index, model.IS_LOADING_ROLE) is False
+
+    model.set_element_loading({("way", 202)}, True)
+
+    assert model.data(feature_index, model.IS_LOADING_ROLE) is True
+    loading_icon = model.data(feature_index, Qt.ItemDataRole.DecorationRole)
+    assert isinstance(loading_icon, QIcon)
+
+    model.set_element_loading({("way", 202)}, False)
+
+    assert model.data(feature_index, model.IS_LOADING_ROLE) is False
 
 
 def test_title_builder_prefers_name_without_duplicate_type(
@@ -970,12 +1892,11 @@ def test_title_builder_uses_relation_boundary_preset_for_area_geometry() -> (
     )
 
 
-def test_results_renderer_creates_layers_only_for_results(
-    qgis_iface,
-    results_renderer_factory,
-) -> None:
-    from qgis.core import QgsGeometry, QgsPointXY, QgsProject, QgsVectorLayer
+def test_results_renderer_creates_layers_only_for_results(monkeypatch) -> None:
+    from qgis.core import QgsGeometry, QgsPointXY, QgsVectorLayer
+    from qgis.utils import iface
 
+    import osminfo.search.results_renderer as results_renderer_module
     from osminfo.openstreetmap.models import (
         OsmElement,
         OsmElementType,
@@ -983,6 +1904,69 @@ def test_results_renderer_creates_layers_only_for_results(
         OsmResultGroupType,
         OsmResultTree,
     )
+
+    class FakeSignal:
+        def connect(self, callback) -> None:
+            self._callback = callback
+
+        def disconnect(self, callback) -> None:
+            del callback
+
+        def emit(self, *args) -> None:
+            callback = getattr(self, "_callback", None)
+            if callback is not None:
+                callback(*args)
+
+    class FakeCrs:
+        def authid(self) -> str:
+            return "EPSG:4326"
+
+        def postgisSrid(self) -> int:
+            return 4326
+
+    class FakeMapSettings:
+        def destinationCrs(self) -> FakeCrs:
+            return FakeCrs()
+
+    class FakeCanvas:
+        def __init__(self) -> None:
+            self.scaleChanged = FakeSignal()
+            self.layersChanged = FakeSignal()
+            self.destinationCrsChanged = FakeSignal()
+            self._layers = []
+            self._map_units_per_pixel = 0.0001
+
+        def scale(self) -> float:
+            return 1000.0
+
+        def mapUnitsPerPixel(self) -> float:
+            return self._map_units_per_pixel
+
+        def layers(self):
+            return list(self._layers)
+
+        def setLayers(self, layers) -> None:
+            self._layers = list(layers)
+            self.layersChanged.emit()
+
+        def mapSettings(self) -> FakeMapSettings:
+            return FakeMapSettings()
+
+        def setExtent(self, bbox) -> None:
+            self._bbox = bbox
+
+        def refresh(self) -> None:
+            return None
+
+    class FakeIface:
+        def __init__(self) -> None:
+            self._canvas = FakeCanvas()
+
+        def mapCanvas(self) -> FakeCanvas:
+            return self._canvas
+
+    fake_iface = FakeIface()
+    monkeypatch.setattr("qgis.utils.iface", fake_iface)
 
     point_element = OsmElement(
         osm_id=1,
@@ -1017,9 +2001,14 @@ def test_results_renderer_creates_layers_only_for_results(
         ),
     )
 
-    results_renderer_module, renderer, _ = results_renderer_factory()
+    renderer = _create_results_renderer(
+        monkeypatch,
+        results_renderer_module,
+        fake_iface,
+    )
+    del iface
     assert len(renderer._layers) == 0
-    assert len(qgis_iface.mapCanvas().layers()) == 0
+    assert len(fake_iface.mapCanvas().layers()) == 0
 
     renderer.set_result_tree(
         OsmResultTree(
@@ -1042,7 +2031,7 @@ def test_results_renderer_creates_layers_only_for_results(
     assert line_geometry_type is not None
     assert polygon_geometry_type is not None
 
-    canvas_layers = qgis_iface.mapCanvas().layers()
+    canvas_layers = fake_iface.mapCanvas().layers()
     assert len(renderer._layers) == 3
     assert len(canvas_layers) == 3
     assert canvas_layers[0] is renderer._layers[point_geometry_type]
@@ -1055,11 +2044,16 @@ def test_results_renderer_creates_layers_only_for_results(
     renderer.clear()
 
     assert len(renderer._layers) == 0
-    assert len(qgis_iface.mapCanvas().layers()) == 0
+    assert len(fake_iface.mapCanvas().layers()) == 0
+
+    _dispose_results_renderer(renderer)
 
     base_layer = QgsVectorLayer("Point?crs=EPSG:4326", "Base", "memory")
-    QgsProject.instance().addMapLayer(base_layer, False)
-    _, renderer, _ = results_renderer_factory()
+    renderer = _create_results_renderer(
+        monkeypatch,
+        results_renderer_module,
+        fake_iface,
+    )
     renderer.set_result_tree(
         OsmResultTree(
             groups=(
@@ -1072,9 +2066,9 @@ def test_results_renderer_creates_layers_only_for_results(
         )
     )
 
-    qgis_iface.mapCanvas().setLayers([base_layer])
+    fake_iface.mapCanvas().setLayers([base_layer])
 
-    canvas_layers = qgis_iface.mapCanvas().layers()
+    canvas_layers = fake_iface.mapCanvas().layers()
     assert base_layer in canvas_layers
     assert len(canvas_layers) == 4
     assert canvas_layers[0] is renderer._layers[point_geometry_type]
@@ -1086,12 +2080,15 @@ def test_results_renderer_creates_layers_only_for_results(
         for layer in canvas_layers
     )
 
+    _dispose_results_renderer(renderer)
+
 
 def test_results_renderer_updates_active_attribute_in_place(
-    results_renderer_factory,
+    monkeypatch,
 ) -> None:
     from qgis.core import QgsGeometry, QgsPointXY
 
+    import osminfo.search.results_renderer as results_renderer_module
     from osminfo.openstreetmap.models import (
         OsmElement,
         OsmElementType,
@@ -1100,6 +2097,64 @@ def test_results_renderer_updates_active_attribute_in_place(
         OsmResultTree,
     )
 
+    class FakeSignal:
+        def connect(self, callback) -> None:
+            self._callback = callback
+
+        def disconnect(self, callback) -> None:
+            del callback
+
+        def emit(self, *args) -> None:
+            callback = getattr(self, "_callback", None)
+            if callback is not None:
+                callback(*args)
+
+    class FakeCrs:
+        def authid(self) -> str:
+            return "EPSG:4326"
+
+        def postgisSrid(self) -> int:
+            return 4326
+
+    class FakeMapSettings:
+        def destinationCrs(self) -> FakeCrs:
+            return FakeCrs()
+
+    class FakeCanvas:
+        def __init__(self) -> None:
+            self.scaleChanged = FakeSignal()
+            self.layersChanged = FakeSignal()
+            self.destinationCrsChanged = FakeSignal()
+            self._layers = []
+
+        def scale(self) -> float:
+            return 1000.0
+
+        def layers(self):
+            return list(self._layers)
+
+        def setLayers(self, layers) -> None:
+            self._layers = list(layers)
+            self.layersChanged.emit()
+
+        def mapSettings(self) -> FakeMapSettings:
+            return FakeMapSettings()
+
+        def setExtent(self, bbox) -> None:
+            self._bbox = bbox
+
+        def refresh(self) -> None:
+            return None
+
+    class FakeIface:
+        def __init__(self) -> None:
+            self._canvas = FakeCanvas()
+
+        def mapCanvas(self) -> FakeCanvas:
+            return self._canvas
+
+    fake_iface = FakeIface()
+
     point_element = OsmElement(
         osm_id=21,
         element_type=OsmElementType.NODE,
@@ -1107,7 +2162,11 @@ def test_results_renderer_updates_active_attribute_in_place(
         geometry=QgsGeometry.fromPointXY(QgsPointXY(30.0, 60.0)),
     )
 
-    results_renderer_module, renderer, _ = results_renderer_factory()
+    renderer = _create_results_renderer(
+        monkeypatch,
+        results_renderer_module,
+        fake_iface,
+    )
     renderer.set_result_tree(
         OsmResultTree(
             groups=(
@@ -1140,15 +2199,70 @@ def test_results_renderer_updates_active_attribute_in_place(
     assert inactive_feature.id() == initial_feature_id
     assert inactive_feature[results_renderer_module.FIELD_ACTIVE] == 0
 
+    _dispose_results_renderer(renderer)
 
-def test_results_renderer_centers_single_point_bbox(
-    monkeypatch,
-    qgis_iface,
-    results_renderer_factory,
-) -> None:
+
+def test_results_renderer_centers_single_point_bbox(monkeypatch) -> None:
     from qgis.core import QgsRectangle
 
-    results_renderer_module, renderer, _ = results_renderer_factory()
+    import osminfo.search.results_renderer as results_renderer_module
+
+    class FakeSignal:
+        def connect(self, callback) -> None:
+            self._callback = callback
+
+        def disconnect(self, callback) -> None:
+            del callback
+
+        def emit(self, *args) -> None:
+            callback = getattr(self, "_callback", None)
+            if callback is not None:
+                callback(*args)
+
+    class FakeCrs:
+        def authid(self) -> str:
+            return "EPSG:4326"
+
+        def postgisSrid(self) -> int:
+            return 4326
+
+    class FakeMapSettings:
+        def destinationCrs(self) -> FakeCrs:
+            return FakeCrs()
+
+    class FakeCanvas:
+        def __init__(self) -> None:
+            self.scaleChanged = FakeSignal()
+            self.layersChanged = FakeSignal()
+            self.destinationCrsChanged = FakeSignal()
+            self._layers = []
+            self._extent = QgsRectangle(0.0, 0.0, 10.0, 10.0)
+
+        def layers(self):
+            return list(self._layers)
+
+        def setLayers(self, layers) -> None:
+            self._layers = list(layers)
+            self.layersChanged.emit()
+
+        def mapSettings(self) -> FakeMapSettings:
+            return FakeMapSettings()
+
+        def extent(self) -> QgsRectangle:
+            return QgsRectangle(self._extent)
+
+        def setExtent(self, bbox) -> None:
+            self._extent = QgsRectangle(bbox)
+
+        def refresh(self) -> None:
+            return None
+
+    class FakeIface:
+        def __init__(self) -> None:
+            self._canvas = FakeCanvas()
+
+        def mapCanvas(self) -> FakeCanvas:
+            return self._canvas
 
     class FakeCoordinateTransform:
         def __init__(self, source_crs, destination_crs, project) -> None:
@@ -1164,6 +2278,7 @@ def test_results_renderer_centers_single_point_bbox(
         def instance():
             return object()
 
+    fake_iface = FakeIface()
     monkeypatch.setattr(
         results_renderer_module,
         "QgsCoordinateTransform",
@@ -1171,23 +2286,29 @@ def test_results_renderer_centers_single_point_bbox(
     )
     monkeypatch.setattr(results_renderer_module, "QgsProject", FakeProject)
 
-    qgis_iface.mapCanvas().setExtent(QgsRectangle(0.0, 0.0, 10.0, 10.0))
-    initial_extent = QgsRectangle(qgis_iface.mapCanvas().extent())
+    renderer = _create_results_renderer(
+        monkeypatch,
+        results_renderer_module,
+        fake_iface,
+    )
     renderer.zoom_to_bbox(QgsRectangle(30.0, 60.0, 30.0, 60.0))
 
-    extent = qgis_iface.mapCanvas().extent()
+    extent = fake_iface.mapCanvas().extent()
     center = extent.center()
-    assert extent.width() == initial_extent.width()
-    assert extent.height() == initial_extent.height()
+    assert extent.width() == 10.0
+    assert extent.height() == 10.0
     assert center.x() == 30.0
     assert center.y() == 60.0
 
+    _dispose_results_renderer(renderer)
+
 
 def test_results_renderer_keeps_collection_points_at_overview_scale(
-    results_renderer_factory,
+    monkeypatch,
 ) -> None:
     from qgis.core import QgsGeometry, QgsPointXY
 
+    import osminfo.search.results_renderer as results_renderer_module
     from osminfo.openstreetmap.models import (
         OsmElement,
         OsmElementType,
@@ -1196,6 +2317,68 @@ def test_results_renderer_keeps_collection_points_at_overview_scale(
         OsmResultGroupType,
         OsmResultTree,
     )
+
+    class FakeSignal:
+        def connect(self, callback) -> None:
+            self._callback = callback
+
+        def disconnect(self, callback) -> None:
+            del callback
+
+        def emit(self, *args) -> None:
+            callback = getattr(self, "_callback", None)
+            if callback is not None:
+                callback(*args)
+
+    class FakeCrs:
+        def authid(self) -> str:
+            return "EPSG:4326"
+
+        def postgisSrid(self) -> int:
+            return 4326
+
+    class FakeMapSettings:
+        def destinationCrs(self) -> FakeCrs:
+            return FakeCrs()
+
+    class FakeCanvas:
+        def __init__(self) -> None:
+            self.scaleChanged = FakeSignal()
+            self.layersChanged = FakeSignal()
+            self.destinationCrsChanged = FakeSignal()
+            self._layers = []
+            self._map_units_per_pixel = 1.0
+
+        def scale(self) -> float:
+            return 1000.0
+
+        def mapUnitsPerPixel(self) -> float:
+            return self._map_units_per_pixel
+
+        def layers(self):
+            return list(self._layers)
+
+        def setLayers(self, layers) -> None:
+            self._layers = list(layers)
+            self.layersChanged.emit()
+
+        def mapSettings(self) -> FakeMapSettings:
+            return FakeMapSettings()
+
+        def setExtent(self, bbox) -> None:
+            self._bbox = bbox
+
+        def refresh(self) -> None:
+            return None
+
+    class FakeIface:
+        def __init__(self) -> None:
+            self._canvas = FakeCanvas()
+
+        def mapCanvas(self) -> FakeCanvas:
+            return self._canvas
+
+    fake_iface = FakeIface()
 
     collection_element = OsmElement(
         osm_id=10,
@@ -1210,7 +2393,11 @@ def test_results_renderer_keeps_collection_points_at_overview_scale(
         max_scale=100.0,
     )
 
-    results_renderer_module, renderer, _ = results_renderer_factory()
+    renderer = _create_results_renderer(
+        monkeypatch,
+        results_renderer_module,
+        fake_iface,
+    )
     renderer.set_result_tree(
         OsmResultTree(
             groups=(
@@ -1243,12 +2430,15 @@ def test_results_renderer_keeps_collection_points_at_overview_scale(
     )
     assert line_feature[results_renderer_module.FIELD_MAX_SCALE] is None
 
+    _dispose_results_renderer(renderer)
+
 
 def test_results_renderer_stores_max_scale_for_non_point_features(
-    results_renderer_factory,
+    monkeypatch,
 ) -> None:
     from qgis.core import QgsGeometry, QgsPointXY
 
+    import osminfo.search.results_renderer as results_renderer_module
     from osminfo.openstreetmap.models import (
         OsmElement,
         OsmElementType,
@@ -1256,6 +2446,64 @@ def test_results_renderer_stores_max_scale_for_non_point_features(
         OsmResultGroupType,
         OsmResultTree,
     )
+
+    class FakeSignal:
+        def connect(self, callback) -> None:
+            self._callback = callback
+
+        def disconnect(self, callback) -> None:
+            del callback
+
+        def emit(self, *args) -> None:
+            callback = getattr(self, "_callback", None)
+            if callback is not None:
+                callback(*args)
+
+    class FakeCrs:
+        def authid(self) -> str:
+            return "EPSG:4326"
+
+        def postgisSrid(self) -> int:
+            return 4326
+
+    class FakeMapSettings:
+        def destinationCrs(self) -> FakeCrs:
+            return FakeCrs()
+
+    class FakeCanvas:
+        def __init__(self) -> None:
+            self.scaleChanged = FakeSignal()
+            self.layersChanged = FakeSignal()
+            self.destinationCrsChanged = FakeSignal()
+            self._layers = []
+
+        def scale(self) -> float:
+            return 1000.0
+
+        def layers(self):
+            return list(self._layers)
+
+        def setLayers(self, layers) -> None:
+            self._layers = list(layers)
+            self.layersChanged.emit()
+
+        def mapSettings(self) -> FakeMapSettings:
+            return FakeMapSettings()
+
+        def setExtent(self, bbox) -> None:
+            self._bbox = bbox
+
+        def refresh(self) -> None:
+            return None
+
+    class FakeIface:
+        def __init__(self) -> None:
+            self._canvas = FakeCanvas()
+
+        def mapCanvas(self) -> FakeCanvas:
+            return self._canvas
+
+    fake_iface = FakeIface()
 
     polygon_element = OsmElement(
         osm_id=11,
@@ -1274,7 +2522,11 @@ def test_results_renderer_stores_max_scale_for_non_point_features(
         max_scale=250.0,
     )
 
-    results_renderer_module, renderer, _ = results_renderer_factory()
+    renderer = _create_results_renderer(
+        monkeypatch,
+        results_renderer_module,
+        fake_iface,
+    )
     renderer.set_result_tree(
         OsmResultTree(
             groups=(
@@ -1301,12 +2553,13 @@ def test_results_renderer_stores_max_scale_for_non_point_features(
     )
     assert polygon_feature[results_renderer_module.FIELD_MAX_SCALE] == 250.0
 
+    _dispose_results_renderer(renderer)
 
-def test_results_renderer_can_disable_centroid_rules(
-    results_renderer_factory,
-) -> None:
+
+def test_results_renderer_can_disable_centroid_rules(monkeypatch) -> None:
     from qgis.core import QgsGeometry, QgsPointXY
 
+    import osminfo.search.results_renderer as results_renderer_module
     from osminfo.openstreetmap.models import (
         OsmElement,
         OsmElementType,
@@ -1314,6 +2567,64 @@ def test_results_renderer_can_disable_centroid_rules(
         OsmResultGroupType,
         OsmResultTree,
     )
+
+    class FakeSignal:
+        def connect(self, callback) -> None:
+            self._callback = callback
+
+        def disconnect(self, callback) -> None:
+            del callback
+
+        def emit(self, *args) -> None:
+            callback = getattr(self, "_callback", None)
+            if callback is not None:
+                callback(*args)
+
+    class FakeCrs:
+        def authid(self) -> str:
+            return "EPSG:4326"
+
+        def postgisSrid(self) -> int:
+            return 4326
+
+    class FakeMapSettings:
+        def destinationCrs(self) -> FakeCrs:
+            return FakeCrs()
+
+    class FakeCanvas:
+        def __init__(self) -> None:
+            self.scaleChanged = FakeSignal()
+            self.layersChanged = FakeSignal()
+            self.destinationCrsChanged = FakeSignal()
+            self._layers = []
+
+        def scale(self) -> float:
+            return 1000.0
+
+        def layers(self):
+            return list(self._layers)
+
+        def setLayers(self, layers) -> None:
+            self._layers = list(layers)
+            self.layersChanged.emit()
+
+        def mapSettings(self) -> FakeMapSettings:
+            return FakeMapSettings()
+
+        def setExtent(self, bbox) -> None:
+            self._bbox = bbox
+
+        def refresh(self) -> None:
+            return None
+
+    class FakeIface:
+        def __init__(self) -> None:
+            self._canvas = FakeCanvas()
+
+        def mapCanvas(self) -> FakeCanvas:
+            return self._canvas
+
+    fake_iface = FakeIface()
 
     polygon_element = OsmElement(
         osm_id=12,
@@ -1332,7 +2643,11 @@ def test_results_renderer_can_disable_centroid_rules(
         max_scale=250.0,
     )
 
-    results_renderer_module, renderer, _ = results_renderer_factory()
+    renderer = _create_results_renderer(
+        monkeypatch,
+        results_renderer_module,
+        fake_iface,
+    )
     renderer.set_result_tree(
         OsmResultTree(
             groups=(
@@ -1348,18 +2663,29 @@ def test_results_renderer_can_disable_centroid_rules(
     polygon_layer = renderer._layers[
         results_renderer_module.OsmGeometryType.POLYGON
     ]
-    assert len(polygon_layer.renderer().rootRule().children()) == 10
+    polygon_renderer = polygon_layer.renderer()
+    assert polygon_renderer is not None
+    assert polygon_renderer.type() == "RuleRenderer"
+    root_rule = cast(Any, polygon_renderer).rootRule()
+    assert len(root_rule.children()) == 10
 
     renderer.set_centroid_rendering_enabled(False)
 
-    assert len(polygon_layer.renderer().rootRule().children()) == 5
+    polygon_renderer = polygon_layer.renderer()
+    assert polygon_renderer is not None
+    assert polygon_renderer.type() == "RuleRenderer"
+    root_rule = cast(Any, polygon_renderer).rootRule()
+    assert len(root_rule.children()) == 5
+
+    _dispose_results_renderer(renderer)
 
 
 def test_results_renderer_uses_mutually_exclusive_style_filters(
-    results_renderer_factory,
+    monkeypatch,
 ) -> None:
     from qgis.core import QgsGeometry, QgsPointXY
 
+    import osminfo.search.results_renderer as results_renderer_module
     from osminfo.openstreetmap.models import (
         OsmElement,
         OsmElementType,
@@ -1367,6 +2693,64 @@ def test_results_renderer_uses_mutually_exclusive_style_filters(
         OsmResultGroupType,
         OsmResultTree,
     )
+
+    class FakeSignal:
+        def connect(self, callback) -> None:
+            self._callback = callback
+
+        def disconnect(self, callback) -> None:
+            del callback
+
+        def emit(self, *args) -> None:
+            callback = getattr(self, "_callback", None)
+            if callback is not None:
+                callback(*args)
+
+    class FakeCrs:
+        def authid(self) -> str:
+            return "EPSG:4326"
+
+        def postgisSrid(self) -> int:
+            return 4326
+
+    class FakeMapSettings:
+        def destinationCrs(self) -> FakeCrs:
+            return FakeCrs()
+
+    class FakeCanvas:
+        def __init__(self) -> None:
+            self.scaleChanged = FakeSignal()
+            self.layersChanged = FakeSignal()
+            self.destinationCrsChanged = FakeSignal()
+            self._layers = []
+
+        def scale(self) -> float:
+            return 1000.0
+
+        def layers(self):
+            return list(self._layers)
+
+        def setLayers(self, layers) -> None:
+            self._layers = list(layers)
+            self.layersChanged.emit()
+
+        def mapSettings(self) -> FakeMapSettings:
+            return FakeMapSettings()
+
+        def setExtent(self, bbox) -> None:
+            self._bbox = bbox
+
+        def refresh(self) -> None:
+            return None
+
+    class FakeIface:
+        def __init__(self) -> None:
+            self._canvas = FakeCanvas()
+
+        def mapCanvas(self) -> FakeCanvas:
+            return self._canvas
+
+    fake_iface = FakeIface()
 
     polygon_element = OsmElement(
         osm_id=13,
@@ -1386,7 +2770,11 @@ def test_results_renderer_uses_mutually_exclusive_style_filters(
         is_incomplete=True,
     )
 
-    results_renderer_module, renderer, _ = results_renderer_factory()
+    renderer = _create_results_renderer(
+        monkeypatch,
+        results_renderer_module,
+        fake_iface,
+    )
     renderer.set_result_tree(
         OsmResultTree(
             groups=(
@@ -1402,10 +2790,11 @@ def test_results_renderer_uses_mutually_exclusive_style_filters(
     polygon_layer = renderer._layers[
         results_renderer_module.OsmGeometryType.POLYGON
     ]
-    filters = [
-        rule.filterExpression()
-        for rule in polygon_layer.renderer().rootRule().children()
-    ]
+    polygon_renderer = polygon_layer.renderer()
+    assert polygon_renderer is not None
+    assert polygon_renderer.type() == "RuleRenderer"
+    root_rule = cast(Any, polygon_renderer).rootRule()
+    filters = [rule.filterExpression() for rule in root_rule.children()]
     assert any(
         '"relation_related" = 1 AND "is_tainted" = 1' in filter_text
         for filter_text in filters
@@ -1415,12 +2804,13 @@ def test_results_renderer_uses_mutually_exclusive_style_filters(
         for filter_text in filters
     )
 
+    _dispose_results_renderer(renderer)
 
-def test_results_renderer_adds_larger_polygons_first(
-    results_renderer_factory,
-) -> None:
+
+def test_results_renderer_adds_larger_polygons_first(monkeypatch) -> None:
     from qgis.core import QgsGeometry, QgsPointXY
 
+    import osminfo.search.results_renderer as results_renderer_module
     from osminfo.openstreetmap.models import (
         OsmElement,
         OsmElementType,
@@ -1428,6 +2818,64 @@ def test_results_renderer_adds_larger_polygons_first(
         OsmResultGroupType,
         OsmResultTree,
     )
+
+    class FakeSignal:
+        def connect(self, callback) -> None:
+            self._callback = callback
+
+        def disconnect(self, callback) -> None:
+            del callback
+
+        def emit(self, *args) -> None:
+            callback = getattr(self, "_callback", None)
+            if callback is not None:
+                callback(*args)
+
+    class FakeCrs:
+        def authid(self) -> str:
+            return "EPSG:4326"
+
+        def postgisSrid(self) -> int:
+            return 4326
+
+    class FakeMapSettings:
+        def destinationCrs(self) -> FakeCrs:
+            return FakeCrs()
+
+    class FakeCanvas:
+        def __init__(self) -> None:
+            self.scaleChanged = FakeSignal()
+            self.layersChanged = FakeSignal()
+            self.destinationCrsChanged = FakeSignal()
+            self._layers = []
+
+        def scale(self) -> float:
+            return 1000.0
+
+        def layers(self):
+            return list(self._layers)
+
+        def setLayers(self, layers) -> None:
+            self._layers = list(layers)
+            self.layersChanged.emit()
+
+        def mapSettings(self) -> FakeMapSettings:
+            return FakeMapSettings()
+
+        def setExtent(self, bbox) -> None:
+            self._bbox = bbox
+
+        def refresh(self) -> None:
+            return None
+
+    class FakeIface:
+        def __init__(self) -> None:
+            self._canvas = FakeCanvas()
+
+        def mapCanvas(self) -> FakeCanvas:
+            return self._canvas
+
+    fake_iface = FakeIface()
 
     small_polygon = OsmElement(
         osm_id=14,
@@ -1460,7 +2908,11 @@ def test_results_renderer_adds_larger_polygons_first(
         ),
     )
 
-    results_renderer_module, renderer, _ = results_renderer_factory()
+    renderer = _create_results_renderer(
+        monkeypatch,
+        results_renderer_module,
+        fake_iface,
+    )
     renderer.set_result_tree(
         OsmResultTree(
             groups=(
@@ -1477,9 +2929,11 @@ def test_results_renderer_adds_larger_polygons_first(
         results_renderer_module.OsmGeometryType.POLYGON
     ]
     feature_areas = [
-        feature.geometry().area() for feature in polygon_layer.getFeatures()
+        feature.geometry().area()
+        for feature in list(cast(Any, polygon_layer.getFeatures()))
     ]
     assert feature_areas == sorted(feature_areas, reverse=True)
+    _dispose_results_renderer(renderer)
 
 
 def test_result_layer_store_identifies_only_visible_active_features(

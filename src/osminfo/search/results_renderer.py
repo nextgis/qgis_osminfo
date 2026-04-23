@@ -140,6 +140,15 @@ class OsmResultsRenderer(QObject):
             self._layer_store.remove_layers()
             return
 
+        # If there are no displayable features, we can skip layer creation and
+        # just show results in the tree view
+        if not any(
+            len(self._display_parts(element)) > 0
+            for element in self._elements.values()
+        ):
+            self._layer_store.remove_layers()
+            return
+
         self._layer_store.ensure_layers()
         self._refresh_layers()
 

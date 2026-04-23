@@ -27,7 +27,6 @@ from typing import (
 )
 
 from qgis.core import (
-    Qgis,
     QgsCoordinateTransform,
     QgsFeature,
     QgsFeatureRequest,
@@ -40,7 +39,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QObject, pyqtSlot
 from qgis.utils import iface
 
-from osminfo.core.compat import GeometryType
+from osminfo.core.compat import FeatureRequestFlag, GeometryType
 from osminfo.openstreetmap.models import OsmElementType, OsmGeometryType
 
 if TYPE_CHECKING:
@@ -204,7 +203,7 @@ class OsmResultLayerStore(QObject):
 
         map_canvas = iface.mapCanvas()
         map_layers = tuple(map_canvas.layers())
-        map_scale = map_canvas.scale()
+        map_scale = self._current_map_scale()
         identified_hits: List[OsmResultLayerHit] = []
         seen_hits: Set[OsmResultLayerHit] = set()
 
@@ -224,7 +223,7 @@ class OsmResultLayerStore(QObject):
 
             feature_request = QgsFeatureRequest()
             feature_request.setFilterRect(layer_search_geometry.boundingBox())
-            feature_request.setFlags(Qgis.FeatureRequestFlag.ExactIntersect)
+            feature_request.setFlags(FeatureRequestFlag.ExactIntersect)
 
             for feature in cast(
                 Iterable[QgsFeature], layer.getFeatures(feature_request)
@@ -310,7 +309,7 @@ class OsmResultLayerStore(QObject):
         layer: QgsVectorLayer,
         feature: QgsFeature,
         layer_search_geometry: QgsGeometry,
-        map_scale: float,
+        map_scale: Optional[float],
     ) -> bool:
         display_geometry = self._display_geometry(layer, feature, map_scale)
         if display_geometry is None or display_geometry.isEmpty():
@@ -328,7 +327,7 @@ class OsmResultLayerStore(QObject):
         self,
         layer: QgsVectorLayer,
         feature: QgsFeature,
-        map_scale: float,
+        map_scale: Optional[float],
     ) -> Optional[QgsGeometry]:
         geometry = feature.geometry()
         if geometry is None or geometry.isEmpty():
@@ -348,7 +347,7 @@ class OsmResultLayerStore(QObject):
         self,
         layer: QgsVectorLayer,
         feature: QgsFeature,
-        map_scale: float,
+        map_scale: Optional[float],
     ) -> bool:
         if not self._is_centroid_rendering_enabled:
             return False
@@ -365,7 +364,22 @@ class OsmResultLayerStore(QObject):
         except (TypeError, ValueError):
             return False
 
+        if map_scale is None:
+            return True
+
         return map_scale > max_scale
+
+    def _current_map_scale(self) -> Optional[float]:
+        map_canvas = iface.mapCanvas()
+        extent = map_canvas.extent()
+        if extent.isNull() or extent.isEmpty():
+            return None
+
+        map_scale = map_canvas.scale()
+        if map_scale <= 0:
+            return None
+
+        return map_scale
 
     def _feature_hit(
         self,

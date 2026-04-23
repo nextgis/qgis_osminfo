@@ -15,11 +15,18 @@
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
 from enum import Enum
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QAbstractItemModel, QModelIndex, Qt
-from qgis.PyQt.QtGui import QBrush, QFont, QPalette
+from qgis.PyQt.QtGui import (
+    QBrush,
+    QFont,
+    QGuiApplication,
+    QIcon,
+    QMovie,
+    QPalette,
+)
 
 from osminfo.openstreetmap.models import OsmElement, OsmResultTree, OsmTag
 from osminfo.openstreetmap.tag2link import TagLink
@@ -69,6 +76,7 @@ class OsmFeaturesTreeModel(QAbstractItemModel):
     NODE_TYPE_ROLE = int(Qt.ItemDataRole.UserRole)
     OSM_ELEMENT_ROLE = int(Qt.ItemDataRole.UserRole) + 1
     TAG_LINKS_ROLE = int(Qt.ItemDataRole.UserRole) + 2
+    IS_LOADING_ROLE = int(Qt.ItemDataRole.UserRole) + 3
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -80,6 +88,9 @@ class OsmFeaturesTreeModel(QAbstractItemModel):
         self._tag_link_brush = QBrush(
             QgsApplication.palette().color(QPalette.ColorRole.Link)
         )
+        self._feature_nodes: Dict[Tuple[str, int], _FeatureTreeNode] = {}
+        self._loading_keys: Set[Tuple[str, int]] = set()
+        self._loading_movie: Optional[QMovie] = None
 
     def columnCount(self, parent: Optional[QModelIndex] = None) -> int:  # noqa: N802
         del parent
@@ -179,6 +190,9 @@ class OsmFeaturesTreeModel(QAbstractItemModel):
         if role == self.TAG_LINKS_ROLE:
             return self.tag_links_for_index(index)
 
+        if role == self.IS_LOADING_ROLE:
+            return self._node_key(node) in self._loading_keys
+
         return None
 
     def headerData(
@@ -205,12 +219,20 @@ class OsmFeaturesTreeModel(QAbstractItemModel):
     def clear(self) -> None:
         self.beginResetModel()
         self._root.children = []
+        self._feature_nodes = {}
+        self._loading_keys = set()
+        if self._loading_movie is not None:
+            self._loading_movie.stop()
         self.endResetModel()
 
     def set_result_tree(self, result_tree: OsmResultTree) -> None:
         self.beginResetModel()
 
         self._root.children = []
+        self._feature_nodes = {}
+        self._loading_keys = set()
+        if self._loading_movie is not None:
+            self._loading_movie.stop()
         for group in result_tree.groups:
             group_node = _FeatureTreeNode(
                 FeatureTreeNodeType.GROUP,
@@ -223,6 +245,61 @@ class OsmFeaturesTreeModel(QAbstractItemModel):
                 self._set_element(group_node, element)
 
         self.endResetModel()
+
+    def set_element_loading(
+        self,
+        element_keys: Set[Tuple[str, int]],
+        is_loading: bool,
+    ) -> None:
+        changed_keys: Set[Tuple[str, int]] = set()
+        for element_key in element_keys:
+            if is_loading:
+                if element_key in self._loading_keys:
+                    continue
+
+                self._loading_keys.add(element_key)
+                changed_keys.add(element_key)
+                continue
+
+            if element_key not in self._loading_keys:
+                continue
+
+            self._loading_keys.remove(element_key)
+            changed_keys.add(element_key)
+
+        if len(self._loading_keys) > 0:
+            loading_movie = self._ensure_loading_movie()
+            if (
+                loading_movie is not None
+                and loading_movie.isValid()
+                and loading_movie.state() != QMovie.MovieState.Running
+            ):
+                loading_movie.start()
+        elif (
+            self._loading_movie is not None
+            and self._loading_movie.state() != QMovie.MovieState.NotRunning
+        ):
+            self._loading_movie.stop()
+
+        for element_key in changed_keys:
+            self._emit_feature_data_changed(element_key)
+
+    def _emit_feature_data_changed(self, element_key: Tuple[str, int]) -> None:
+        node = self._feature_nodes.get(element_key)
+        if node is None:
+            return
+
+        row = node.row()
+        if row < 0:
+            return
+
+        parent_index = QModelIndex()
+        if node.parent is not None and node.parent is not self._root:
+            parent_index = self.createIndex(node.parent.row(), 0, node.parent)
+
+        top_left = self.index(row, 0, parent_index)
+        bottom_right = self.index(row, self.columnCount() - 1, parent_index)
+        self.dataChanged.emit(top_left, bottom_right)
 
     def osm_element_for_index(
         self,
@@ -285,6 +362,9 @@ class OsmFeaturesTreeModel(QAbstractItemModel):
             osm_element=element,
         )
         group_node.children.append(feature_node)
+        self._feature_nodes[(element.element_type.value, element.osm_id)] = (
+            feature_node
+        )
 
         if element.is_incomplete:
             feature_node.children.append(
@@ -333,6 +413,17 @@ class OsmFeaturesTreeModel(QAbstractItemModel):
         if node.node_type != FeatureTreeNodeType.FEATURE:
             return None
 
+        node_key = self._node_key(node)
+        if (
+            node_key is not None
+            and node_key in self._loading_keys
+            and self._loading_movie is not None
+            and self._loading_movie.isValid()
+        ):
+            current_pixmap = self._loading_movie.currentPixmap()
+            if not current_pixmap.isNull():
+                return QIcon(current_pixmap)
+
         if node.osm_element is None:
             return None
 
@@ -344,3 +435,29 @@ class OsmFeaturesTreeModel(QAbstractItemModel):
             geometry_type.name,
             qgis_icon("mIconGeometryCollectionLayer.svg"),
         )
+
+    def _node_key(
+        self,
+        node: _FeatureTreeNode,
+    ) -> Optional[Tuple[str, int]]:
+        if node.osm_element is None:
+            return None
+
+        return (node.osm_element.element_type.value, node.osm_element.osm_id)
+
+    def _on_loading_frame_changed(self) -> None:
+        for element_key in self._loading_keys:
+            self._emit_feature_data_changed(element_key)
+
+    def _ensure_loading_movie(self) -> Optional[QMovie]:
+        if self._loading_movie is not None:
+            return self._loading_movie
+
+        if QGuiApplication.instance() is None:
+            return None
+
+        self._loading_movie = QMovie(":images/themes/default/mIconLoading.gif")
+        self._loading_movie.frameChanged.connect(
+            self._on_loading_frame_changed
+        )
+        return self._loading_movie

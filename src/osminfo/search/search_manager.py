@@ -14,9 +14,10 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, cast
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, cast
 
 from qgis.core import (
+    Qgis,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsGeometry,
@@ -48,7 +49,15 @@ from osminfo.core.utils import qgis_locale
 from osminfo.nominatim.geocode_task import GeocodeTask
 from osminfo.openstreetmap.features_parse_task import OverpassFeaturesParseTask
 from osminfo.openstreetmap.features_tree_model import OsmFeaturesTreeModel
-from osminfo.openstreetmap.models import OsmElement, OsmResultGroupType
+from osminfo.openstreetmap.geometry_load_task import OverpassGeometryLoadTask
+from osminfo.openstreetmap.models import (
+    OsmElement,
+    OsmResultGroupType,
+    OsmResultTree,
+)
+from osminfo.openstreetmap.raw_elements_subset import (
+    RawElementsSubsetCollector,
+)
 from osminfo.osminfo_interface import OsmInfoInterface
 from osminfo.overpass.endpoints import OverpassEndpoint
 from osminfo.overpass.query_builder import (
@@ -86,6 +95,9 @@ if TYPE_CHECKING:
     assert isinstance(iface, QgisInterface)
 
 
+MAX_GEOMETRY_AREA_SQ_KM = 10.0
+
+
 class OsmInfoSearchManager(QObject):
     _plugin: OsmInfoInterface
     _tool_action: Optional[QAction]
@@ -103,6 +115,8 @@ class OsmInfoSearchManager(QObject):
     _active_query_task: Optional[OverpassQueryTask]
     _active_geocode_task: Optional[GeocodeTask]
     _active_parse_task: Optional[OverpassFeaturesParseTask]
+    _active_geometry_task: Optional[OverpassGeometryLoadTask]
+    _raw_elements_subset_collector: Optional[RawElementsSubsetCollector]
     _active_query_kind: Optional[str]
     _pending_repaired_search: Optional[str]
 
@@ -125,6 +139,7 @@ class OsmInfoSearchManager(QObject):
         self._active_query_task = None
         self._active_geocode_task = None
         self._active_parse_task = None
+        self._active_geometry_task = None
         self._active_query_kind = None
         self._pending_repaired_search = None
         self._active_endpoint = ""
@@ -139,6 +154,10 @@ class OsmInfoSearchManager(QObject):
             "search": [],
         }
         self._is_loading = False
+        self._result_tree: Optional[OsmResultTree] = None
+        self._raw_elements_subset_collector = None
+        self._active_geometry_keys: Set[Tuple[str, int]] = set()
+        self._queued_geometry_batches: List[Tuple[Tuple[str, int], ...]] = []
         self._request_feedback_tracker = SearchRequestFeedbackTracker()
 
     def load(self) -> None:
@@ -622,8 +641,25 @@ class OsmInfoSearchManager(QObject):
         if self._active_parse_task is not None:
             self._active_parse_task.cancel()
 
+        if self._active_geometry_task is not None:
+            self._active_geometry_task.cancel()
+
         self._finish_loading()
+        self._clear_loaded_results()
         self._reset_query_state()
+
+    def _clear_loaded_results(self) -> None:
+        if self._results_model is not None:
+            self._results_model.set_element_loading(
+                self._active_geometry_keys | self._queued_geometry_key_set(),
+                False,
+            )
+
+        self._active_geometry_task = None
+        self._active_geometry_keys = set()
+        self._queued_geometry_batches = []
+        self._result_tree = None
+        self._raw_elements_subset_collector = None
 
     def _reset_query_state(self) -> None:
         self._active_query_task = None
@@ -676,6 +712,7 @@ class OsmInfoSearchManager(QObject):
             enclosing_elements=self._query_results["enclosing"],
             search_elements=self._query_results["search"],
             titles=titles,
+            geometry_area_limit_sq_km=self._initial_geometry_area_limit(),
         )
         task.taskCompleted.connect(self._on_parse_task_completed)
         task.taskTerminated.connect(self._on_parse_task_terminated)
@@ -783,6 +820,9 @@ class OsmInfoSearchManager(QObject):
             return
 
         result_tree = self._active_parse_task.result_tree
+        raw_elements_subset_collector = (
+            self._active_parse_task.raw_elements_subset_collector
+        )
         active_endpoint = self._active_endpoint
         self._active_parse_task = None
         self._finish_loading()
@@ -792,6 +832,7 @@ class OsmInfoSearchManager(QObject):
             return
 
         if result_tree.is_empty:
+            self._clear_loaded_results()
             self._request_feedback_tracker.record_overpass_success()
             self._result_renderer.clear()
             self._results_model.clear()
@@ -812,6 +853,8 @@ class OsmInfoSearchManager(QObject):
 
         self._request_feedback_tracker.record_overpass_success()
         self._request_feedback_tracker.reset_regional_empty_results()
+        self._result_tree = result_tree
+        self._raw_elements_subset_collector = raw_elements_subset_collector
         self._results_model.set_result_tree(result_tree)
         if self._result_renderer is not None:
             self._result_renderer.set_result_tree(result_tree)
@@ -820,6 +863,9 @@ class OsmInfoSearchManager(QObject):
             self._search_panel.results_view.clear_message()
             self._search_panel.results_view.show_root_level()
             self._select_first_result()
+
+        if OsmInfoSettings().show_all_found_features:
+            self._request_geometry_for_all_results()
 
     @pyqtSlot()
     def _on_parse_task_terminated(self) -> None:
@@ -842,23 +888,9 @@ class OsmInfoSearchManager(QObject):
         if self._results_model is None:
             return
 
-        selection_model = self._search_panel.results_view.selectionModel()
-        selected_indexes = selection_model.selectedRows(0)
-        selected_elements = {}
-        for selected_index in selected_indexes:
-            osm_element = self._results_model.osm_element_for_index(
-                selected_index
-            )
-            if osm_element is None:
-                continue
-
-            selected_elements[
-                (osm_element.element_type.value, osm_element.osm_id)
-            ] = osm_element
-
-        self._result_renderer.set_active_elements(
-            tuple(selected_elements.values())
-        )
+        selected_elements = self._selected_result_elements()
+        self._request_geometry_for_elements(selected_elements)
+        self._result_renderer.set_active_elements(selected_elements)
 
     def _select_first_result(self) -> None:
         if self._search_panel is None or self._results_model is None:
@@ -905,6 +937,8 @@ class OsmInfoSearchManager(QObject):
             return
 
         self._result_renderer.set_show_all_features(enabled)
+        if enabled:
+            self._request_geometry_for_all_results()
 
     @pyqtSlot(bool)
     def _on_show_small_features_as_points_toggled(
@@ -1264,6 +1298,7 @@ class OsmInfoSearchManager(QObject):
 
     def _show_error(self, message: str) -> None:
         logger.error(message)
+        self._clear_loaded_results()
         if self._results_model is not None:
             self._results_model.clear()
         if self._result_renderer is not None:
@@ -1274,6 +1309,7 @@ class OsmInfoSearchManager(QObject):
 
     def _show_overpass_error(self, message: str) -> None:
         logger.error(message)
+        self._clear_loaded_results()
         if self._results_model is not None:
             self._results_model.clear()
         if self._result_renderer is not None:
@@ -1289,6 +1325,7 @@ class OsmInfoSearchManager(QObject):
         additional_info: Optional[str] = None,
     ) -> None:
         logger.error(message)
+        self._clear_loaded_results()
         if self._results_model is not None:
             self._results_model.clear()
         if self._result_renderer is not None:
@@ -1340,3 +1377,281 @@ class OsmInfoSearchManager(QObject):
 
     def _open_url(self, url: str) -> None:
         QDesktopServices.openUrl(QUrl(url))
+
+    def _selected_result_elements(self) -> Tuple[OsmElement, ...]:
+        if self._search_panel is None or self._results_model is None:
+            return tuple()
+
+        selection_model = self._search_panel.results_view.selectionModel()
+        selected_indexes = selection_model.selectedRows(0)
+        selected_elements: Dict[Tuple[str, int], OsmElement] = {}
+        for selected_index in selected_indexes:
+            osm_element = self._results_model.osm_element_for_index(
+                selected_index
+            )
+            if osm_element is None:
+                continue
+
+            selected_elements[self._element_key(osm_element)] = osm_element
+
+        return tuple(selected_elements.values())
+
+    def _request_geometry_for_all_results(self) -> None:
+        if self._result_tree is None:
+            return
+
+        self._request_geometry_for_elements(
+            tuple(
+                element
+                for group in self._result_tree.groups
+                for element in group.elements
+            )
+        )
+
+    def _request_geometry_for_elements(
+        self,
+        elements: Tuple[OsmElement, ...],
+    ) -> None:
+        if self._raw_elements_subset_collector is None:
+            return
+
+        if self._raw_elements_subset_collector.is_empty():
+            return
+
+        requested_keys = self._requestable_geometry_keys(elements)
+        if len(requested_keys) == 0:
+            return
+
+        if self._active_geometry_task is not None:
+            if self._results_model is not None:
+                self._results_model.set_element_loading(
+                    set(requested_keys),
+                    True,
+                )
+            self._queued_geometry_batches.append(requested_keys)
+            return
+
+        self._start_geometry_task(set(requested_keys))
+
+    def _can_load_geometry(self, element: OsmElement) -> bool:
+        return (
+            element.geometry is None
+            and element.is_geometry_deferred
+            and element.raw_element is not None
+        )
+
+    def _element_key(self, element: OsmElement) -> Tuple[str, int]:
+        return (element.element_type.value, element.osm_id)
+
+    def _start_geometry_task(self, element_keys: Set[Tuple[str, int]]) -> None:
+        if len(element_keys) == 0:
+            return
+
+        raw_elements = self._raw_elements_for_geometry_task(element_keys)
+        if len(raw_elements) == 0:
+            return
+
+        task = OverpassGeometryLoadTask(
+            qgis_locale(),
+            raw_elements,
+            element_keys,
+        )
+        task.taskCompleted.connect(self._on_geometry_task_completed)
+        task.taskTerminated.connect(self._on_geometry_task_terminated)
+        self._active_geometry_task = task
+        self._active_geometry_keys = set(element_keys)
+        if self._results_model is not None:
+            self._results_model.set_element_loading(element_keys, True)
+        self._plugin.task_manager.addTask(task)
+
+    @pyqtSlot()
+    def _on_geometry_task_completed(self) -> None:
+        sender = self.sender()
+        if sender is not self._active_geometry_task:
+            return
+
+        loaded_elements = self._active_geometry_task.parsed_elements
+        loaded_keys = set(self._active_geometry_keys)
+        self._active_geometry_task = None
+        self._active_geometry_keys = set()
+        if self._results_model is not None:
+            self._results_model.set_element_loading(loaded_keys, False)
+
+        self._apply_loaded_geometries(loaded_elements, loaded_keys)
+        self._refresh_loaded_geometries()
+        self._start_next_geometry_task()
+
+    @pyqtSlot()
+    def _on_geometry_task_terminated(self) -> None:
+        sender = self.sender()
+        if sender is not self._active_geometry_task:
+            return
+
+        error = self._active_geometry_task.error
+        loaded_keys = set(self._active_geometry_keys)
+        self._active_geometry_task = None
+        self._active_geometry_keys = set()
+        if self._results_model is not None:
+            self._results_model.set_element_loading(loaded_keys, False)
+
+        if error is not None:
+            logger.error(error.user_message)
+            self._plugin.notifier.display_message(
+                error.user_message,
+                level=Qgis.MessageLevel.Warning,
+            )
+
+        self._start_next_geometry_task()
+
+    def _start_next_geometry_task(self) -> None:
+        if self._active_geometry_task is not None:
+            return
+
+        while len(self._queued_geometry_batches) > 0:
+            queued_batch = self._queued_geometry_batches.pop(0)
+            filtered_batch = tuple(
+                element_key
+                for element_key in queued_batch
+                if self._is_geometry_request_still_needed(element_key)
+            )
+            dropped_keys = set(queued_batch) - set(filtered_batch)
+            if self._results_model is not None and len(dropped_keys) > 0:
+                self._results_model.set_element_loading(dropped_keys, False)
+            if len(filtered_batch) == 0:
+                continue
+
+            self._start_geometry_task(set(filtered_batch))
+            return
+
+    def _apply_loaded_geometries(
+        self,
+        loaded_elements: Dict[Tuple[str, int], OsmElement],
+        requested_keys: Set[Tuple[str, int]],
+    ) -> None:
+        if self._result_tree is None:
+            return
+
+        elements_by_key = {
+            self._element_key(element): element
+            for group in self._result_tree.groups
+            for element in group.elements
+        }
+        for element_key in requested_keys:
+            current_element = elements_by_key.get(element_key)
+            if current_element is None:
+                continue
+
+            loaded_element = loaded_elements.get(element_key)
+            if loaded_element is None:
+                current_element.is_geometry_deferred = False
+                current_element.raw_element = None
+                continue
+
+            current_element.geometry = loaded_element.geometry
+            current_element.display_geometry_type = (
+                loaded_element.display_geometry_type
+            )
+            current_element.max_scale = loaded_element.max_scale
+            current_element.bounds = loaded_element.bounds
+            current_element.is_incomplete = loaded_element.is_incomplete
+            current_element.is_geometry_deferred = (
+                loaded_element.is_geometry_deferred
+            )
+            if (
+                loaded_element.geometry is None
+                and not loaded_element.is_geometry_deferred
+            ):
+                current_element.raw_element = None
+
+    def _refresh_loaded_geometries(self) -> None:
+        if self._result_tree is None or self._result_renderer is None:
+            return
+
+        self._result_renderer.set_result_tree(self._result_tree)
+        self._result_renderer.set_active_elements(
+            self._selected_result_elements()
+        )
+
+    def _initial_geometry_area_limit(self) -> Optional[float]:
+        settings = OsmInfoSettings()
+        if settings.show_all_found_features:
+            return None
+
+        return MAX_GEOMETRY_AREA_SQ_KM
+
+    def _requestable_geometry_keys(
+        self,
+        elements: Tuple[OsmElement, ...],
+    ) -> Tuple[Tuple[str, int], ...]:
+        queued_keys = self._queued_geometry_key_set()
+        requestable_keys: List[Tuple[str, int]] = []
+        for element in elements:
+            if not self._can_load_geometry(element):
+                continue
+
+            element_key = self._element_key(element)
+            if element_key in self._active_geometry_keys:
+                continue
+
+            if element_key in queued_keys:
+                continue
+
+            requestable_keys.append(element_key)
+
+        return tuple(requestable_keys)
+
+    def _queued_geometry_key_set(self) -> Set[Tuple[str, int]]:
+        return {
+            element_key
+            for batch in self._queued_geometry_batches
+            for element_key in batch
+        }
+
+    def _is_geometry_request_still_needed(
+        self,
+        element_key: Tuple[str, int],
+    ) -> bool:
+        if self._result_tree is None:
+            return False
+
+        for group in self._result_tree.groups:
+            for element in group.elements:
+                if self._element_key(element) != element_key:
+                    continue
+
+                return self._can_load_geometry(element)
+
+        return False
+
+    def _raw_elements_for_geometry_task(
+        self,
+        element_keys: Set[Tuple[str, int]],
+    ) -> Tuple[dict, ...]:
+        requested_raw_elements: List[dict] = []
+        for element_key in element_keys:
+            raw_element = self._raw_element_for_geometry_key(element_key)
+            if raw_element is None:
+                continue
+
+            requested_raw_elements.append(raw_element)
+
+        if len(requested_raw_elements) == 0:
+            return tuple()
+
+        if self._raw_elements_subset_collector is None:
+            return tuple()
+
+        return self._raw_elements_subset_collector.collect_geometry_subset(
+            requested_raw_elements
+        )
+
+    def _raw_element_for_geometry_key(
+        self,
+        element_key: Tuple[str, int],
+    ) -> Optional[dict]:
+        if self._raw_elements_subset_collector is None:
+            return None
+
+        return self._raw_elements_subset_collector.raw_element_for_key(
+            element_key
+        )

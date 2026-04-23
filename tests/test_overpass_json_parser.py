@@ -865,6 +865,493 @@ def test_feature_callbacks(case: ParserCallbackCase) -> None:
     _assert_callback_case(case)
 
 
+def test_route_relation_joins_reversed_way_segments() -> None:
+    from osminfo.overpass.json_parser import OverpassJsonParser
+
+    parser = OverpassJsonParser.from_response(
+        {
+            "elements": [
+                {
+                    "type": "relation",
+                    "id": 1,
+                    "tags": {"type": "route"},
+                    "members": [
+                        {"type": "way", "ref": 2, "role": "forward"},
+                        {"type": "way", "ref": 3, "role": "forward"},
+                    ],
+                },
+                {"type": "way", "id": 2, "nodes": [10, 11]},
+                {"type": "way", "id": 3, "nodes": [12, 11]},
+                {"type": "node", "id": 10, "lat": 0.0, "lon": 0.0},
+                {"type": "node", "id": 11, "lat": 1.0, "lon": 1.0},
+                {"type": "node", "id": 12, "lat": 2.0, "lon": 2.0},
+            ]
+        },
+        flat_properties=False,
+    )
+
+    result = parser.to_feature_collection()
+
+    coordinates = result["features"][0]["geometry"]["coordinates"]
+
+    assert result["features"][0]["geometry"]["type"] == "LineString"
+    assert coordinates in (
+        [[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]],
+        [[2.0, 2.0], [1.0, 1.0], [0.0, 0.0]],
+    )
+
+
+def _collect_features(elements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    from osminfo.overpass.json_parser import OverpassJsonParser
+
+    result = OverpassJsonParser.from_response(
+        {"elements": elements},
+        flat_properties=False,
+    ).to_feature_collection()
+    return result["features"]
+
+
+@pytest.mark.parametrize(
+    ("elements",),
+    [
+        ([{"type": "relation", "id": 1, "tags": {"type": "multipolygon"}}],),
+        (
+            [
+                {
+                    "type": "relation",
+                    "id": 1,
+                    "tags": {"type": "multipolygon"},
+                    "members": [
+                        {"type": "way", "ref": 1, "role": "outer"},
+                    ],
+                },
+            ],
+        ),
+        (
+            [
+                {
+                    "type": "relation",
+                    "id": 1,
+                    "tags": {"type": "multipolygon"},
+                    "members": [
+                        {"type": "way", "ref": 1, "role": "outer"},
+                    ],
+                },
+                {"type": "way", "id": 1},
+            ],
+        ),
+        ([{"type": "relation", "id": 1, "tags": {"type": "route"}}],),
+        (
+            [
+                {
+                    "type": "relation",
+                    "id": 1,
+                    "tags": {"type": "route"},
+                    "members": [
+                        {"type": "way", "ref": 1, "role": "forward"},
+                    ],
+                },
+            ],
+        ),
+        (
+            [
+                {
+                    "type": "relation",
+                    "id": 1,
+                    "tags": {"type": "route"},
+                    "members": [
+                        {"type": "way", "ref": 1, "role": "forward"},
+                    ],
+                },
+                {"type": "way", "id": 1},
+            ],
+        ),
+    ],
+)
+def test_upstream_invalid_relation_cases_return_no_features(
+    elements: List[Dict[str, Any]],
+) -> None:
+    assert _collect_features(elements) == []
+
+
+def test_upstream_outer_way_tagging_keeps_relation_and_outer_way() -> None:
+    features = _collect_features(
+        [
+            {
+                "type": "relation",
+                "id": 1,
+                "tags": {"type": "multipolygon", "amenity": "xxx"},
+                "members": [
+                    {"type": "way", "ref": 2, "role": "outer"},
+                    {"type": "way", "ref": 3, "role": "inner"},
+                ],
+            },
+            {
+                "type": "way",
+                "id": 2,
+                "nodes": [4, 5, 6, 7, 4],
+                "tags": {"amenity": "yyy"},
+            },
+            {"type": "way", "id": 3, "nodes": [8, 9, 10, 8]},
+            {"type": "node", "id": 4, "lat": -1.0, "lon": -1.0},
+            {"type": "node", "id": 5, "lat": -1.0, "lon": 1.0},
+            {"type": "node", "id": 6, "lat": 1.0, "lon": 1.0},
+            {"type": "node", "id": 7, "lat": 1.0, "lon": -1.0},
+            {"type": "node", "id": 8, "lat": -0.5, "lon": 0.0},
+            {"type": "node", "id": 9, "lat": 0.5, "lon": 0.0},
+            {"type": "node", "id": 10, "lat": 0.0, "lon": 0.5},
+        ]
+    )
+
+    assert [feature["id"] for feature in features] == ["relation/1", "way/2"]
+
+
+def test_upstream_non_matching_inner_and_outer_rings() -> None:
+    complex_features = _collect_features(
+        [
+            {
+                "type": "relation",
+                "id": 1,
+                "tags": {"type": "multipolygon"},
+                "members": [
+                    {"type": "way", "ref": 2, "role": "outer"},
+                    {"type": "way", "ref": -1, "role": "outer"},
+                    {"type": "way", "ref": 3, "role": "inner"},
+                ],
+            },
+            {"type": "way", "id": 2, "nodes": [4, 5, 6, 7, 4]},
+            {"type": "node", "id": 4, "lat": 0.0, "lon": 0.0},
+            {"type": "node", "id": 5, "lat": 1.0, "lon": 0.0},
+            {"type": "node", "id": 6, "lat": 1.0, "lon": 1.0},
+            {"type": "node", "id": 7, "lat": 0.0, "lon": 1.0},
+            {"type": "way", "id": 3, "nodes": [8, 9, 10, 8]},
+            {"type": "node", "id": 8, "lat": 3.0, "lon": 3.0},
+            {"type": "node", "id": 9, "lat": 4.0, "lon": 3.0},
+            {"type": "node", "id": 10, "lat": 3.0, "lon": 4.0},
+        ]
+    )
+
+    assert len(complex_features) == 1
+    assert complex_features[0]["id"] == "relation/1"
+    assert complex_features[0]["geometry"]["type"] == "Polygon"
+    assert len(complex_features[0]["geometry"]["coordinates"]) == 1
+
+    simple_features = _collect_features(
+        [
+            {
+                "type": "relation",
+                "id": 1,
+                "tags": {"type": "multipolygon"},
+                "members": [
+                    {"type": "way", "ref": 2, "role": "outer"},
+                    {"type": "way", "ref": 3, "role": "inner"},
+                ],
+            },
+            {"type": "way", "id": 2, "nodes": [4, 5, 6, 7, 4]},
+            {"type": "node", "id": 4, "lat": 0.0, "lon": 0.0},
+            {"type": "node", "id": 5, "lat": 1.0, "lon": 0.0},
+            {"type": "node", "id": 6, "lat": 1.0, "lon": 1.0},
+            {"type": "node", "id": 7, "lat": 0.0, "lon": 1.0},
+            {"type": "way", "id": 3, "nodes": [8, 9, 10, 8]},
+            {"type": "node", "id": 8, "lat": 3.0, "lon": 3.0},
+            {"type": "node", "id": 9, "lat": 4.0, "lon": 3.0},
+            {"type": "node", "id": 10, "lat": 3.0, "lon": 4.0},
+        ]
+    )
+
+    assert len(simple_features) == 1
+    assert simple_features[0]["id"] == "way/2"
+    assert simple_features[0]["geometry"]["type"] == "Polygon"
+    assert len(simple_features[0]["geometry"]["coordinates"]) == 1
+
+
+def test_upstream_non_trivial_ring_building() -> None:
+    way_order_features = _collect_features(
+        [
+            {
+                "type": "relation",
+                "id": 1,
+                "tags": {"type": "multipolygon"},
+                "members": [
+                    {"type": "way", "ref": 1, "role": "outer"},
+                    {"type": "way", "ref": 3, "role": "outer"},
+                    {"type": "way", "ref": 2, "role": "outer"},
+                ],
+            },
+            {"type": "way", "id": 1, "nodes": [1, 2]},
+            {"type": "way", "id": 2, "nodes": [2, 3]},
+            {"type": "way", "id": 3, "nodes": [3, 1]},
+            {"type": "node", "id": 1, "lat": 1.0, "lon": 0.0},
+            {"type": "node", "id": 2, "lat": 2.0, "lon": 0.0},
+            {"type": "node", "id": 3, "lat": 3.0, "lon": 0.0},
+        ]
+    )
+
+    assert len(way_order_features) == 1
+    assert way_order_features[0]["id"] == "relation/1"
+    assert way_order_features[0]["geometry"]["type"] == "Polygon"
+    assert len(way_order_features[0]["geometry"]["coordinates"]) == 1
+    assert len(way_order_features[0]["geometry"]["coordinates"][0]) == 4
+
+    way_direction_features = _collect_features(
+        [
+            {
+                "type": "relation",
+                "id": 1,
+                "tags": {"type": "multipolygon"},
+                "members": [
+                    {"type": "way", "ref": 1, "role": "outer"},
+                    {"type": "way", "ref": 2, "role": "outer"},
+                    {"type": "way", "ref": 3, "role": "outer"},
+                    {"type": "way", "ref": 4, "role": "outer"},
+                    {"type": "way", "ref": 5, "role": "outer"},
+                    {"type": "way", "ref": 6, "role": "outer"},
+                ],
+            },
+            {"type": "way", "id": 1, "nodes": [1, 2]},
+            {"type": "way", "id": 2, "nodes": [2, 3]},
+            {"type": "way", "id": 3, "nodes": [4, 3]},
+            {"type": "way", "id": 4, "nodes": [5, 4]},
+            {"type": "way", "id": 5, "nodes": [5, 6]},
+            {"type": "way", "id": 6, "nodes": [1, 6]},
+            {"type": "node", "id": 1, "lat": 1.0, "lon": 0.0},
+            {"type": "node", "id": 2, "lat": 2.0, "lon": 0.0},
+            {"type": "node", "id": 3, "lat": 3.0, "lon": 0.0},
+            {"type": "node", "id": 4, "lat": 4.0, "lon": 0.0},
+            {"type": "node", "id": 5, "lat": 5.0, "lon": 0.0},
+            {"type": "node", "id": 6, "lat": 6.0, "lon": 0.0},
+        ]
+    )
+
+    assert len(way_direction_features) == 1
+    assert way_direction_features[0]["id"] == "relation/1"
+    assert way_direction_features[0]["geometry"]["type"] == "Polygon"
+    assert len(way_direction_features[0]["geometry"]["coordinates"]) == 1
+    assert len(way_direction_features[0]["geometry"]["coordinates"][0]) == 7
+
+
+def test_upstream_unclosed_ring_cases() -> None:
+    mismatched_features = _collect_features(
+        [
+            {
+                "type": "relation",
+                "id": 1,
+                "tags": {"type": "multipolygon"},
+                "members": [
+                    {"type": "way", "ref": 1, "role": "outer"},
+                    {"type": "way", "ref": 2, "role": "outer"},
+                ],
+            },
+            {"type": "way", "id": 1, "nodes": [1, 2, 3, 4]},
+            {"type": "way", "id": 2, "nodes": [3, 2]},
+            {"type": "node", "id": 1, "lat": 1.0, "lon": 0.0},
+            {"type": "node", "id": 2, "lat": 2.0, "lon": 0.0},
+            {"type": "node", "id": 3, "lat": 3.0, "lon": 0.0},
+            {"type": "node", "id": 4, "lat": 4.0, "lon": 0.0},
+        ]
+    )
+
+    assert len(mismatched_features) == 1
+    assert mismatched_features[0]["id"] == "relation/1"
+    assert mismatched_features[0]["geometry"]["type"] == "Polygon"
+    assert len(mismatched_features[0]["geometry"]["coordinates"]) == 1
+    assert len(mismatched_features[0]["geometry"]["coordinates"][0]) == 4
+    assert mismatched_features[0]["properties"].get("tainted") is not True
+
+    matching_features = _collect_features(
+        [
+            {
+                "type": "relation",
+                "id": 1,
+                "tags": {"type": "multipolygon"},
+                "members": [
+                    {"type": "way", "ref": 1, "role": "outer"},
+                    {"type": "way", "ref": 2, "role": "outer"},
+                ],
+            },
+            {"type": "way", "id": 1, "nodes": [1, 2]},
+            {"type": "way", "id": 2, "nodes": [2, 3, 4]},
+            {"type": "node", "id": 1, "lat": 1.0, "lon": 0.0},
+            {"type": "node", "id": 2, "lat": 2.0, "lon": 0.0},
+            {"type": "node", "id": 3, "lat": 3.0, "lon": 0.0},
+            {"type": "node", "id": 4, "lat": 4.0, "lon": 0.0},
+        ]
+    )
+
+    assert len(matching_features) == 1
+    assert matching_features[0]["id"] == "relation/1"
+    assert matching_features[0]["geometry"]["type"] == "Polygon"
+    assert len(matching_features[0]["geometry"]["coordinates"]) == 1
+    assert len(matching_features[0]["geometry"]["coordinates"][0]) == 4
+    assert matching_features[0]["properties"].get("tainted") is not True
+
+
+def test_upstream_tainted_simple_multipolygon_cases() -> None:
+    missing_way_features = _collect_features(
+        [
+            {
+                "type": "relation",
+                "id": 1,
+                "tags": {"type": "multipolygon"},
+                "members": [
+                    {"type": "way", "ref": 2, "role": "outer"},
+                    {"type": "way", "ref": 3, "role": "inner"},
+                ],
+            },
+            {"type": "way", "id": 2, "nodes": [3, 4, 5, 3]},
+            {"type": "node", "id": 3, "lat": 0.0, "lon": 0.0},
+            {"type": "node", "id": 4, "lat": 0.0, "lon": 1.0},
+            {"type": "node", "id": 5, "lat": 1.0, "lon": 0.0},
+        ]
+    )
+
+    assert len(missing_way_features) == 1
+    assert missing_way_features[0]["id"] == "way/2"
+    assert missing_way_features[0]["properties"].get("tainted") is True
+
+    missing_nodes_features = _collect_features(
+        [
+            {
+                "type": "relation",
+                "id": 1,
+                "tags": {"type": "multipolygon"},
+                "members": [
+                    {"type": "way", "ref": 2, "role": "outer"},
+                ],
+            },
+            {"type": "way", "id": 2, "nodes": [3, 4, 5, 3]},
+        ]
+    )
+
+    assert missing_nodes_features == []
+
+    missing_node_features = _collect_features(
+        [
+            {
+                "type": "relation",
+                "id": 1,
+                "tags": {"type": "multipolygon"},
+                "members": [
+                    {"type": "way", "ref": 2, "role": "outer"},
+                ],
+            },
+            {"type": "way", "id": 2, "nodes": [3, 4, 5, 6, 3]},
+            {"type": "node", "id": 3, "lat": 0.0, "lon": 0.0},
+            {"type": "node", "id": 4, "lat": 0.0, "lon": 1.0},
+            {"type": "node", "id": 5, "lat": 1.0, "lon": 0.0},
+        ]
+    )
+
+    assert len(missing_node_features) == 1
+    assert missing_node_features[0]["id"] == "way/2"
+    assert missing_node_features[0]["properties"].get("tainted") is True
+
+
+def test_upstream_tainted_multipolygon_cases() -> None:
+    missing_way_features = _collect_features(
+        [
+            {
+                "type": "relation",
+                "id": 1,
+                "tags": {"type": "multipolygon"},
+                "members": [
+                    {"type": "way", "ref": 2, "role": "outer"},
+                    {"type": "way", "ref": 3, "role": "outer"},
+                ],
+            },
+            {"type": "way", "id": 2, "nodes": [4, 5, 6, 4]},
+            {"type": "node", "id": 4, "lat": 0.0, "lon": 0.0},
+            {"type": "node", "id": 5, "lat": 0.0, "lon": 1.0},
+            {"type": "node", "id": 6, "lat": 1.0, "lon": 0.0},
+        ]
+    )
+
+    assert len(missing_way_features) == 1
+    assert missing_way_features[0]["id"] == "relation/1"
+    assert missing_way_features[0]["properties"].get("tainted") is True
+
+    missing_node_features = _collect_features(
+        [
+            {
+                "type": "relation",
+                "id": 1,
+                "tags": {"type": "multipolygon"},
+                "members": [
+                    {"type": "way", "ref": 2, "role": "outer"},
+                    {"type": "way", "ref": 3, "role": "outer"},
+                ],
+            },
+            {"type": "way", "id": 2, "nodes": [4, 5, 6, 7, 4]},
+            {"type": "way", "id": 3, "nodes": [4, 5, 6, 4]},
+            {"type": "node", "id": 4, "lat": 0.0, "lon": 0.0},
+            {"type": "node", "id": 5, "lat": 0.0, "lon": 1.0},
+            {"type": "node", "id": 6, "lat": 1.0, "lon": 0.0},
+        ]
+    )
+
+    assert len(missing_node_features) == 1
+    assert missing_node_features[0]["id"] == "relation/1"
+    assert missing_node_features[0]["properties"].get("tainted") is True
+
+
+@pytest.mark.parametrize(
+    ("elements",),
+    [
+        (
+            [
+                {
+                    "type": "relation",
+                    "id": 1,
+                    "tags": {"type": "multipolygon"},
+                    "members": [
+                        {"type": "way", "ref": 2, "role": "outer"},
+                        {"type": "way", "ref": 3, "role": "outer"},
+                    ],
+                },
+                {"type": "way", "id": 2, "nodes": [4, 5, 6]},
+                {"type": "way", "id": 3, "nodes": [6, 4]},
+            ],
+        ),
+        (
+            [
+                {
+                    "type": "relation",
+                    "id": 1,
+                    "tags": {"type": "multipolygon"},
+                    "members": [
+                        {"type": "way", "ref": 2, "role": "inner"},
+                    ],
+                },
+                {"type": "way", "id": 2, "nodes": [3, 4, 5, 3]},
+                {"type": "node", "id": 3, "lat": 0.0, "lon": 0.0},
+                {"type": "node", "id": 4, "lat": 1.0, "lon": 1.0},
+                {"type": "node", "id": 5, "lat": 1.0, "lon": 0.0},
+            ],
+        ),
+        (
+            [
+                {
+                    "type": "relation",
+                    "id": 1,
+                    "tags": {"type": "multipolygon"},
+                    "members": [
+                        {"type": "way", "ref": 2, "role": "outer"},
+                        {"type": "way", "ref": 3, "role": "outer"},
+                    ],
+                },
+                {"type": "way", "id": 2, "nodes": [4, 5, 6, 4]},
+                {"type": "node", "id": 4, "lat": 0.0, "lon": 0.0},
+                {"type": "node", "id": 5, "lat": 1.0, "lon": 1.0},
+            ],
+        ),
+    ],
+)
+def test_upstream_degenerate_multipolygon_cases_return_no_features(
+    elements: List[Dict[str, Any]],
+) -> None:
+    assert _collect_features(elements) == []
+
+
 def test_uninteresting_tags_callback() -> None:
     case = ParserCollectionCase(
         name="uninteresting tags callback",

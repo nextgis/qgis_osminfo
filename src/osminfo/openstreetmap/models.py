@@ -16,7 +16,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 from qgis.core import QgsGeometry, QgsRectangle
 
@@ -121,6 +121,7 @@ class OsmElement:
     element_type: OsmElementType
     title: str = ""
     geometry: Optional[OsmGeometry] = None
+    display_geometry_type: Optional["OsmGeometryType"] = None
     max_scale: Optional[float] = None
     tag_items: Tuple[OsmTag, ...] = tuple()
     tags: Dict[str, str] = field(default_factory=dict)
@@ -129,6 +130,8 @@ class OsmElement:
     relation_role: Optional[str] = None
     is_relation_member: bool = False
     is_incomplete: bool = False
+    is_geometry_deferred: bool = False
+    raw_element: Optional[Dict[str, Any]] = None
 
     @property
     def osm_url(self) -> str:
@@ -148,7 +151,7 @@ class OsmElement:
 
     def geometry_type(self) -> Optional["OsmGeometryType"]:
         if self.geometry is None:
-            return None
+            return self.display_geometry_type
 
         if isinstance(self.geometry, QgsGeometry):
             return osm_geometry_type_from_qgs(self.geometry)

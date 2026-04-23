@@ -23,6 +23,9 @@ from osminfo.core.exceptions import OsmInfoOverpassParsingError
 from osminfo.core.logging import logger
 from osminfo.openstreetmap.features_parser import OsmFeaturesParser
 from osminfo.openstreetmap.models import OsmResultGroupType, OsmResultTree
+from osminfo.openstreetmap.raw_elements_subset import (
+    RawElementsSubsetCollector,
+)
 
 
 class OverpassFeaturesParseTask(QgsTask):
@@ -33,6 +36,8 @@ class OverpassFeaturesParseTask(QgsTask):
         enclosing_elements: Iterable[dict],
         search_elements: Iterable[dict],
         titles: Dict[OsmResultGroupType, str],
+        *,
+        geometry_area_limit_sq_km: Optional[float] = None,
     ) -> None:
         super().__init__(
             "Parse Overpass features",
@@ -43,7 +48,9 @@ class OverpassFeaturesParseTask(QgsTask):
         self._enclosing_elements = tuple(enclosing_elements)
         self._search_elements = tuple(search_elements)
         self._titles = dict(titles)
+        self._geometry_area_limit_sq_km = geometry_area_limit_sq_km
         self._result_tree = OsmResultTree()
+        self._raw_elements_subset_collector = None
         self._error: Optional[OsmInfoOverpassParsingError] = None
 
     @property
@@ -54,9 +61,16 @@ class OverpassFeaturesParseTask(QgsTask):
     def error(self) -> Optional[OsmInfoOverpassParsingError]:
         return self._error
 
+    @property
+    def raw_elements_subset_collector(
+        self,
+    ) -> Optional[RawElementsSubsetCollector]:
+        return self._raw_elements_subset_collector
+
     def run(self) -> bool:
         self._error = None
         self._result_tree = OsmResultTree()
+        self._raw_elements_subset_collector = None
         started_at = perf_counter()
         status = "failed"
 
@@ -69,6 +83,9 @@ class OverpassFeaturesParseTask(QgsTask):
 
         try:
             self._result_tree = self._parse_result_tree()
+            self._raw_elements_subset_collector = (
+                self._build_raw_elements_subset_collector()
+            )
 
             status = "completed"
             return True
@@ -94,4 +111,19 @@ class OverpassFeaturesParseTask(QgsTask):
             enclosing_elements=self._enclosing_elements,
             search_elements=self._search_elements,
             titles=self._titles,
+            include_geometry=True,
+            geometry_area_limit_sq_km=self._geometry_area_limit_sq_km,
+        )
+
+    def _build_raw_elements_subset_collector(
+        self,
+    ) -> RawElementsSubsetCollector:
+        return RawElementsSubsetCollector(
+            raw_element
+            for raw_elements in (
+                self._search_elements,
+                self._nearby_elements,
+                self._enclosing_elements,
+            )
+            for raw_element in raw_elements
         )

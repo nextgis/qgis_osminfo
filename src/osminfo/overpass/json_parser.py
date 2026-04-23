@@ -17,7 +17,7 @@
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple
 
 from qgis.core import QgsGeometry, QgsPointXY
 
@@ -32,6 +32,7 @@ from osminfo.openstreetmap.models import (
 RawElement = Dict[str, Any]
 Feature = Dict[str, Any]
 _PolygonFeatureMap = Dict[str, Any]
+_FEATURE_CACHE_MISS = object()
 
 DEFAULT_UNINTERESTING_TAGS = frozenset(
     {
@@ -185,6 +186,7 @@ class OverpassJsonParser:
         self._nodes: List[RawElement] = []
         self._ways: List[RawElement] = []
         self._relations: List[RawElement] = []
+        self._way_identifiers: Set[Any] = set()
         self._node_index: Dict[Any, RawElement] = {}
         self._way_index: Dict[Any, RawElement] = {}
         self._relation_index: Dict[Any, RawElement] = {}
@@ -194,7 +196,9 @@ class OverpassJsonParser:
             OsmElementType.RELATION: {},
         }
         self._feature_index: Dict[str, Feature] = {}
+        self._feature_without_cache_index: Dict[str, Any] = {}
         self._cached_features: Optional[List[Feature]] = None
+        self._indexes_built = False
         self._prepare_elements()
 
     @classmethod
@@ -267,7 +271,22 @@ class OverpassJsonParser:
         raw_element: RawElement,
     ) -> Optional[OsmGeometry]:
         element_type = self._parse_element_type(raw_element.get("type"))
-        feature = self.feature_for_element(raw_element)
+        self._ensure_indexes_built()
+
+        if element_type == OsmElementType.NODE:
+            node_identifier = self._raw_identifier(raw_element)
+            node = raw_element
+            if node_identifier is not None:
+                node = self._node_index.get(node_identifier, raw_element)
+
+            longitude = self._float_or_none(node.get("lon"))
+            latitude = self._float_or_none(node.get("lat"))
+            if longitude is None or latitude is None:
+                return None
+
+            return QgsGeometry.fromPointXY(QgsPointXY(longitude, latitude))
+
+        feature = self._feature_for_element_without_cache(raw_element)
         if feature is not None:
             feature_geometry = self._geometry_from_feature(feature)
             if element_type != OsmElementType.RELATION:
@@ -281,7 +300,15 @@ class OverpassJsonParser:
         if element_type != OsmElementType.RELATION:
             return None
 
-        return self._generic_relation_geometry(raw_element)
+        relation = raw_element
+        relation_identifier = self._raw_identifier(raw_element)
+        if relation_identifier is not None:
+            relation = self._relation_index.get(
+                relation_identifier,
+                raw_element,
+            )
+
+        return self._generic_relation_geometry(relation)
 
     def feature_for_element(
         self,
@@ -326,8 +353,21 @@ class OverpassJsonParser:
         return None
 
     def is_incomplete_element(self, raw_element: RawElement) -> bool:
+        return self.is_incomplete_element_with_geometry(
+            raw_element,
+            geometry_checked=False,
+            geometry=None,
+        )
+
+    def is_incomplete_element_with_geometry(
+        self,
+        raw_element: RawElement,
+        *,
+        geometry_checked: bool,
+        geometry: Optional[OsmGeometry],
+    ) -> bool:
         element_type = self._parse_element_type(raw_element.get("type"))
-        feature = self.feature_for_element(raw_element)
+        feature = self._feature_for_element_without_cache(raw_element)
         if feature is not None:
             properties = feature.get("properties")
             if (
@@ -340,7 +380,9 @@ class OverpassJsonParser:
             if self._relation_has_incomplete_members(raw_element):
                 return True
 
-        geometry = self.geometry_for_element(raw_element)
+        if not geometry_checked:
+            geometry = self.geometry_for_element(raw_element)
+
         return geometry is None and element_type != OsmElementType.NODE
 
     def _prepare_elements(self) -> None:
@@ -354,17 +396,27 @@ class OverpassJsonParser:
                 continue
 
             if element_type == OsmElementType.WAY:
-                way = deepcopy(raw_element)
-                way["nodes"] = deepcopy(raw_element.get("nodes"))
+                way = dict(raw_element)
+                raw_nodes = raw_element.get("nodes")
+                if isinstance(raw_nodes, list):
+                    way["nodes"] = list(raw_nodes)
+
                 self._ways.append(way)
+                self._way_identifiers.add(way.get("id"))
                 self._prepare_way(way)
                 continue
 
             if element_type != OsmElementType.RELATION:
                 continue
 
-            relation = deepcopy(raw_element)
-            relation["members"] = deepcopy(raw_element.get("members"))
+            relation = dict(raw_element)
+            raw_members = raw_element.get("members")
+            if isinstance(raw_members, list):
+                relation["members"] = [
+                    dict(member) if isinstance(member, dict) else member
+                    for member in raw_members
+                ]
+
             self._relations.append(relation)
             self._prepare_relation(relation)
 
@@ -452,6 +504,7 @@ class OverpassJsonParser:
         pseudo_way["nodes"].append(pseudo_way["nodes"][0])
         pseudo_way["__is_bounds_placeholder"] = True
         self._ways.append(pseudo_way)
+        self._way_identifiers.add(pseudo_way.get("id"))
 
     def _add_full_geometry_way(self, way: RawElement) -> None:
         geometry = way.get("geometry")
@@ -527,12 +580,8 @@ class OverpassJsonParser:
         geometry: List[Any],
         way_identifier: Any,
     ) -> None:
-        for way in self._ways:
-            if self._parse_element_type(way.get("type")) != OsmElementType.WAY:
-                continue
-
-            if way.get("id") == way_identifier:
-                return
+        if way_identifier in self._way_identifiers:
+            return
 
         geometry_way = {"type": "way", "id": way_identifier, "nodes": []}
         for vertex in geometry:
@@ -550,6 +599,7 @@ class OverpassJsonParser:
             self._nodes.append(geometry_node)
 
         self._ways.append(geometry_way)
+        self._way_identifiers.add(way_identifier)
 
     def _build_features(
         self,
@@ -591,6 +641,102 @@ class OverpassJsonParser:
             return
 
         self._cached_features = self._build_features(None)
+
+    def _ensure_indexes_built(self) -> None:
+        if self._indexes_built:
+            return
+
+        self._build_node_index()
+        self._build_way_index()
+        self._build_relation_index()
+        self._build_relation_membership_map()
+        self._indexes_built = True
+
+    def relation_refs_for_element(
+        self,
+        raw_element: RawElement,
+    ) -> List[Dict[str, Any]]:
+        self._ensure_indexes_built()
+
+        element_type = self._parse_element_type(raw_element.get("type"))
+        if element_type is None:
+            return []
+
+        element_id = self._raw_identifier(raw_element)
+        if element_id is None:
+            return []
+
+        return self._serialize_relation_refs(
+            self._relation_membership_map[element_type].get(element_id, [])
+        )
+
+    def _feature_for_element_without_cache(
+        self,
+        raw_element: RawElement,
+    ) -> Optional[Feature]:
+        self._ensure_indexes_built()
+
+        element_type = self._parse_element_type(raw_element.get("type"))
+        element_id = self._raw_identifier(raw_element)
+        if element_type is None or element_id is None:
+            return None
+
+        cache_key = f"{element_type.value}/{element_id}"
+        cached_feature = self._feature_without_cache_index.get(
+            cache_key,
+            _FEATURE_CACHE_MISS,
+        )
+        if cached_feature is not _FEATURE_CACHE_MISS:
+            if isinstance(cached_feature, dict):
+                return cached_feature
+
+            return None
+
+        if element_type == OsmElementType.WAY:
+            way = self._way_index.get(element_id)
+            if way is None:
+                self._feature_without_cache_index[cache_key] = None
+                return None
+
+            feature = self._build_temporary_way_feature(way)
+            if feature is None:
+                self._feature_without_cache_index[cache_key] = None
+                return None
+
+            rewound_feature = self._rewind_feature(feature)
+            self._feature_without_cache_index[cache_key] = rewound_feature
+            return rewound_feature
+
+        if element_type != OsmElementType.RELATION:
+            self._feature_without_cache_index[cache_key] = None
+            return None
+
+        relation = self._relation_index.get(element_id)
+        if relation is None:
+            relation = deepcopy(raw_element)
+
+        relation_tags = relation.get("tags", {})
+        if not isinstance(relation_tags, dict):
+            return None
+
+        relation_kind = str(relation_tags.get("type", "")).lower()
+        feature = None
+        if relation_kind in ("route", "waterway"):
+            feature = self._construct_route_feature(relation)
+        elif relation_kind in ("multipolygon", "boundary"):
+            feature = self._construct_multipolygon_feature(
+                relation,
+                relation,
+                force_relation_identifier=True,
+            )
+
+        if feature is None:
+            self._feature_without_cache_index[cache_key] = None
+            return None
+
+        rewound_feature = self._rewind_feature(feature)
+        self._feature_without_cache_index[cache_key] = rewound_feature
+        return rewound_feature
 
     def _build_node_index(self) -> None:
         self._node_index = {}
@@ -1873,12 +2019,25 @@ class OverpassJsonParser:
         return total
 
     def _join(self, ways: List[RawElement]) -> List[List[RawElement]]:
-        remaining_ways = list(ways)
+        remaining_ways = [list(way.get("nodes", [])) for way in ways]
+        endpoint_index: Dict[Any, List[int]] = {}
+        unused_way_indexes = set()
+        for index, way_nodes in enumerate(remaining_ways):
+            unused_way_indexes.add(index)
+            self._index_way_endpoints(endpoint_index, way_nodes, index)
+
         joined: List[List[RawElement]] = []
-        while len(remaining_ways) > 0:
-            current = list(remaining_ways.pop().get("nodes", []))
+        while len(unused_way_indexes) > 0:
+            current_index = max(unused_way_indexes)
+            unused_way_indexes.remove(current_index)
+            self._remove_way_endpoints(
+                endpoint_index,
+                remaining_ways[current_index],
+                current_index,
+            )
+            current = list(remaining_ways[current_index])
             joined.append(current)
-            while len(remaining_ways) > 0 and not self._fit_together(
+            while len(unused_way_indexes) > 0 and not self._fit_together(
                 current[0] if len(current) > 0 else None,
                 current[-1] if len(current) > 0 else None,
             ):
@@ -1887,8 +2046,15 @@ class OverpassJsonParser:
                 matched_nodes = None
                 insert_at_start = False
                 matched_index = -1
-                for index, way in enumerate(remaining_ways):
-                    way_nodes = list(way.get("nodes", []))
+                for index in self._candidate_way_indexes(
+                    endpoint_index,
+                    first_node,
+                    last_node,
+                ):
+                    if index not in unused_way_indexes:
+                        continue
+
+                    way_nodes = remaining_ways[index]
                     if self._fit_together(
                         last_node, self._first_node(way_nodes)
                     ):
@@ -1922,7 +2088,12 @@ class OverpassJsonParser:
                 if matched_nodes is None or matched_index < 0:
                     break
 
-                remaining_ways.pop(matched_index)
+                unused_way_indexes.remove(matched_index)
+                self._remove_way_endpoints(
+                    endpoint_index,
+                    remaining_ways[matched_index],
+                    matched_index,
+                )
                 if insert_at_start:
                     current[0:0] = matched_nodes
                     continue
@@ -1930,6 +2101,69 @@ class OverpassJsonParser:
                 current.extend(matched_nodes)
 
         return joined
+
+    def _candidate_way_indexes(
+        self,
+        endpoint_index: Dict[Any, List[int]],
+        first_node: Optional[RawElement],
+        last_node: Optional[RawElement],
+    ) -> List[int]:
+        candidate_indexes: List[int] = []
+        seen_indexes = set()
+        for node in (last_node, first_node):
+            node_identifier = self._node_identifier(node)
+            if node_identifier is None:
+                continue
+
+            for index in endpoint_index.get(node_identifier, []):
+                if index in seen_indexes:
+                    continue
+
+                seen_indexes.add(index)
+                candidate_indexes.append(index)
+
+        return candidate_indexes
+
+    def _index_way_endpoints(
+        self,
+        endpoint_index: Dict[Any, List[int]],
+        way_nodes: List[Any],
+        index: int,
+    ) -> None:
+        first_identifier = self._node_identifier(self._first_node(way_nodes))
+        if first_identifier is not None:
+            endpoint_index.setdefault(first_identifier, []).append(index)
+
+        last_identifier = self._node_identifier(self._last_node(way_nodes))
+        if last_identifier is None or last_identifier == first_identifier:
+            return
+
+        endpoint_index.setdefault(last_identifier, []).append(index)
+
+    def _remove_way_endpoints(
+        self,
+        endpoint_index: Dict[Any, List[int]],
+        way_nodes: List[Any],
+        index: int,
+    ) -> None:
+        for node_identifier in (
+            self._node_identifier(self._first_node(way_nodes)),
+            self._node_identifier(self._last_node(way_nodes)),
+        ):
+            if node_identifier is None:
+                continue
+
+            indexes = endpoint_index.get(node_identifier)
+            if indexes is None:
+                continue
+
+            endpoint_index[node_identifier] = [
+                candidate_index
+                for candidate_index in indexes
+                if candidate_index != index
+            ]
+            if len(endpoint_index[node_identifier]) == 0:
+                endpoint_index.pop(node_identifier, None)
 
     def _find_outer_ring(
         self,
@@ -2004,15 +2238,22 @@ class OverpassJsonParser:
     def _member_identifier(self, member: RawElement) -> Any:
         return member.get("ref", member.get("id"))
 
+    def _node_identifier(self, node: Optional[RawElement]) -> Any:
+        if not isinstance(node, dict):
+            return None
+
+        return node.get("id")
+
     def _fit_together(
         self,
         node_a: Optional[RawElement],
         node_b: Optional[RawElement],
     ) -> bool:
-        if not isinstance(node_a, dict) or not isinstance(node_b, dict):
+        node_a_identifier = self._node_identifier(node_a)
+        if node_a_identifier is None:
             return False
 
-        return node_a.get("id") == node_b.get("id")
+        return node_a_identifier == self._node_identifier(node_b)
 
     def _raw_identifier(self, raw_element: RawElement) -> Optional[int]:
         raw_identifier = raw_element.get("id", raw_element.get("ref"))
@@ -2050,7 +2291,20 @@ class OverpassJsonParser:
         if value is None:
             return None
 
-        try:
-            return OsmElementType(str(value).lower())
-        except ValueError:
-            return None
+        if isinstance(value, OsmElementType):
+            return value
+
+        value_lower = str(value).lower()
+        if value_lower == OsmElementType.NODE.value:
+            return OsmElementType.NODE
+
+        if value_lower == OsmElementType.WAY.value:
+            return OsmElementType.WAY
+
+        if value_lower == OsmElementType.RELATION.value:
+            return OsmElementType.RELATION
+
+        if value_lower == OsmElementType.CLOSED_WAY.value:
+            return OsmElementType.CLOSED_WAY
+
+        return None
