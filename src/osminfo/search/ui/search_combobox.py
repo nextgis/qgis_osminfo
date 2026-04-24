@@ -46,6 +46,11 @@ class OsmInfoSearchComboBox(QComboBox):
 
         self._open_help_action = None
 
+        self.setSizeAdjustPolicy(
+            QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
+        )
+        self.setMinimumContentsLength(1)
+
         self.setToolTip(
             self.tr(
                 "Enter a search query. Examples:\n"
