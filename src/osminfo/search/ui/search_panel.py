@@ -92,15 +92,14 @@ class OsmInfoSearchPanel(QgsDockWidget):
         self.map_tool_button = QToolButton(self)
         self.map_tool_button.setObjectName("map_tool_button")
         self.map_tool_button.setFixedSize(square_size, square_size)
-        self.map_tool_button.hide()
-
-        self.map_tool_action = QAction(
-            material_icon("arrow_selector_tool"),
-            self.tr("Identify OpenStreetMap Features"),
-            self.map_tool_button,
+        self.map_tool_button.setCheckable(True)
+        self.map_tool_button.setIcon(material_icon("arrow_selector_tool"))
+        self.map_tool_button.setToolTip(
+            self.tr("Identify OpenStreetMap Features")
         )
-        self.map_tool_action.setCheckable(True)
-        self.map_tool_button.setDefaultAction(self.map_tool_action)
+        self.map_tool_button.clicked.connect(self._on_map_tool_button_clicked)
+        self.map_tool_button.hide()
+        self._map_tool_action: Optional[QAction] = None
 
         self.search_layout.addWidget(self.map_tool_button)
 
@@ -193,12 +192,27 @@ class OsmInfoSearchPanel(QgsDockWidget):
         self.small_features_action.setChecked(enabled)
 
     def set_map_tool_action(self, action: Optional[QAction]) -> None:
+        if self._map_tool_action is action:
+            if action is None:
+                self.map_tool_button.hide()
+                return
+
+            self._sync_map_tool_button(action)
+            self.map_tool_button.show()
+            return
+
+        if self._map_tool_action is not None:
+            self._map_tool_action.toggled.disconnect(
+                self._set_map_tool_checked
+            )
+
+        self._map_tool_action = action
         if action is None:
             self.map_tool_button.hide()
             return
 
         action.toggled.connect(self._set_map_tool_checked)
-        self.map_tool_button.defaultAction().triggered.connect(action.trigger)
+        self._sync_map_tool_button(action)
         self.map_tool_button.show()
 
     def set_loading_state(self, is_loading: bool) -> None:
@@ -211,9 +225,21 @@ class OsmInfoSearchPanel(QgsDockWidget):
 
     @pyqtSlot(bool)
     def _set_map_tool_checked(self, checked: bool) -> None:
-        self.map_tool_action.blockSignals(True)
+        self.map_tool_button.blockSignals(True)
         self.map_tool_button.setChecked(checked)
-        self.map_tool_action.blockSignals(False)
+        self.map_tool_button.blockSignals(False)
+
+    @pyqtSlot(bool)
+    def _on_map_tool_button_clicked(self, _checked: bool) -> None:
+        if self._map_tool_action is None:
+            return
+
+        self._map_tool_action.trigger()
+        self._sync_map_tool_button(self._map_tool_action)
+
+    def _sync_map_tool_button(self, action: QAction) -> None:
+        self.map_tool_button.setEnabled(action.isEnabled())
+        self._set_map_tool_checked(action.isChecked())
 
     @pyqtSlot()
     def _emit_search_requested(self) -> None:

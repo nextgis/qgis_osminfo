@@ -326,6 +326,9 @@ class OsmInfoSearchManager(QObject):
         iface.registerMapToolHandler(self._tool_handler)
 
     def _unload_tool(self) -> None:
+        if self._search_panel is not None:
+            self._search_panel.set_map_tool_action(None)
+
         if self._tool_handler is not None:
             iface.unregisterMapToolHandler(self._tool_handler)
             self._tool_handler = None
