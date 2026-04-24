@@ -21,7 +21,6 @@ from typing import (
     Iterable,
     List,
     Optional,
-    Set,
     Tuple,
     cast,
 )
@@ -204,8 +203,10 @@ class OsmResultLayerStore(QObject):
         map_canvas = iface.mapCanvas()
         map_layers = tuple(map_canvas.layers())
         map_scale = self._current_map_scale()
-        identified_hits: List[OsmResultLayerHit] = []
-        seen_hits: Set[OsmResultLayerHit] = set()
+        ranked_hits: Dict[
+            OsmResultLayerHit,
+            Tuple[int, float, float],
+        ] = {}
 
         for layer in self.ordered_layers():
             if layer not in map_layers:
@@ -228,22 +229,39 @@ class OsmResultLayerStore(QObject):
             for feature in cast(
                 Iterable[QgsFeature], layer.getFeatures(feature_request)
             ):
-                if not self._is_feature_displayed(
+                display_geometry = self._displayed_feature_geometry(
                     layer,
                     feature,
                     layer_search_geometry,
                     map_scale,
-                ):
+                )
+                if display_geometry is None:
                     continue
 
                 hit = self._feature_hit(feature)
-                if hit is None or hit in seen_hits:
+                if hit is None:
                     continue
 
-                seen_hits.add(hit)
-                identified_hits.append(hit)
+                hit_sort_key = self._feature_hit_sort_key(
+                    layer,
+                    display_geometry,
+                    layer_search_geometry,
+                )
+                current_sort_key = ranked_hits.get(hit)
+                if current_sort_key is None or hit_sort_key < current_sort_key:
+                    ranked_hits[hit] = hit_sort_key
 
-        return tuple(identified_hits)
+        return tuple(
+            hit
+            for hit, _ in sorted(
+                ranked_hits.items(),
+                key=lambda item: (
+                    item[1],
+                    item[0].element_type.value,
+                    item[0].osm_id,
+                ),
+            )
+        )
 
     def ordered_layers(self) -> Tuple[QgsVectorLayer, ...]:
         ordered_layers: List[QgsVectorLayer] = []
@@ -304,24 +322,46 @@ class OsmResultLayerStore(QObject):
         layer_geometry.transform(transform)
         return layer_geometry
 
-    def _is_feature_displayed(
+    def _displayed_feature_geometry(
         self,
         layer: QgsVectorLayer,
         feature: QgsFeature,
         layer_search_geometry: QgsGeometry,
         map_scale: Optional[float],
-    ) -> bool:
+    ) -> Optional[QgsGeometry]:
         display_geometry = self._display_geometry(layer, feature, map_scale)
         if display_geometry is None or display_geometry.isEmpty():
-            return False
+            return None
 
         if not display_geometry.intersects(layer_search_geometry):
-            return False
+            return None
 
         if self._show_all_features:
-            return True
+            return display_geometry
 
-        return bool(int(feature.attribute(FIELD_ACTIVE) or 0))
+        if not bool(int(feature.attribute(FIELD_ACTIVE) or 0)):
+            return None
+
+        return display_geometry
+
+    def _feature_hit_sort_key(
+        self,
+        layer: QgsVectorLayer,
+        display_geometry: QgsGeometry,
+        layer_search_geometry: QgsGeometry,
+    ) -> Tuple[int, float, float]:
+        search_point = layer_search_geometry.centroid()
+        distance = 0.0
+        if search_point is not None and not search_point.isEmpty():
+            distance = display_geometry.distance(search_point)
+
+        if layer.geometryType() == GeometryType.Point:
+            return (0, distance, 0.0)
+
+        if layer.geometryType() == GeometryType.Line:
+            return (1, distance, display_geometry.length())
+
+        return (2, distance, display_geometry.area())
 
     def _display_geometry(
         self,

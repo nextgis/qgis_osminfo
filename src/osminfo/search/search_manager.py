@@ -1008,11 +1008,13 @@ class OsmInfoSearchManager(QObject):
         if len(hits) == 0:
             return
 
-        elements = self._result_renderer.elements_for_hits(hits)
-        if len(elements) == 0:
+        element = self._identified_element_from_hits(hits)
+        if element is None:
             return
 
-        selection = self._selection_for_map_context_menu_elements(elements)
+        selection = self._selection_for_map_context_menu_elements(
+            (element,),
+        )
         if selection is None:
             return
 
@@ -1065,6 +1067,19 @@ class OsmInfoSearchManager(QObject):
             return tuple()
 
         return self._result_renderer.elements_for_hits(hits)
+
+    def _identified_element_from_hits(
+        self,
+        hits,
+    ) -> Optional[OsmElement]:
+        if self._result_renderer is None or len(hits) == 0:
+            return None
+
+        elements = self._result_renderer.elements_for_hits(hits[:1])
+        if len(elements) == 0:
+            return None
+
+        return elements[0]
 
     def _result_selection_for_context_menu(
         self,
@@ -1151,11 +1166,15 @@ class OsmInfoSearchManager(QObject):
     def _selection_for_map_context_menu_elements(
         self,
         elements: Tuple[OsmElement, ...],
+        reuse_multi_selection: bool = True,
     ) -> Optional[OsmResultSelection]:
         current_selection = self._current_selected_result_selection()
-        if self._should_use_current_selection_for_map_menu(
-            current_selection,
-            elements,
+        if (
+            reuse_multi_selection
+            and self._should_use_current_selection_for_map_menu(
+                current_selection,
+                elements,
+            )
         ):
             return current_selection
 
