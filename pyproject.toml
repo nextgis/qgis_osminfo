@@ -1,6 +1,6 @@
 [project]
 name = "osminfo"
-version = "2.1.0"
+version = "2.2.0"
 readme = "README.md"
 license = { file = "LICENSE" }
 dependencies = ["pyparsing>=2.4.7"]

@@ -15,7 +15,7 @@ about[pt]=OSMInfo transforma um ponto no mapa em contexto útil. Encontre objeto
 about[de]=OSMInfo macht aus einem Punkt auf der Karte einen nutzbaren Kontext. Finden Sie OpenStreetMap-Objekte nach Ort, Koordinaten, Kategorie oder freien Abfragen im Overpass-Turbo-Stil, prüfen Sie Geometrie und Tags und sehen Sie nahegelegene sowie umschließende Objekte an einem Ort. Wenn Sie die Ergebnisse weiterverwenden möchten, können Sie sie direkt kopieren oder in Layer speichern.
 about[it]=OSMInfo trasforma un punto sulla mappa in contesto utile. Trova oggetti OpenStreetMap per luogo, coordinate, categoria o query libere in stile Overpass Turbo, ispeziona geometria e tag e visualizza in un solo posto gli oggetti vicini e contenenti. Quando ti servono i risultati nel lavoro, puoi copiarli o salvarli direttamente nei layer.
 category=Vector
-version=2.1.0
+version=2.2.0
 qgisMinimumVersion=3.22
 qgisMaximumVersion=4.99
 
@@ -38,6 +38,23 @@ deprecated=False
 supportsQt6=True
 
 changelog=
+    2.2.0
+        * Added a context menu for map features
+        * Added feature selection on the map while holding Ctrl when the tool is active
+        * Added a tool button to the search panel
+        * Added hiding of found features when the search panel is hidden
+        * Added clearing of selected features by pressing Esc
+        * Added a call to the server endpoint for cancelling active requests when Cancel is pressed.
+        * Added the number of found features to the group title
+        * Optimized reading of Overpass responses
+        * The first item in the results list is now selected automatically when a search finishes
+        * The click indicator now remains visible on the map
+        * Disabled showing all items by default
+        * Fixed saving of the show all items state
+        * Fixed display of features with IDs that do not fit into 32 bits
+        * Fixed coordinate updates when clicking during loading
+        * Fixed history completion when pressing Enter
+        * Fixed panel size calculation when the history contains large queries
     2.1.0
         * Add feature visibility settings
         * Increase rendering priority for active features
