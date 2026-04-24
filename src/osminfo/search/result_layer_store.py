@@ -73,7 +73,7 @@ class OsmResultLayerDefinition:
             (
                 f"{self.geometry_name}?crs=EPSG:4326"
                 f"&field={FIELD_OSM_TYPE}:string"
-                f"&field={FIELD_OSM_ID}:integer"
+                f"&field={FIELD_OSM_ID}:long"
                 f"&field={FIELD_RELATION}:integer"
                 f"&field={FIELD_TAINTED}:integer"
                 f"&field={FIELD_ACTIVE}:integer"
