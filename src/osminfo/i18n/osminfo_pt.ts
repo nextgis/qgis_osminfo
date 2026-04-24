@@ -242,12 +242,12 @@ p, li { white-space: pre-wrap; }
         <translation>A verificação do Overpass foi cancelada</translation>
     </message>
     <message>
-        <location filename="../overpass/query_builder/query_builder.py" line="67"/>
+        <location filename="../overpass/query_builder/query_builder.py" line="81"/>
         <source>Search string is empty</source>
         <translation>A cadeia de pesquisa está vazia</translation>
     </message>
     <message>
-        <location filename="../overpass/query_builder/query_builder.py" line="90"/>
+        <location filename="../overpass/query_builder/query_builder.py" line="104"/>
         <source>Unsupported search string. Provide coordinates or Overpass QL</source>
         <translation>Cadeia de pesquisa não suportada. Indique coordenadas ou Overpass QL</translation>
     </message>
@@ -368,22 +368,22 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>OsmFeaturesTreeModel</name>
     <message>
-        <location filename="../openstreetmap/features_tree_model.py" line="192"/>
+        <location filename="../openstreetmap/features_tree_model.py" line="206"/>
         <source>Feature/Key</source>
         <translation>Elemento/Chave</translation>
     </message>
     <message>
-        <location filename="../openstreetmap/features_tree_model.py" line="195"/>
+        <location filename="../openstreetmap/features_tree_model.py" line="209"/>
         <source>Value</source>
         <translation>Valor</translation>
     </message>
     <message>
-        <location filename="../openstreetmap/features_tree_model.py" line="265"/>
+        <location filename="../openstreetmap/features_tree_model.py" line="370"/>
         <source>Attention</source>
         <translation>Atenção</translation>
     </message>
     <message>
-        <location filename="../openstreetmap/features_tree_model.py" line="265"/>
+        <location filename="../openstreetmap/features_tree_model.py" line="370"/>
         <source>incomplete geometry (e.g. some nodes missing)</source>
         <translation>geometria incompleta (por exemplo, faltam alguns nós)</translation>
     </message>
@@ -530,37 +530,37 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>OsmInfoResultsView</name>
     <message>
-        <location filename="../search/ui/results_view.py" line="116"/>
+        <location filename="../search/ui/results_view.py" line="127"/>
         <source>Fetching data</source>
         <translation>A obter dados</translation>
     </message>
     <message>
-        <location filename="../search/ui/results_view.py" line="110"/>
+        <location filename="../search/ui/results_view.py" line="121"/>
         <source>Enter a search query to find OSM features</source>
         <translation>Introduza uma consulta de pesquisa para encontrar elementos OSM</translation>
     </message>
     <message>
-        <location filename="../search/ui/results_view.py" line="122"/>
+        <location filename="../search/ui/results_view.py" line="133"/>
         <source>Reading response</source>
         <translation>A ler a resposta</translation>
     </message>
     <message>
-        <location filename="../search/ui/results_view.py" line="152"/>
+        <location filename="../search/ui/results_view.py" line="163"/>
         <source>No features found</source>
         <translation>Nenhum elemento encontrado</translation>
     </message>
     <message>
-        <location filename="../search/ui/results_view.py" line="152"/>
+        <location filename="../search/ui/results_view.py" line="163"/>
         <source>&lt;a href=&apos;{settings_link}&apos;&gt;Check&lt;/a&gt; whether the selected Overpass server contains data for the requested region.</source>
         <translation>&lt;a href='{settings_link}'&gt;Verifique&lt;/a&gt; se o servidor Overpass selecionado contém dados para a região solicitada.</translation>
     </message>
     <message>
-        <location filename="../search/ui/results_view.py" line="175"/>
+        <location filename="../search/ui/results_view.py" line="186"/>
         <source>Try changing the Overpass server in &lt;a href=&apos;{settings_link}&apos;&gt;plugin settings&lt;/a&gt;.</source>
         <translation>Experimente mudar o servidor Overpass nas &lt;a href='{settings_link}'&gt;definições do plugin&lt;/a&gt;.</translation>
     </message>
     <message>
-        <location filename="../search/ui/results_view.py" line="192"/>
+        <location filename="../search/ui/results_view.py" line="203"/>
         <source>Did you mean &quot;&lt;a href=&apos;{fix_link}&apos;&gt;{repaired_search}&lt;/a&gt;&quot;?</source>
         <translation>Quis dizer &quot;&lt;a href='{fix_link}'&gt;{repaired_search}&lt;/a&gt;&quot;?</translation>
     </message>
@@ -568,7 +568,7 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>OsmInfoSearchComboBox</name>
     <message>
-        <location filename="../search/ui/search_combobox.py" line="49"/>
+        <location filename="../search/ui/search_combobox.py" line="54"/>
         <source>Enter a search query. Examples:
 - Library in Cape Town
 - amenity=marketplace in Mexico City
@@ -583,7 +583,7 @@ Use the dropdown to see recent searches.</source>
 Abra a lista suspensa para ver as pesquisas recentes.</translation>
     </message>
     <message>
-        <location filename="../search/ui/search_combobox.py" line="204"/>
+        <location filename="../search/ui/search_combobox.py" line="248"/>
         <source>Open help in the browser</source>
         <translation>Abrir a ajuda no navegador</translation>
     </message>
@@ -591,52 +591,52 @@ Abra a lista suspensa para ver as pesquisas recentes.</translation>
 <context>
     <name>OsmInfoSearchManager</name>
     <message>
-        <location filename="../search/search_manager.py" line="183"/>
+        <location filename="../search/search_manager.py" line="235"/>
         <source>Show/Hide {} Panel</source>
         <translation>Mostrar/ocultar painel {}</translation>
     </message>
     <message>
-        <location filename="../search/search_manager.py" line="235"/>
+        <location filename="../search/search_manager.py" line="304"/>
         <source>Identify OpenStreetMap Features</source>
         <translation>Identificar elementos do OpenStreetMap</translation>
     </message>
     <message>
-        <location filename="../search/search_manager.py" line="376"/>
+        <location filename="../search/search_manager.py" line="485"/>
         <source>Custom Overpass API URL is not set</source>
         <translation>O URL personalizado da API Overpass não está definido</translation>
     </message>
     <message>
-        <location filename="../search/search_manager.py" line="447"/>
+        <location filename="../search/search_manager.py" line="556"/>
         <source>Failed to read current map extent.</source>
         <translation>Falha ao obter a extensão atual do mapa.</translation>
     </message>
     <message>
-        <location filename="../search/search_manager.py" line="606"/>
+        <location filename="../search/search_manager.py" line="755"/>
         <source>Failed to build Overpass query</source>
         <translation>Falha ao compor a consulta Overpass</translation>
     </message>
     <message>
-        <location filename="../search/search_manager.py" line="560"/>
+        <location filename="../search/search_manager.py" line="708"/>
         <source>Search results</source>
         <translation>Resultados da pesquisa</translation>
     </message>
     <message>
-        <location filename="../search/search_manager.py" line="561"/>
+        <location filename="../search/search_manager.py" line="709"/>
         <source>Nearby features</source>
         <translation>Elementos próximos</translation>
     </message>
     <message>
-        <location filename="../search/search_manager.py" line="562"/>
+        <location filename="../search/search_manager.py" line="710"/>
         <source>Is inside</source>
         <translation>Está dentro de</translation>
     </message>
     <message>
-        <location filename="../search/search_manager.py" line="938"/>
+        <location filename="../search/search_manager.py" line="1368"/>
         <source>Unknown preset</source>
         <translation>Predefinição desconhecida</translation>
     </message>
     <message>
-        <location filename="../search/search_manager.py" line="952"/>
+        <location filename="../search/search_manager.py" line="1382"/>
         <source>The term &quot;{search_term}&quot; was not recognized.</source>
         <translation>O termo &quot;{search_term}&quot; não foi reconhecido.</translation>
     </message>
@@ -644,34 +644,39 @@ Abra a lista suspensa para ver as pesquisas recentes.</translation>
 <context>
     <name>OsmInfoSearchPanel</name>
     <message>
-        <location filename="../search/ui/search_panel.py" line="82"/>
+        <location filename="../search/ui/search_panel.py" line="84"/>
         <source>Search OSM features</source>
         <translation>Pesquisar elementos OSM</translation>
     </message>
     <message>
-        <location filename="../search/ui/search_panel.py" line="93"/>
+        <location filename="../search/ui/search_panel.py" line="109"/>
         <source>Open OSMInfo menu</source>
         <translation>Abrir o menu OSMInfo</translation>
     </message>
     <message>
-        <location filename="../search/ui/search_panel.py" line="127"/>
+        <location filename="../search/ui/search_panel.py" line="143"/>
         <source>Settings</source>
         <translation>Definições</translation>
     </message>
     <message>
-        <location filename="../search/ui/search_panel.py" line="133"/>
+        <location filename="../search/ui/search_panel.py" line="149"/>
         <source>About plugin…</source>
         <translation>Sobre o plugin…</translation>
     </message>
     <message>
-        <location filename="../search/ui/search_panel.py" line="107"/>
+        <location filename="../search/ui/search_panel.py" line="123"/>
         <source>Show all found features</source>
         <translation>Mostrar todos os elementos encontrados</translation>
     </message>
     <message>
-        <location filename="../search/ui/search_panel.py" line="117"/>
+        <location filename="../search/ui/search_panel.py" line="133"/>
         <source>Show small features as points</source>
         <translation>Mostrar pequenos elementos como pontos</translation>
+    </message>
+    <message>
+        <location filename="../search/ui/search_panel.py" line="97"/>
+        <source>Identify OpenStreetMap Features</source>
+        <translation>Identificar elementos do OpenStreetMap</translation>
     </message>
 </context>
 <context>
@@ -796,72 +801,72 @@ Abra a lista suspensa para ver as pesquisas recentes.</translation>
 <context>
     <name>OsmResultsContextMenuBuilder</name>
     <message>
-        <location filename="../search/results_context_menu.py" line="178"/>
+        <location filename="../search/results_context_menu.py" line="180"/>
         <source>Open in OpenStreetMap</source>
         <translation>Abrir no OpenStreetMap</translation>
     </message>
     <message>
-        <location filename="../search/results_context_menu.py" line="190"/>
+        <location filename="../search/results_context_menu.py" line="192"/>
         <source>Copy OpenStreetMap URL</source>
         <translation>Copiar URL do OpenStreetMap</translation>
     </message>
     <message>
-        <location filename="../search/results_context_menu.py" line="223"/>
+        <location filename="../search/results_context_menu.py" line="225"/>
         <source>Open tag link</source>
         <translation>Abrir ligação da tag</translation>
     </message>
     <message>
-        <location filename="../search/results_context_menu.py" line="230"/>
+        <location filename="../search/results_context_menu.py" line="232"/>
         <source>Copy tag link</source>
         <translation>Copiar ligação da tag</translation>
     </message>
     <message>
-        <location filename="../search/results_context_menu.py" line="238"/>
+        <location filename="../search/results_context_menu.py" line="240"/>
         <source>Open tag links</source>
         <translation>Abrir ligações das tags</translation>
     </message>
     <message>
-        <location filename="../search/results_context_menu.py" line="239"/>
+        <location filename="../search/results_context_menu.py" line="241"/>
         <source>Copy tag links</source>
         <translation>Copiar ligações das tags</translation>
     </message>
     <message>
-        <location filename="../search/results_context_menu.py" line="258"/>
+        <location filename="../search/results_context_menu.py" line="260"/>
         <source>Zoom to selected features</source>
         <translation>Aproximar aos elementos selecionados</translation>
     </message>
     <message>
-        <location filename="../search/results_context_menu.py" line="260"/>
+        <location filename="../search/results_context_menu.py" line="262"/>
         <source>Zoom to feature</source>
         <translation>Aproximar ao elemento</translation>
     </message>
     <message>
-        <location filename="../search/results_context_menu.py" line="264"/>
+        <location filename="../search/results_context_menu.py" line="266"/>
         <source>Save features in new temporary layers</source>
         <translation>Guardar elementos em novas camadas temporárias</translation>
     </message>
     <message>
-        <location filename="../search/results_context_menu.py" line="266"/>
+        <location filename="../search/results_context_menu.py" line="268"/>
         <source>Save feature in new temporary layer</source>
         <translation>Guardar elemento numa nova camada temporária</translation>
     </message>
     <message>
-        <location filename="../search/results_context_menu.py" line="270"/>
+        <location filename="../search/results_context_menu.py" line="272"/>
         <source>Copy features to clipboard</source>
         <translation>Copiar elementos para a área de transferência</translation>
     </message>
     <message>
-        <location filename="../search/results_context_menu.py" line="272"/>
+        <location filename="../search/results_context_menu.py" line="274"/>
         <source>Copy feature to clipboard</source>
         <translation>Copiar elemento para a área de transferência</translation>
     </message>
     <message>
-        <location filename="../search/results_context_menu.py" line="279"/>
+        <location filename="../search/results_context_menu.py" line="281"/>
         <source>Save features in selected layer</source>
         <translation>Guardar elementos na camada selecionada</translation>
     </message>
     <message>
-        <location filename="../search/results_context_menu.py" line="281"/>
+        <location filename="../search/results_context_menu.py" line="283"/>
         <source>Save feature in selected layer</source>
         <translation>Guardar elemento na camada selecionada</translation>
     </message>
@@ -992,9 +997,17 @@ Abra a lista suspensa para ver as pesquisas recentes.</translation>
 <context>
     <name>OverpassFeaturesParseTask</name>
     <message>
-        <location filename="../openstreetmap/features_parse_task.py" line="76"/>
+        <location filename="../openstreetmap/features_parse_task.py" line="93"/>
         <source>Failed to parse Overpass features.</source>
         <translation>Falha ao analisar os elementos do Overpass.</translation>
+    </message>
+</context>
+<context>
+    <name>OverpassGeometryLoadTask</name>
+    <message>
+        <location filename="../openstreetmap/geometry_load_task.py" line="78"/>
+        <source>Failed to load feature geometry.</source>
+        <translation>Falha ao carregar a geometria do elemento.</translation>
     </message>
 </context>
 <context>
