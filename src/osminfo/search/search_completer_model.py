@@ -701,18 +701,15 @@ class HistoryCompletionSource(SearchCompletionSource):
         search_text: str,
         context: SearchCompletionContext,
     ) -> List[SearchCompletionEntry]:
-        normalized_search_text = (
-            SearchCompletionParser.normalize_completion_value(search_text)
-        )
-        if len(normalized_search_text) == 0:
+        del context
+
+        search_prefix = search_text.strip()
+        if len(search_prefix) == 0:
             return []
 
         entries: List[SearchCompletionEntry] = []
         for history_item in self._history_items:
-            normalized_history_item = (
-                SearchCompletionParser.normalize_completion_value(history_item)
-            )
-            if not normalized_history_item.startswith(normalized_search_text):
+            if not history_item.startswith(search_prefix):
                 continue
 
             entries.append(

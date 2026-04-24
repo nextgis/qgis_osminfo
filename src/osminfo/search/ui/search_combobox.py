@@ -70,6 +70,7 @@ class OsmInfoSearchComboBox(QComboBox):
 
         self.__search_completer = OsmInfoSearchCompleter(self.lineEdit())
         self.setCompleter(self.__search_completer)
+        self.lineEdit().installEventFilter(self)
         self.__search_completer.popup().installEventFilter(self)
 
         self.lineEdit().textChanged.connect(self._on_text_changed)
@@ -86,6 +87,11 @@ class OsmInfoSearchComboBox(QComboBox):
         self._update_completer_state()
 
     def keyPressEvent(self, e: Optional[QKeyEvent]) -> None:
+        if self._should_emit_search_on_combobox_return(e):
+            self._emit_search_requested()
+            e.accept()
+            return
+
         if e.key() not in (
             Qt.Key.Key_Up,
             Qt.Key.Key_Down,
@@ -104,6 +110,11 @@ class OsmInfoSearchComboBox(QComboBox):
     ) -> bool:
         if self._should_accept_completion_on_tab(watched, event):
             self._accept_current_completion()
+            event.accept()
+            return True
+
+        if self._should_emit_search_on_return(watched, event):
+            self._emit_search_requested()
             event.accept()
             return True
 
@@ -134,7 +145,7 @@ class OsmInfoSearchComboBox(QComboBox):
 
     @pyqtSlot()
     def _emit_search_requested(self) -> None:
-        search_string = self.currentText()
+        search_string = self.lineEdit().text()
         self.search_requested.emit(search_string)
 
     @pyqtSlot()
@@ -164,6 +175,34 @@ class OsmInfoSearchComboBox(QComboBox):
             return False
 
         return popup.isVisible()
+
+    def _should_emit_search_on_return(
+        self, watched: Optional[QObject], event: Optional[QEvent]
+    ) -> bool:
+        if watched is not self.lineEdit():
+            return False
+
+        if event.type() != QEvent.Type.KeyPress:
+            return False
+
+        if not isinstance(event, QKeyEvent):
+            return False
+
+        if event.key() not in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            return False
+
+        return not self.__search_completer.popup().isVisible()
+
+    def _should_emit_search_on_combobox_return(
+        self, event: Optional[QKeyEvent]
+    ) -> bool:
+        if event is None:
+            return False
+
+        if event.key() not in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            return False
+
+        return not self.__search_completer.popup().isVisible()
 
     def _accept_current_completion(self) -> None:
         popup = self.__search_completer.popup()

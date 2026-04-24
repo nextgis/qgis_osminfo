@@ -16,6 +16,10 @@
 
 from typing import Any
 
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QKeyEvent
+from qgis.PyQt.QtWidgets import QApplication
+
 import osminfo.search.search_completer_model as search_completer_model
 from osminfo.search.search_completer_model import (
     HistoryCompletionSource,
@@ -25,6 +29,8 @@ from osminfo.search.search_completer_model import (
     SearchCompletionEngine,
     SearchCompletionReplaceMode,
 )
+from osminfo.search.search_history import SearchHistory
+from osminfo.search.ui.search_combobox import OsmInfoSearchComboBox
 
 
 def _create_completion_engine(
@@ -234,6 +240,27 @@ def test_apply_search_completion_replaces_full_text_for_history() -> None:
     assert completed_search == "restaurant in berlin"
 
 
+def test_history_completion_entries_require_case_sensitive_match() -> None:
+    completion_engine = _create_completion_engine(
+        history_items=["Building=*"],
+        preset_items=[],
+    )
+
+    _, entries = completion_engine.build_entries(
+        search_text="building=*",
+        cursor_position=len("building=*"),
+    )
+
+    assert entries == []
+
+    _, entries = completion_engine.build_entries(
+        search_text="Building=*",
+        cursor_position=len("Building=*"),
+    )
+
+    assert [entry.display_text for entry in entries] == ["Building=*"]
+
+
 def test_split_path_uses_combo_line_edit_state(monkeypatch) -> None:
     class FakeLineEdit:
         def __init__(self, text: str) -> None:
@@ -265,3 +292,38 @@ def test_split_path_uses_combo_line_edit_state(monkeypatch) -> None:
     split_path = completer.splitPath(None)
 
     assert split_path == ["mus"]
+
+
+def test_return_keeps_user_text_when_history_differs_by_case(qgis_app) -> None:
+    del qgis_app
+
+    history = SearchHistory()
+    history.clear()
+
+    combo_box = None
+    try:
+        history.add_item("Building=*")
+        combo_box = OsmInfoSearchComboBox()
+        combo_box.lineEdit().setText("building=*")
+
+        emitted_values = []
+        combo_box.search_requested.connect(emitted_values.append)
+
+        assert combo_box.completer().popup().isVisible() is False
+
+        event = QKeyEvent(
+            QKeyEvent.Type.KeyPress,
+            Qt.Key.Key_Return,
+            Qt.KeyboardModifier.NoModifier,
+        )
+        combo_box.show()
+
+        assert QApplication.sendEvent(combo_box, event) is True
+
+        assert combo_box.lineEdit().text() == "building=*"
+        assert combo_box.currentText() == "building=*"
+        assert emitted_values == ["building=*"]
+    finally:
+        if combo_box is not None:
+            combo_box.deleteLater()
+        history.clear()
