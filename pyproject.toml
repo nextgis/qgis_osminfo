@@ -33,6 +33,10 @@ dev = ["pytest", "ruff", "pre-commit"]
 addopts = "-ra"
 testpaths = ["tests"]
 
+[tool.bandit]
+exclude_dirs = ["tests", "setup.py"]
+skips = ["B101"]
+
 [tool.pyright]
 include = ["src"]
 pythonVersion = "3.7"

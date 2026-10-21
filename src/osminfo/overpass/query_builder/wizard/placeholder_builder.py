@@ -99,7 +99,7 @@ class PlaceholderBuilder:
         random_generator: Optional[Random] = None,
     ) -> None:
         self._repository = repository or PresetRepository()
-        self._random = random_generator or Random()
+        self._random = random_generator or Random()  # nosec B311
         self._builders: Dict[str, Callable[[], str]] = {
             "preset": self._build_preset,
             "preset_in": self._build_preset_in,
