@@ -34,17 +34,22 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from osminfo.core.constants import PLUGIN_NAME
 from osminfo.core.exceptions import OsmInfoUiLoadError
 from osminfo.core.logging import logger, update_logging_level
 from osminfo.notifier.message_bar_notifier import MessageBarNotifier
 from osminfo.osminfo_interface import OsmInfoInterface
-from osminfo.overpass.endpoints import OverpassEndpoint, OverpassEndpointInfo
+from osminfo.overpass.endpoints import (
+    OverpassEndpoint,
+    OverpassEndpointInfo,
+    is_nextgis_overpass_url,
+)
 from osminfo.overpass.healthcheck_task import (
     HealthCheckStatus,
     HealthCheckTask,
 )
 from osminfo.settings.osm_info_settings import OsmInfoSettings
-from osminfo.ui.icon import material_icon, plugin_icon
+from osminfo.ui.icon import material_icon, plugin_icon, qgis_icon
 from osminfo.ui.loading_tool_button import LoadingToolButton
 
 OVERPASS_INSTANCES_WIKI_URL = (
@@ -116,6 +121,16 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
 
         self._widget.custom_endpoint_lineedit.setPlaceholderText(
             OverpassEndpoint.MAIN.value.url
+        )
+        self._widget.custom_endpoint_lineedit.textChanged.connect(
+            self._on_custom_endpoint_url_changed
+        )
+        self._widget.campaign_icon_label.setPixmap(
+            qgis_icon("mActionPropertiesWidget.svg").pixmap(16, 16)
+        )
+        self._widget.campaign_icon_label.setFixedSize(16, 16)
+        self._widget.campaign_label.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextBrowserInteraction
         )
         self._widget.nearby_checkbox.toggled.connect(
             self._update_distance_controls_enabled
@@ -341,6 +356,23 @@ class OsmInfoOptionsPageWidget(QgsOptionsPageWidget):
             == OverpassEndpoint.CUSTOM.value.service_id
         )
         self._widget.custom_endpoint_widget.setVisible(is_custom_endpoint)
+        self._update_campaign_link_visibility()
+
+    @pyqtSlot(str)
+    def _on_custom_endpoint_url_changed(self, _: str) -> None:
+        self._update_campaign_link_visibility()
+
+    def _update_campaign_link_visibility(self) -> None:
+        is_nextgis_endpoint = is_nextgis_overpass_url(
+            self._widget.custom_endpoint_lineedit.text()
+        )
+        is_custom_endpoint = (
+            self._selected_service_id()
+            == OverpassEndpoint.CUSTOM.value.service_id
+        )
+        self._widget.campaign_widget.setVisible(
+            is_custom_endpoint and is_nextgis_endpoint
+        )
 
     def _update_endpoint_info_label(self) -> None:
         selected_endpoint = self._selected_endpoint()
@@ -529,7 +561,7 @@ class OsmInfoOptionsErrorPageWidget(QgsOptionsPageWidget):
 
 class OsmInfoOptionsWidgetFactory(QgsOptionsWidgetFactory):
     def __init__(self):
-        super().__init__("OSMInfo", plugin_icon())
+        super().__init__(PLUGIN_NAME, plugin_icon())
 
     def path(self) -> List[str]:
         return ["NextGIS"]

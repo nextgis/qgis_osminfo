@@ -727,6 +727,11 @@ Use the dropdown to see recent searches.</source>
         <translation>URL:</translation>
     </message>
     <message>
+        <location filename="../ui/osm_info_settings_page_base.ui" line="81"/>
+        <source>Help keep NextGIS services free! Upgrade to &lt;a href=&quot;https://nextgis.com/pricing-base/?utm_source=qgis_plugin&amp;utm_medium=window&amp;utm_campaign=helpstayfree&amp;utm_content=en&quot;&gt;Mini or Premium&lt;/a&gt;.</source>
+        <translation>Поддержите бесплатные сервисы NextGIS — выберите &lt;a href=&quot;https://nextgis.ru/pricing-base/?utm_source=qgis_plugin&amp;utm_medium=window&amp;utm_campaign=helpstayfree&amp;utm_content=ru&quot;&gt;Mini или Premium&lt;/a&gt;.</translation>
+    </message>
+    <message>
         <location filename="../ui/osm_info_settings_page_base.ui" line="118"/>
         <source> m</source>
         <translation> м</translation>

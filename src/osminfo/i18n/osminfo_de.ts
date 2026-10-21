@@ -727,6 +727,11 @@ Verwenden Sie die Auswahlliste, um kürzlich verwendete Suchanfragen anzuzeigen.
         <translation>URL:</translation>
     </message>
     <message>
+        <location filename="../ui/osm_info_settings_page_base.ui" line="81"/>
+        <source>Help keep NextGIS services free! Upgrade to &lt;a href=&quot;https://nextgis.com/pricing-base/?utm_source=qgis_plugin&amp;utm_medium=window&amp;utm_campaign=helpstayfree&amp;utm_content=en&quot;&gt;Mini or Premium&lt;/a&gt;.</source>
+        <translation>Helfen Sie mit, die Dienste von NextGIS kostenlos zu halten! Wechseln Sie zu &lt;a href=&quot;https://nextgis.com/pricing-base/?utm_source=qgis_plugin&amp;utm_medium=window&amp;utm_campaign=helpstayfree&amp;utm_content=en&quot;&gt;Mini oder Premium&lt;/a&gt;.</translation>
+    </message>
+    <message>
         <location filename="../ui/osm_info_settings_page_base.ui" line="118"/>
         <source> m</source>
         <translation> m</translation>

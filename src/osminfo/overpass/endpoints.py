@@ -17,9 +17,12 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
+from urllib.parse import urlparse
 
 from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
+
+NEXTGIS_OVERPASS_HOST = "overpass.nextgis.com"
 
 
 @dataclass()
@@ -268,3 +271,19 @@ class OverpassEndpoint(Enum):
             return None
 
         return normalized_url
+
+
+def is_nextgis_overpass_url(url: Optional[str]) -> bool:
+    """Return whether a URL points to the NextGIS Overpass host."""
+    normalized_url = OverpassEndpoint.normalize_url(url)
+    if normalized_url is None:
+        return False
+
+    try:
+        parsed_url = urlparse(normalized_url)
+        return (
+            parsed_url.scheme.lower() == "https"
+            and parsed_url.hostname == NEXTGIS_OVERPASS_HOST
+        )
+    except ValueError:
+        return False
