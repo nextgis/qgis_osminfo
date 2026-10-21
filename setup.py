@@ -42,6 +42,19 @@ def with_name(
     return path.with_name(f"{prefix}{path.stem}{suffix}{extension}")
 
 
+def replace_metadata_version(content: str, version: str) -> str:
+    updated_content, replacements = re.subn(
+        r"(?m)^(version\s*=\s*).*$",
+        rf"\g<1>{version}",
+        content,
+        count=1,
+    )
+    if replacements != 1:
+        raise RuntimeError("Could not find metadata version line")
+
+    return updated_content
+
+
 class QgisPluginBuilder:
     def __init__(self):
         self.current_directory = Path(__file__).parent
@@ -49,11 +62,14 @@ class QgisPluginBuilder:
 
         self.settings = tomllib.loads(pyproject_file.read_text())
         self.project_settings = self.settings.get("project", {})
-        self.qgspb_settings = self.settings.get("tool", {}).get("qgspb", {})
-        self.data_settings = self.qgspb_settings.get("package-data", {})
-        self.ui_settings = self.qgspb_settings.get("forms", {})
-        self.qrc_settings = self.qgspb_settings.get("resources", {})
-        self.ts_settings = self.qgspb_settings.get("translations", {})
+        self.qgsmith_settings = self.settings.get("tool", {}).get(
+            "qgsmith", {}
+        )
+        self.bandit_settings = self.settings.get("tool", {}).get("bandit", {})
+        self.data_settings = self.qgsmith_settings.get("package-data", {})
+        self.ui_settings = self.qgsmith_settings.get("forms", {})
+        self.qrc_settings = self.qgsmith_settings.get("resources", {})
+        self.ts_settings = self.qgsmith_settings.get("translations", {})
 
     def bootstrap(
         self,
@@ -61,6 +77,7 @@ class QgisPluginBuilder:
         compile_ui: Optional[bool] = None,
         compile_qrc: Optional[bool] = None,
         compile_ts: Optional[bool] = None,
+        fix_ui: Optional[bool] = None,
     ) -> None:
         if all(
             setting is None
@@ -76,6 +93,8 @@ class QgisPluginBuilder:
             self.compile_qrc()
         if compile_ts:
             self.compile_ts()
+        if fix_ui:
+            self.fix_ui()
 
     def compile_ui(self) -> None:
         if len(self.ui_settings) == 0 or not self.ui_settings.get(
@@ -113,7 +132,7 @@ class QgisPluginBuilder:
         for qrc_path in qrc_paths:
             output_path = with_name(qrc_path, prefix, suffix, ".py")
             subprocess.check_output(
-                ["pyrcc5", "-o", str(output_path), str(qrc_path)]
+                ["pyrcc5", "-o", str(output_path), str(qrc_path)], shell=True
             )
             self.__update_generated_file(output_path)
 
@@ -130,6 +149,26 @@ class QgisPluginBuilder:
         )
 
         subprocess.check_output(command_args)
+
+    def fix_ui(self) -> None:
+        ENUMS = {
+            "Qt::AlignmentFlag",
+            "Qt::Orientation",
+            "Qt::TextFormat",
+            "QSizePolicy::Policy",
+            "QDialogButtonBox::StandardButton",
+        }
+        ui_patterns = self.ui_settings.get("ui-files", [])
+        ui_paths = [
+            ui_path
+            for ui_pattern in ui_patterns
+            for ui_path in Path(__file__).parent.rglob(ui_pattern)
+        ]
+        for ui_path in ui_paths:
+            content = ui_path.read_text(encoding="utf-8")
+            for enum in ENUMS:
+                content = content.replace(enum, enum[: enum.find("::")])
+            ui_path.write_text(content, encoding="utf-8")
 
     def build(self) -> None:
         self.bootstrap()
@@ -162,6 +201,15 @@ class QgisPluginBuilder:
             for source_file, build_path in build_mapping.items():
                 create_directories(zip_file, build_path)
                 zip_file.write(source_file, "/".join(build_path.parts))
+
+            bandit_config = self.__create_bandit_config()
+            if bandit_config is not None:
+                bandit_path = Path(project_name) / ".bandit"
+                create_directories(zip_file, bandit_path)
+                zip_file.writestr(
+                    "/".join(bandit_path.parts),
+                    bandit_config,
+                )
 
     def install(
         self,
@@ -368,11 +416,39 @@ class QgisPluginBuilder:
         metadata = ConfigParser()
         with open(metadata_path, encoding="utf-8") as f:
             metadata.read_file(f)
-        assert metadata.get("general", "version") == project_version
+        metadata_version = metadata.get("general", "version")
+        if metadata_version != project_version:
+            self.__confirm_metadata_version_overwrite(
+                metadata_path,
+                metadata_version,
+                project_version,
+            )
 
         build_path = Path(project_name) / metadata_path.name
 
         return {metadata_path: build_path}
+
+    def __confirm_metadata_version_overwrite(
+        self,
+        metadata_path: Path,
+        metadata_version: str,
+        project_version: str,
+    ) -> None:
+        print(
+            "metadata.txt version differs from pyproject.toml: "
+            f"{metadata_version} != {project_version}"
+        )
+        confirmation = (
+            input(":: Overwrite metadata.txt version? [y/N] ").strip().lower()
+        )
+        if confirmation != "y":
+            raise RuntimeError("metadata.txt version update was cancelled")
+
+        metadata_content = metadata_path.read_text(encoding="utf-8")
+        metadata_path.write_text(
+            replace_metadata_version(metadata_content, project_version),
+            encoding="utf-8",
+        )
 
     def __create_readme_mapping(self) -> Dict[Path, Path]:
         if "readme" not in self.project_settings:
@@ -409,11 +485,35 @@ class QgisPluginBuilder:
 
         return {file_path: build_path}
 
+    def __create_bandit_config(self) -> Optional[str]:
+        if len(self.bandit_settings) == 0:
+            return None
+
+        bandit_options = {
+            "exclude_dirs": "exclude",
+            "tests": "tests",
+            "skips": "skips",
+        }
+        config_lines = ["[bandit]"]
+        for source_option, target_option in bandit_options.items():
+            option_value = self.bandit_settings.get(source_option)
+            if option_value is None:
+                continue
+
+            if isinstance(option_value, list):
+                serialized_value = ",".join(option_value)
+            else:
+                serialized_value = str(option_value)
+
+            config_lines.append(f"{target_option} = {serialized_value}")
+
+        return "\n".join(config_lines) + "\n"
+
     def __create_sources_mapping(self) -> Dict[Path, Path]:
         project_name: str = self.project_settings["name"]
         src_directory = Path(__file__).parent / "src"
 
-        exclude_patterns = self.qgspb_settings.get("exclude-files", [])
+        exclude_patterns = self.qgsmith_settings.get("exclude-files", [])
         exclude_paths = set(
             exclude_path.absolute()
             for exclude_pattern in exclude_patterns
@@ -523,8 +623,10 @@ class QgisPluginBuilder:
         system = platform.system()
 
         if qgis in ("Vanilla", "VanillaFlatpak"):
-            qgis_profiles = Path("QGIS/QGIS3/profiles")
-        elif qgis in ("NextGIS", "NextGISFlatpak"):
+            qgis_profiles = Path("QGIS/QGIS4/profiles")
+        elif qgis == "NextGIS":
+            qgis_profiles = Path("NextGIS/NGQ3/profiles")
+        elif qgis == "NextGISFlatpak":
             qgis_profiles = Path("NextGIS/ngqgis/profiles")
         else:
             raise RuntimeError(f"Unknown QGIS: {qgis}")
@@ -993,6 +1095,13 @@ def create_parser():
         action="store_true",
         help="Compile only resources",
     )
+    parser_bootstrap.add_argument(
+        "--fix-ui",
+        dest="fix_ui",
+        default=None,
+        action="store_true",
+        help="Fix UI files",
+    )
 
     # build command
     subparsers.add_parser("build", help="Build the plugin")
@@ -1072,6 +1181,7 @@ def main() -> None:
                 compile_ui=args.compile_ui,
                 compile_qrc=args.compile_qrc,
                 compile_ts=args.compile_ts,
+                fix_ui=args.fix_ui,
             )
         elif args.command == "build":
             builder.build()

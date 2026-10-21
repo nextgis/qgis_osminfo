@@ -6,22 +6,22 @@ license = { file = "LICENSE" }
 dependencies = ["pyparsing>=2.4.7"]
 
 
-[tool.qgspb.package-data]
+[tool.qgsmith.package-data]
 "osminfo.resources" = ["components.json"]
 "osminfo.resources.icons" = ["osminfo_logo.svg"]
 "osminfo.resources.icons.material" = ["*.svg"]
 "osminfo.resources.tag2link" = ["index.json", "LICENSE"]
 "osminfo.resources.id_tagging_schema" = ["**/*.json"]
 
-[tool.qgspb.forms]
+[tool.qgsmith.forms]
 ui-files = ["src/osminfo/ui/*.ui"]
 compile = false
 
-[tool.qgspb.resources]
+[tool.qgsmith.resources]
 qrc-files = ["src/osminfo/resources.qrc"]
 target-suffix = "_rc"
 
-[tool.qgspb.translations]
+[tool.qgsmith.translations]
 ts-files = ["src/osminfo/i18n/*.ts"]
 no-obsolete = true
 
