@@ -19,111 +19,142 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
-from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QWidget
 
-from osminfo.core.utils import utm_tags
+from osminfo.core.utils import qgis_locale, utm_tags
+from osminfo.ui_kit.buttons.news_banner import NewsBannerButton
+
+BLACK_FRIDAY_2026_START = datetime(
+    year=2026,
+    month=11,
+    day=9,
+    hour=6,
+    minute=0,
+    tzinfo=timezone.utc,
+)
+BLACK_FRIDAY_2026_FINISH = {
+    "ru": datetime(
+        year=2026,
+        month=11,
+        day=27,
+        hour=21,
+        minute=0,
+        tzinfo=timezone.utc,
+    ),
+    "default": datetime(
+        year=2026,
+        month=11,
+        day=28,
+        hour=6,
+        minute=0,
+        tzinfo=timezone.utc,
+    ),
+}
+BLACK_FRIDAY_2026_LANDING_PAGES = {
+    "ru": "https://nextgis.ru/extra/black-friday-2026/ru/",
+    "en": "https://nextgis.com/extra/black-friday-2026/en/",
+}
+BLACK_FRIDAY_2026_BANNER_TEXTS = {
+    "ru": ("23 – 27 ноября · <b>−50% на данные и подписки</b>",),
+    "en": ("Nov 23 – 27 · <b>50% off data and subscriptions</b>",),
+    "es": ("23–27 nov. · <b>50% de descuento en datos y suscripciones</b>",),
+    "fr": (
+        "23 - 27 novembre · <b>50% de reduction sur les données "
+        "et les abonnements</b>",
+        "23–27 nov. · <b>Données et abonnements à −50 %</b>",
+    ),
+    "bg": ("23 – 27 ноември · <b>50% отстъпка за данни и абонаменти</b>",),
+    "cs": ("23. – 27. listopadu · <b>50% sleva na data a předplatné</b>",),
+    "de": ("23. – 27. Nov. · <b>50 % Rabatt auf Daten und Abonnements</b>",),
+    "it": ("23 – 27 nov. · <b>50% di sconto su dati e abbonamenti</b>",),
+    "ja": (
+        "11月23日～27日 · <b>データプランとサブスクリプションが50％オフ</b>",
+    ),
+    "zh": ("11月23日至27日 · <b>数据和订阅享五折优惠</b>",),
+    "pl": ("23–27 listopada · <b>50% zniżki na dane i subskrypcje</b>",),
+    "pt": (
+        "23 a 27 de novembro · <b>50% de desconto em dados e assinaturas</b>",
+        "23–27 nov. · <b>Dados e assinaturas −50%</b>",
+    ),
+}
 
 
 @dataclass(frozen=True)
 class _BannerCampaignContent:
     icon_path: str
-    message_html: str
+    message: str
+    compact_message: Optional[str]
+    url: str
 
 
 class _BannerCampaign(str, Enum):
     CONSTANT = "constant"
-    BLACK_FRIDAY_2025 = "black-friday25"
+    BLACK_FRIDAY_2026 = "black-friday26"
 
 
-class NextGisBannerWidget(QFrame):
-    BLACK_FRIDAY_2025_START = datetime(
-        year=2025,
-        month=12,
-        day=1,
-        hour=6,
-        minute=1,
-        tzinfo=timezone.utc,
-    )
-    BLACK_FRIDAY_2025_FINISH = datetime(
-        year=2025,
-        month=12,
-        day=6,
-        hour=5,
-        minute=59,
-        tzinfo=timezone.utc,
-    )
-
+class NextGisBannerWidget(NewsBannerButton):
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
 
-        self.setFrameShape(QFrame.Shape.StyledPanel)
-        self.setFrameShadow(QFrame.Shadow.Raised)
-
-        self._layout = QVBoxLayout(self)
-        self._layout.setContentsMargins(0, 6, 0, 6)
-
-        self._label = QLabel(self)
-        self._label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._label.setOpenExternalLinks(True)
-        self._label.setTextFormat(Qt.TextFormat.RichText)
-        self._label.setWordWrap(True)
-        self._layout.addWidget(self._label)
-
-        self.refresh_content()
-
-    def refresh_content(self) -> None:
-        campaign = self._campaign_name()
+        locale = qgis_locale()
+        campaign = self._campaign_name(locale=locale)
         utm = utm_tags("banner", utm_campaign=campaign.value)
-        content = self._campaign_content(campaign, utm)
-
-        html = f"""
-            <html>
-            <head></head>
-            <body>
-                <center>
-                    <table>
-                        <tr>
-                            <td><img src=\"{content.icon_path}\"></td>
-                            <td>&nbsp;{content.message_html}</td>
-                        </tr>
-                    </table>
-                </center>
-            </body>
-            </html>
-        """
-        self._label.setText(html)
+        content = self._campaign_content(campaign, locale, utm)
+        self.set_banner_html(
+            f'<img src="{content.icon_path}">{content.message}',
+            content.url,
+            content.compact_message,
+        )
 
     def _campaign_content(
         self,
         campaign: _BannerCampaign,
+        locale: str,
         utm: str,
     ) -> _BannerCampaignContent:
-        if campaign == _BannerCampaign.BLACK_FRIDAY_2025:
+        if campaign == _BannerCampaign.BLACK_FRIDAY_2026:
+            banner_locale = (
+                locale if locale in BLACK_FRIDAY_2026_BANNER_TEXTS else "en"
+            )
+            texts = BLACK_FRIDAY_2026_BANNER_TEXTS.get(
+                banner_locale,
+                BLACK_FRIDAY_2026_BANNER_TEXTS["en"],
+            )
+            full_text = texts[0]
+            compact_text = texts[1] if len(texts) > 1 else None
+            landing_locale = "ru" if locale == "ru" else "en"
+            landing_url = BLACK_FRIDAY_2026_LANDING_PAGES[landing_locale]
+
             return _BannerCampaignContent(
                 icon_path=":/plugins/osminfo/icons/fire.png",
-                message_html=self.tr(
-                    '<a href="https://data.nextgis.com/?{utm}">'
-                    "Fresh geodata</a> for your project <b>(50% off!)</b>"
-                ).format(utm=utm),
+                message=full_text,
+                compact_message=compact_text,
+                url=f"{landing_url}?{utm}",
             )
 
         return _BannerCampaignContent(
             icon_path=":/plugins/osminfo/icons/news.png",
-            message_html=self.tr(
-                '<a href="https://data.nextgis.com/?{utm}">'
-                "Download geodata</a> for your project"
-            ).format(utm=utm),
+            message=self.tr("<b>Download geodata</b> for your project"),
+            compact_message=None,
+            url=f"https://data.nextgis.com/?{utm}",
         )
 
-    def _campaign_name(self) -> _BannerCampaign:
-        now = datetime.now(timezone.utc)
-        is_black_friday = (
-            self.BLACK_FRIDAY_2025_START
-            <= now
-            <= self.BLACK_FRIDAY_2025_FINISH
+    def _campaign_name(
+        self,
+        now: Optional[datetime] = None,
+        locale: Optional[str] = None,
+    ) -> _BannerCampaign:
+        if now is None:
+            now = datetime.now(timezone.utc)
+        if locale is None:
+            locale = qgis_locale()
+
+        finish = BLACK_FRIDAY_2026_FINISH.get(
+            locale,
+            BLACK_FRIDAY_2026_FINISH["default"],
         )
+        is_black_friday = BLACK_FRIDAY_2026_START <= now < finish
         if is_black_friday:
-            return _BannerCampaign.BLACK_FRIDAY_2025
+            return _BannerCampaign.BLACK_FRIDAY_2026
 
         return _BannerCampaign.CONSTANT

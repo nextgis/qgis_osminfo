@@ -347,14 +347,9 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>NextGisBannerWidget</name>
     <message>
-        <location filename="../search/ui/nextgis_banner.py" line="103"/>
-        <source>&lt;a href=&quot;https://data.nextgis.com/?{utm}&quot;&gt;Fresh geodata&lt;/a&gt; for your project &lt;b&gt;(50% off!)&lt;/b&gt;</source>
-        <translation>&lt;a href=&quot;https://data.nextgis.com/?{utm}&quot;&gt;Geodatos recientes&lt;/a&gt; para su proyecto &lt;b&gt;(50 % de descuento)&lt;/b&gt;</translation>
-    </message>
-    <message>
-        <location filename="../search/ui/nextgis_banner.py" line="111"/>
-        <source>&lt;a href=&quot;https://data.nextgis.com/?{utm}&quot;&gt;Download geodata&lt;/a&gt; for your project</source>
-        <translation>&lt;a href=&quot;https://data.nextgis.com/?{utm}&quot;&gt;Descargar geodatos&lt;/a&gt; para su proyecto</translation>
+        <location filename="../search/ui/nextgis_banner.py" line="159"/>
+        <source>&lt;b&gt;Download geodata&lt;/b&gt; for your project</source>
+        <translation>&lt;b&gt;Descargar geodatos&lt;/b&gt; para su proyecto</translation>
     </message>
 </context>
 <context>
