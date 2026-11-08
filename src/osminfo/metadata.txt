@@ -15,8 +15,8 @@ about[pt]=OSMInfo transforma um ponto no mapa em contexto útil. Encontre objeto
 about[de]=OSMInfo macht aus einem Punkt auf der Karte einen nutzbaren Kontext. Finden Sie OpenStreetMap-Objekte nach Ort, Koordinaten, Kategorie oder freien Abfragen im Overpass-Turbo-Stil, prüfen Sie Geometrie und Tags und sehen Sie nahegelegene sowie umschließende Objekte an einem Ort. Wenn Sie die Ergebnisse weiterverwenden möchten, können Sie sie direkt kopieren oder in Layer speichern.
 about[it]=OSMInfo trasforma un punto sulla mappa in contesto utile. Trova oggetti OpenStreetMap per luogo, coordinate, categoria o query libere in stile Overpass Turbo, ispeziona geometria e tag e visualizza in un solo posto gli oggetti vicini e contenenti. Quando ti servono i risultati nel lavoro, puoi copiarli o salvarli direttamente nei layer.
 category=Vector
-version=2.2.1
-qgisMinimumVersion=3.22
+version=2.2.2
+qgisMinimumVersion=3.32
 qgisMaximumVersion=4.99
 
 author=NextGIS
@@ -35,9 +35,11 @@ video=https://youtu.be/k-DZVAh_i18
 video[ru]=https://youtu.be/rRhHekQZH_8
 
 deprecated=False
-supportsQt6=True
 
 changelog=
+    2.2.2
+        * Updated promotional banner
+        * Raised minimum supported QGIS version to 3.32
     2.2.1
         * Improved custom Overpass endpoint guidance
         * Improved compatibility with QGIS 4
